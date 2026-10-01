@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 246 247 250;
+  --surface: 255 255 255;
+  --border: 224 228 237;
+  --ink: 15 20 32;
+  --ink-muted: 93 101 120;
+  --accent: 15 143 130;
+  --accent-soft: 15 143 130 / 0.12;
+  --ok: 21 138 77;
+  --ok-soft: 21 138 77 / 0.12;
+  --warn: 161 92 7;
+  --warn-soft: 161 92 7 / 0.12;
+  --bad: 177 51 51;
+  --bad-soft: 177 51 51 / 0.12;
+  --neutral: 100 112 140;
+  --neutral-soft: 100 112 140 / 0.12;
+}
+
+.dark {
+  --bg: 10 14 22;
+  --surface: 16 21 32;
+  --border: 32 39 54;
+  --ink: 236 239 245;
+  --ink-muted: 148 157 178;
+  --accent: 45 212 191;
+  --accent-soft: 45 212 191 / 0.14;
+  --ok: 52 199 118;
+  --ok-soft: 52 199 118 / 0.14;
+  --warn: 234 158 51;
+  --warn-soft: 234 158 51 / 0.14;
+  --bad: 232 94 94;
+  --bad-soft: 232 94 94 / 0.14;
+  --neutral: 140 150 170;
+  --neutral-soft: 140 150 170 / 0.14;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-bg text-ink antialiased;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+::selection {
+  background: rgb(var(--accent) / 0.25);
+}
+
+.focus-ring {
+  @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-bg;
+}
