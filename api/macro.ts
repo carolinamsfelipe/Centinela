@@ -85,7 +85,7 @@ export default async function handler(_req: any, res: any) {
       fetchBcraSerie(27),
       fetchBcraSerie(28),
       fetchBcraSerie(7),
-      fetchChart("%5EMERV").catch(() => ({ precio: null, variacionDiaria: null, moneda: null })),
+      fetchChart("^MERV").catch(() => ({ precio: null, variacionDiaria: null, moneda: null })),
     ]);
 
     const oficial = dolares.find((d) => d.casa === "oficial");
