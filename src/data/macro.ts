@@ -16,16 +16,7 @@ import type { MacroIndicator, Sector } from "@/types";
 export const MACRO_DISCLAIMER_RESPALDO =
   "No se pudo conectar con las fuentes en vivo (BCRA / dolarapi.com / Yahoo Finance) en este momento: se muestran los últimos valores guardados como respaldo, claramente desactualizados respecto del dato real de hoy.";
 
-export interface MacroHistoricoPunto {
-  fecha: string;
-  valor: number;
-}
-
-export interface MacroIndicatorConHistorico extends MacroIndicator {
-  historico: MacroHistoricoPunto[];
-}
-
-export const MACRO_INDICATORS_RESPALDO: MacroIndicatorConHistorico[] = [
+export const MACRO_INDICATORS_RESPALDO: MacroIndicator[] = [
   {
     id: "dolar_oficial",
     nombre: "Dólar oficial (venta)",
@@ -109,9 +100,9 @@ export const MACRO_INDICATORS_RESPALDO: MacroIndicatorConHistorico[] = [
 ];
 
 export function getMacroIndicator(
-  indicadores: MacroIndicatorConHistorico[],
+  indicadores: MacroIndicator[],
   id: string
-): MacroIndicatorConHistorico | undefined {
+): MacroIndicator | undefined {
   return indicadores.find((m) => m.id === id);
 }
 
@@ -235,10 +226,10 @@ export const RELEVANCIA_POR_SECTOR: Record<Sector, RelevanciaMacro[]> = {
 
 export function getRelevanciaSector(
   sector: Sector,
-  indicadores: MacroIndicatorConHistorico[]
-): Array<{ indicador: MacroIndicatorConHistorico; motivo: string }> {
+  indicadores: MacroIndicator[]
+): Array<{ indicador: MacroIndicator; motivo: string }> {
   const items = RELEVANCIA_POR_SECTOR[sector] ?? DEFAULT_RELEVANCIA;
-  const resultado: Array<{ indicador: MacroIndicatorConHistorico; motivo: string }> = [];
+  const resultado: Array<{ indicador: MacroIndicator; motivo: string }> = [];
   for (const item of items) {
     const indicador = getMacroIndicator(indicadores, item.indicadorId);
     if (indicador) resultado.push({ indicador, motivo: item.motivo });

@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Card, Tooltip } from "@/components/ui/Card";
 import { Gauge } from "@/components/ui/Gauge";
-import { formatMacroValor, formatMacroVariacion, getRelevanciaSector, type MacroIndicatorConHistorico } from "@/data/macro";
+import { formatMacroValor, formatMacroVariacion, getRelevanciaSector } from "@/data/macro";
 import { getMacroIndicators } from "@/services/macroService";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import {
@@ -38,7 +38,7 @@ import {
 } from "@/lib/financial/ratios";
 import { getCompanyAnalysis } from "@/services/companyService";
 import { useFavorites } from "@/hooks/useFavorites";
-import type { Estado } from "@/types";
+import type { Estado, MacroIndicator } from "@/types";
 
 type AnalisisEmpresa = Awaited<ReturnType<typeof getCompanyAnalysis>>;
 
@@ -59,7 +59,7 @@ export function CompanyDetail() {
   const { ticker } = useParams<{ ticker: string }>();
   const [data, setData] = useState<AnalisisEmpresa | null | undefined>(undefined);
   const { isFavorite, toggleFavorite } = useFavorites();
-  const [macro, setMacro] = useState<{ indicadores: MacroIndicatorConHistorico[]; envivo: boolean } | null>(null);
+  const [macro, setMacro] = useState<{ indicadores: MacroIndicator[]; envivo: boolean } | null>(null);
 
   useEffect(() => {
     if (!ticker) return;

@@ -1,7 +1,8 @@
-import { MACRO_INDICATORS_RESPALDO, type MacroIndicatorConHistorico } from "@/data/macro";
+import { MACRO_INDICATORS_RESPALDO } from "@/data/macro";
+import type { MacroIndicator } from "@/types";
 
 export interface MacroResultado {
-  indicadores: MacroIndicatorConHistorico[];
+  indicadores: MacroIndicator[];
   envivo: boolean;
   actualizado: string | null;
 }

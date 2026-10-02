@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { Card } from "@/components/ui/Card";
-import { formatMacroValor, formatMacroVariacion, MACRO_DISCLAIMER_RESPALDO, type MacroIndicatorConHistorico } from "@/data/macro";
+import { formatMacroValor, formatMacroVariacion, MACRO_DISCLAIMER_RESPALDO } from "@/data/macro";
 import { fmtNum } from "@/lib/format";
 import { getMacroIndicators } from "@/services/macroService";
+import type { MacroIndicator } from "@/types";
 
-function IndicadorCard({ indicador }: { indicador: MacroIndicatorConHistorico }) {
+function IndicadorCard({ indicador }: { indicador: MacroIndicator }) {
   const variacion = formatMacroVariacion(indicador.variacion);
   const historico = indicador.historico ?? [];
 
@@ -56,7 +57,7 @@ function IndicadorCard({ indicador }: { indicador: MacroIndicatorConHistorico })
 }
 
 export function Macro() {
-  const [indicadores, setIndicadores] = useState<MacroIndicatorConHistorico[]>([]);
+  const [indicadores, setIndicadores] = useState<MacroIndicator[]>([]);
   const [envivo, setEnvivo] = useState<boolean | null>(null);
   const [actualizado, setActualizado] = useState<string | null>(null);
 
