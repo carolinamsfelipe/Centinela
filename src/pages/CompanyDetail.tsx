@@ -57,6 +57,7 @@ const METRICAS_TOOLTIP: Record<string, string> = {
 export function CompanyDetail() {
   const { ticker } = useParams<{ ticker: string }>();
   const [data, setData] = useState<AnalisisEmpresa | null | undefined>(undefined);
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   useEffect(() => {
     if (!ticker) return;
@@ -79,7 +80,6 @@ export function CompanyDetail() {
   }
 
   const { company, altman, score, senales } = data;
-  const { isFavorite, toggleFavorite } = useFavorites();
   const m = company.metrics;
   const resumen = generarResumenEjecutivo(company);
 
