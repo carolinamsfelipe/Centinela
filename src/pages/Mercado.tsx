@@ -27,6 +27,10 @@ interface FilaVariacion {
   variacion: number;
 }
 
+function fmtVariacionConSigno(v: number): string {
+  return `${v > 0 ? "+" : ""}${fmtPct(v, 1)}`;
+}
+
 export function Mercado() {
   const [empresas, setEmpresas] = useState<Company[]>([]);
 
@@ -41,11 +45,19 @@ export function Mercado() {
   }, [empresas]);
 
   const ganadores = useMemo(
-    () => [...conVariacion].sort((a, b) => b.variacion - a.variacion).slice(0, 5),
+    () =>
+      conVariacion
+        .filter((f) => f.variacion > 0)
+        .sort((a, b) => b.variacion - a.variacion)
+        .slice(0, 5),
     [conVariacion]
   );
   const perdedores = useMemo(
-    () => [...conVariacion].sort((a, b) => a.variacion - b.variacion).slice(0, 5),
+    () =>
+      conVariacion
+        .filter((f) => f.variacion < 0)
+        .sort((a, b) => a.variacion - b.variacion)
+        .slice(0, 5),
     [conVariacion]
   );
 
@@ -98,7 +110,7 @@ export function Mercado() {
                     {f.company.metrics.precio !== null ? `$${fmtNum(f.company.metrics.precio, 2)}` : "N/D"}
                   </div>
                   <div className="font-mono text-sm font-semibold text-ok">
-                    +{fmtPct(f.variacion, 1)}
+                    {fmtVariacionConSigno(f.variacion)}
                   </div>
                 </div>
               </li>
@@ -133,7 +145,7 @@ export function Mercado() {
                     {f.company.metrics.precio !== null ? `$${fmtNum(f.company.metrics.precio, 2)}` : "N/D"}
                   </div>
                   <div className="font-mono text-sm font-semibold text-bad">
-                    {fmtPct(f.variacion, 1)}
+                    {fmtVariacionConSigno(f.variacion)}
                   </div>
                 </div>
               </li>
