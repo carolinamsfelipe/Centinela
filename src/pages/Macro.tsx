@@ -1,16 +1,13 @@
+import { useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { Card } from "@/components/ui/Card";
-import {
-  formatMacroValor,
-  formatMacroVariacion,
-  MACRO_DISCLAIMER,
-  MACRO_INDICATORS,
-  type MacroIndicatorConHistorico,
-} from "@/data/macro";
+import { formatMacroValor, formatMacroVariacion, MACRO_DISCLAIMER_RESPALDO, type MacroIndicatorConHistorico } from "@/data/macro";
 import { fmtNum } from "@/lib/format";
+import { getMacroIndicators } from "@/services/macroService";
 
 function IndicadorCard({ indicador }: { indicador: MacroIndicatorConHistorico }) {
   const variacion = formatMacroVariacion(indicador.variacion);
+  const historico = indicador.historico ?? [];
 
   return (
     <Card>
@@ -23,10 +20,10 @@ function IndicadorCard({ indicador }: { indicador: MacroIndicatorConHistorico })
         <div className={`font-mono text-sm font-semibold ${variacion.clase}`}>{variacion.texto}</div>
       </div>
 
-      {indicador.historico.length > 1 && (
+      {historico.length > 1 && (
         <div className="mt-4 h-16">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={indicador.historico}>
+            <LineChart data={historico}>
               <CartesianGrid stroke="rgb(var(--border))" strokeDasharray="3 3" vertical={false} />
               <RechartsTooltip
                 labelFormatter={(v) => String(v)}
@@ -38,13 +35,7 @@ function IndicadorCard({ indicador }: { indicador: MacroIndicatorConHistorico })
                   fontSize: 12,
                 }}
               />
-              <Line
-                type="monotone"
-                dataKey="valor"
-                stroke="rgb(var(--accent))"
-                strokeWidth={2}
-                dot={false}
-              />
+              <Line type="monotone" dataKey="valor" stroke="rgb(var(--accent))" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -65,25 +56,54 @@ function IndicadorCard({ indicador }: { indicador: MacroIndicatorConHistorico })
 }
 
 export function Macro() {
+  const [indicadores, setIndicadores] = useState<MacroIndicatorConHistorico[]>([]);
+  const [envivo, setEnvivo] = useState<boolean | null>(null);
+  const [actualizado, setActualizado] = useState<string | null>(null);
+
+  useEffect(() => {
+    let activo = true;
+    getMacroIndicators().then((r) => {
+      if (!activo) return;
+      setIndicadores(r.indicadores);
+      setEnvivo(r.envivo);
+      setActualizado(r.actualizado);
+    });
+    return () => {
+      activo = false;
+    };
+  }, []);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
       <h1 className="text-2xl font-bold text-ink">Contexto macroeconómico</h1>
       <p className="mt-1 text-sm text-ink-muted">
-        Indicadores de referencia de la economía argentina: dólar, inflación, tasa de interés,
-        riesgo país, actividad económica, desempleo, reservas internacionales e índice Merval.
+        Indicadores de referencia de la economía argentina: dólar, inflación, tasa BADLAR, reservas
+        internacionales e índice Merval.
       </p>
 
-      <div
-        role="status"
-        className="mt-4 rounded-xl border border-warn bg-warn-soft p-4 text-sm text-warn"
-      >
-        <span className="font-semibold">⚠️ {MACRO_DISCLAIMER}</span>
-      </div>
+      {envivo === true && (
+        <div role="status" className="mt-4 rounded-xl border border-ok bg-ok-soft p-3 text-sm text-ok">
+          🟢 En vivo — conectado a dolarapi.com, BCRA y Yahoo Finance.
+          {actualizado && (
+            <span className="ml-1 text-ink-muted">
+              Última consulta: {new Date(actualizado).toLocaleTimeString("es-AR")}.
+            </span>
+          )}
+        </div>
+      )}
+      {envivo === false && (
+        <div role="status" className="mt-4 rounded-xl border border-warn bg-warn-soft p-4 text-sm text-warn">
+          <span className="font-semibold">⚠️ {MACRO_DISCLAIMER_RESPALDO}</span>
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {MACRO_INDICATORS.map((indicador) => (
+        {indicadores.map((indicador) => (
           <IndicadorCard key={indicador.id} indicador={indicador} />
         ))}
+        {envivo === null && (
+          <p className="text-sm text-ink-muted">Consultando fuentes en vivo...</p>
+        )}
       </div>
     </div>
   );

@@ -12,7 +12,8 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Card, Tooltip } from "@/components/ui/Card";
 import { Gauge } from "@/components/ui/Gauge";
-import { formatMacroValor, formatMacroVariacion, getRelevanciaSector, MACRO_DISCLAIMER } from "@/data/macro";
+import { formatMacroValor, formatMacroVariacion, getRelevanciaSector, type MacroIndicatorConHistorico } from "@/data/macro";
+import { getMacroIndicators } from "@/services/macroService";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import {
   diagnosticarCapitalTrabajo,
@@ -58,11 +59,16 @@ export function CompanyDetail() {
   const { ticker } = useParams<{ ticker: string }>();
   const [data, setData] = useState<AnalisisEmpresa | null | undefined>(undefined);
   const { isFavorite, toggleFavorite } = useFavorites();
+  const [macro, setMacro] = useState<{ indicadores: MacroIndicatorConHistorico[]; envivo: boolean } | null>(null);
 
   useEffect(() => {
     if (!ticker) return;
     getCompanyAnalysis(ticker).then((d) => setData(d ?? null));
   }, [ticker]);
+
+  useEffect(() => {
+    getMacroIndicators().then((r) => setMacro({ indicadores: r.indicadores, envivo: r.envivo }));
+  }, []);
 
   if (data === undefined) {
     return <div className="mx-auto max-w-5xl px-4 py-16 text-center text-ink-muted">Cargando...</div>;
@@ -114,9 +120,22 @@ export function CompanyDetail() {
             <h1 className="text-2xl font-bold text-ink">{company.nombre}</h1>
             <span className="font-mono text-sm text-ink-muted">{company.ticker}</span>
             {company.fuente === "demo" && <Badge estado="sin_datos" texto="Datos demo" />}
+            {company.fuente === "real" && company.envivo && (
+              <Badge estado="normal" texto="🟢 En vivo" />
+            )}
+            {company.fuente === "real" && !company.envivo && (
+              <Badge estado="sin_datos" texto="Datos de respaldo" />
+            )}
           </div>
           <p className="mt-1 text-sm text-ink-muted">
             {company.sector} · {company.pais} · {company.tamano}
+            {company.fuente === "real" && !company.envivo && (
+              <span className="text-warn">
+                {" "}
+                · No se pudo conectar con Yahoo Finance en este momento, se muestra el último dato
+                guardado.
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -268,14 +287,15 @@ export function CompanyDetail() {
       <Card className="mt-6">
         <h2 className="font-semibold text-ink">Contexto macroeconómico</h2>
         <p className="mt-1 text-xs text-ink-muted">
-          {MACRO_DISCLAIMER} Ver el detalle completo en{" "}
+          {macro?.envivo ? "Datos en vivo." : "No se pudo conectar en vivo: se muestra el último respaldo guardado."}{" "}
+          Ver el detalle completo en{" "}
           <Link to="/macro" className="underline">
             /macro
           </Link>
           .
         </p>
         <ul className="mt-4 space-y-3">
-          {getRelevanciaSector(company.sector).map(({ indicador, motivo }) => {
+          {getRelevanciaSector(company.sector, macro?.indicadores ?? []).map(({ indicador, motivo }) => {
             const variacion = formatMacroVariacion(indicador.variacion);
             return (
               <li key={indicador.id} className="rounded-lg border border-border p-3">

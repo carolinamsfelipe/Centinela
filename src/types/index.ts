@@ -103,6 +103,10 @@ export interface Company {
   fuente: FuenteDato;
   metrics: FinancialMetrics;
   historico: HistoricalPoint[];
+  /** true si metrics vino de Yahoo Finance recien, false/undefined si es el respaldo estatico. */
+  envivo?: boolean;
+  /** timestamp ISO de cuando se consulto en vivo (null si nunca se pudo). */
+  actualizado?: string | null;
 }
 
 export interface MacroIndicator {
@@ -113,6 +117,7 @@ export interface MacroIndicator {
   variacion: number | null;
   fecha: string;
   fuente: string;
+  historico?: Array<{ periodo: string; valor: number }>;
 }
 
 export interface RiesgoEtiqueta {
