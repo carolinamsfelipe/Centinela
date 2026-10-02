@@ -1,4 +1,4 @@
-import { fetchChart, fetchQuoteSummary, fetchTimeseries } from "../_yahoo";
+import { fetchChart, fetchQuoteSummary, fetchTimeseries } from "../_yahoo.js";
 
 /**
  * GET /api/company/:ticker
