@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: "/mercado", label: "Mercado" },
   { to: "/macro", label: "Macro" },
   { to: "/simulador", label: "Simulador" },
+  { to: "/favoritos", label: "Favoritos" },
   { to: "/metodologia", label: "Metodología" },
 ];
 

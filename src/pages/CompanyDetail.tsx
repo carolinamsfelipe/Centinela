@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Card, Tooltip } from "@/components/ui/Card";
 import { Gauge } from "@/components/ui/Gauge";
+import { formatMacroValor, formatMacroVariacion, getRelevanciaSector, MACRO_DISCLAIMER } from "@/data/macro";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import {
   diagnosticarCapitalTrabajo,
@@ -35,6 +36,7 @@ import {
   calcularRoe,
 } from "@/lib/financial/ratios";
 import { getCompanyAnalysis } from "@/services/companyService";
+import { useFavorites } from "@/hooks/useFavorites";
 import type { Estado } from "@/types";
 
 type AnalisisEmpresa = Awaited<ReturnType<typeof getCompanyAnalysis>>;
@@ -77,6 +79,7 @@ export function CompanyDetail() {
   }
 
   const { company, altman, score, senales } = data;
+  const { isFavorite, toggleFavorite } = useFavorites();
   const m = company.metrics;
   const resumen = generarResumenEjecutivo(company);
 
@@ -118,19 +121,23 @@ export function CompanyDetail() {
         </div>
         <div className="flex items-center gap-3">
           <Badge estado={score.estado} />
-          <button
-            disabled
-            title="Disponible en la próxima fase"
-            className="rounded-lg border border-border px-3 py-2 text-sm text-ink-muted opacity-60"
+          <Link
+            to="/comparador"
+            className="rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:text-ink focus-ring"
           >
             Comparar
-          </button>
+          </Link>
           <button
-            disabled
-            title="Disponible en la próxima fase"
-            className="rounded-lg border border-border px-3 py-2 text-sm text-ink-muted opacity-60"
+            onClick={() => toggleFavorite(company.ticker)}
+            title={isFavorite(company.ticker) ? "Quitar de favoritos" : "Agregar a favoritos"}
+            aria-pressed={isFavorite(company.ticker)}
+            className={`rounded-lg border px-3 py-2 text-sm focus-ring ${
+              isFavorite(company.ticker)
+                ? "border-accent/40 bg-accent-soft text-accent"
+                : "border-border text-ink-muted hover:text-ink"
+            }`}
           >
-            ⭐ Favoritos
+            {isFavorite(company.ticker) ? "⭐ En favoritos" : "⭐ Favoritos"}
           </button>
         </div>
       </div>
@@ -256,6 +263,39 @@ export function CompanyDetail() {
             ))}
           </ul>
         )}
+      </Card>
+
+      <Card className="mt-6">
+        <h2 className="font-semibold text-ink">Contexto macroeconómico</h2>
+        <p className="mt-1 text-xs text-ink-muted">
+          {MACRO_DISCLAIMER} Ver el detalle completo en{" "}
+          <Link to="/macro" className="underline">
+            /macro
+          </Link>
+          .
+        </p>
+        <ul className="mt-4 space-y-3">
+          {getRelevanciaSector(company.sector).map(({ indicador, motivo }) => {
+            const variacion = formatMacroVariacion(indicador.variacion);
+            return (
+              <li key={indicador.id} className="rounded-lg border border-border p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-medium text-ink">{indicador.nombre}</span>
+                  <span className="font-mono text-sm text-ink">
+                    {formatMacroValor(indicador)}{" "}
+                    <span className={`text-xs font-semibold ${variacion.clase}`}>{variacion.texto}</span>
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-ink-muted">
+                  Este indicador puede ser relevante para el sector debido a que {motivo}
+                </p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  Dato al {indicador.fecha} · Fuente: {indicador.fuente}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
       </Card>
     </div>
   );

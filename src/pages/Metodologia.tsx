@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { NORMALIZATION, SCORE_WEIGHTS } from "@/lib/financial/scoreConfig";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
+import { SIGNAL_RULES } from "@/lib/financial/signalRules";
 
 export function Metodologia() {
   return (
@@ -57,6 +58,17 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
             <tr><td>Eficiencia</td><td>{SCORE_WEIGHTS.eficiencia * 100}%</td><td>Margen EBIT</td></tr>
           </tbody>
         </table>
+        <p className="mt-3 text-sm text-ink-muted">
+          Cada categoría se normaliza de forma lineal a una escala 0–100 contra un tope fijo
+          definido en <code className="font-mono text-xs">scoreConfig.ts</code>: Altman Z'' hasta{" "}
+          {NORMALIZATION.altmanZMax}, liquidez corriente hasta {NORMALIZATION.liquidezMax}x, ROE
+          hasta {NORMALIZATION.roeMax * 100}%, ROA hasta {NORMALIZATION.roaMax * 100}%, margen neto
+          hasta {NORMALIZATION.margenNetoMax * 100}%, margen EBIT hasta{" "}
+          {NORMALIZATION.ebitMarginMax * 100}% y deuda/patrimonio hasta{" "}
+          {NORMALIZATION.deudaPatrimonioMax}x (este último caso, invertido: a menor deuda, mayor
+          puntaje). Cualquier valor que supere el tope se recorta a 100; cualquier valor negativo se
+          recorta a 0.
+        </p>
         <p className="mt-3 text-xs text-ink-muted">
           Si una categoría no tiene datos suficientes, se excluye del promedio y se redistribuye el
           peso entre las categorías disponibles — nunca se completa con un valor inventado. El
@@ -67,13 +79,54 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
       </Card>
 
       <Card className="mt-6">
+        <h2 className="font-semibold text-ink">Semáforo financiero</h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          Además del Score Centinela (una única lectura agregada), cada indicador se clasifica
+          también de forma individual con reglas fijas en{" "}
+          <code className="font-mono text-xs">diagnostics.ts</code> — es el detalle que se ve en la
+          sección &quot;Estado financiero&quot; de cada ficha de empresa:
+        </p>
+        <table className="mt-3 w-full text-sm">
+          <thead>
+            <tr className="text-left text-ink-muted">
+              <th className="pb-1">Indicador</th>
+              <th className="pb-1">Riesgo</th>
+              <th className="pb-1">Atención</th>
+              <th className="pb-1">Saludable</th>
+            </tr>
+          </thead>
+          <tbody className="text-ink">
+            <tr><td>Liquidez corriente</td><td>&lt; 1</td><td>1 – 1.5</td><td>&gt; 1.5</td></tr>
+            <tr><td>Endeudamiento (pasivo/activo)</td><td>&gt; 70%</td><td>50% – 70%</td><td>&lt; 50%</td></tr>
+            <tr><td>Capital de trabajo / activos</td><td>&lt; 0</td><td>0% – 10%</td><td>&gt; 10%</td></tr>
+            <tr><td>Deuda / patrimonio</td><td>&gt; 2x</td><td>1x – 2x</td><td>&lt; 1x</td></tr>
+            <tr><td>ROE</td><td>&lt; 0%</td><td>0% – 15%</td><td>&gt; 15%</td></tr>
+            <tr><td>ROA</td><td>&lt; 0%</td><td>0% – 5%</td><td>&gt; 5%</td></tr>
+            <tr><td>Margen neto</td><td>&lt; 0%</td><td>0% – 10%</td><td>&gt; 10%</td></tr>
+          </tbody>
+        </table>
+        <p className="mt-3 text-xs text-ink-muted">
+          Estos cortes son criterios propios de la plataforma, no una norma contable: se eligieron
+          para distinguir casos de riesgo relativamente claros sin requerir un benchmark por sector.
+          Cuando el indicador no se puede calcular con los datos disponibles, se muestra como &quot;Sin
+          información&quot; en vez de asumírsele un valor.
+        </p>
+      </Card>
+
+      <Card className="mt-6">
         <h2 className="font-semibold text-ink">Señales Centinela</h2>
         <p className="mt-2 text-sm text-ink-muted">
           Surgen de reglas explícitas en <code className="font-mono text-xs">signalRules.ts</code> que
-          comparan el último período disponible contra el anterior (variación de ROE, deuda,
-          margen, Altman, liquidez). No hay señales inferidas por un modelo de lenguaje ni
-          generadas sin una regla documentada que las respalde.
+          comparan el último período disponible contra el anterior. No hay señales inferidas por un
+          modelo de lenguaje ni generadas sin una regla documentada que las respalde:
         </p>
+        <ul className="mt-3 space-y-1.5 text-sm text-ink-muted">
+          <li>• ROE sube ≥ {SIGNAL_RULES.ROE_CHANGE_THRESHOLD * 100} puntos porcentuales → mejora de rentabilidad.</li>
+          <li>• Deuda/Patrimonio varía ≥ {SIGNAL_RULES.DEBT_CHANGE_THRESHOLD}x (en cualquier dirección) → aumento o reducción de endeudamiento.</li>
+          <li>• Resultado neto cae ≥ {SIGNAL_RULES.MARGIN_CHANGE_THRESHOLD * 100}% en términos relativos respecto del período anterior con margen conocido → caída de margen.</li>
+          <li>• Altman Z'' cae ≥ {SIGNAL_RULES.ALTMAN_DROP_THRESHOLD} puntos entre períodos → deterioro significativo de solvencia.</li>
+          <li>• Liquidez corriente &lt; 1 en el último período → alerta de liquidez (se evalúa siempre, no depende del histórico).</li>
+        </ul>
       </Card>
 
       <Card className="mt-6">
