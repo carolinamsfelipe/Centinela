@@ -198,7 +198,7 @@ export function CompanyDetail() {
       analisis,
       benchmark: benchmarkPorMercado(company, todas),
       contextoMacro: lineasMacro,
-      // TODO(cableado PDF): cuando DatosInformeEmpresa tenga `analisisIA?: string | null`, pasar `analisisIA` aca.
+      analisisIA,
     });
   }
 
