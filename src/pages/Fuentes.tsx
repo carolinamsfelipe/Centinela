@@ -17,7 +17,7 @@ const FUENTES: Fuente[] = [
     actualizacion: "En vivo: se consulta al abrir cada pantalla (caché de 15 minutos)",
     url: "https://finance.yahoo.com",
     descripcion:
-      "29 empresas que cotizan en Argentina, Brasil, Estados Unidos, Europa y Asia (ADR en dólares). Cada ficha indica a qué hora se consultó la fuente y en qué moneda reporta la empresa.",
+      "44 empresas que cotizan en Argentina, Brasil, México, Estados Unidos, Europa y Asia (ADR en dólares). Cada ficha indica a qué hora se consultó la fuente y en qué moneda reporta la empresa.",
   },
   {
     fuente: "dolarapi.com",

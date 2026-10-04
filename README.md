@@ -31,8 +31,8 @@ demanda para no pesar en la carga inicial.
 
 ## Datos en vivo (sin datos ficticios)
 
-- **29 empresas** que cotizan en Argentina, Brasil, Estados Unidos, Europa y
-  Asia: `/api/companies` (lotes) y `/api/company/:ticker` consultan Yahoo
+- **44 empresas** que cotizan en Argentina, Brasil, México, Estados Unidos,
+  Europa y Asia: `/api/companies` (lotes) y `/api/company/:ticker` consultan Yahoo
   Finance en el momento: balance, resultados, EBITDA, flujo de caja, precio y
   capitalización. Cacheado 15 min en el borde de Vercel.
 - **Monedas**: cada empresa reporta en su moneda; la capitalización de mercado
