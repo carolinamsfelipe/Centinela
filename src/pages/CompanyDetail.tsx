@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
@@ -20,6 +20,8 @@ import { generarAnalisisEjecutivo } from "@/lib/financial/narrative";
 import { fmtFecha, fmtMonto, fmtNum, fmtPct, fmtX } from "@/lib/format";
 import { descargarExcelEmpresa } from "@/lib/reports/comparativo";
 import { descargarInformeEmpresa, textoFuente } from "@/lib/reports/informeEmpresa";
+import { construirPayloadAnalisis, generarAnalisisIA } from "@/services/aiService";
+import type { AnalisisIA } from "@/services/aiService";
 import { getCompanies, getCompanyAnalysis } from "@/services/companyService";
 import { getMacroIndicators } from "@/services/macroService";
 import type { MacroResultado } from "@/services/macroService";
@@ -73,6 +75,22 @@ function formatearHistorico(v: number | null, tipo: TipoFormato, company: Compan
   }
 }
 
+/** Estado del "Analisis contextual con IA" (solo se genera cuando el usuario lo pide). */
+type EstadoIA =
+  | { fase: "inactivo" }
+  | { fase: "cargando" }
+  | { fase: "listo"; resultado: AnalisisIA }
+  | { fase: "sinConfigurar" }
+  | { fase: "error"; mensaje: string; limite: boolean };
+
+/** El modelo a veces devuelve marcas de Markdown: se muestran como texto plano. */
+function textoPlanoIA(texto: string): string {
+  return texto
+    .replace(/\*\*/g, "")
+    .replace(/^#{1,6}\s*/gm, "")
+    .trim();
+}
+
 function Aviso({ tipo, children }: { tipo: "info" | "warn"; children: ReactNode }) {
   const clase = tipo === "warn" ? "border-warn/40 bg-warn-soft text-warn" : "border-border bg-surface text-ink-muted";
   return (
@@ -90,6 +108,8 @@ export function CompanyDetail() {
   const [macro, setMacro] = useState<MacroResultado | null>(null);
   const [universo, setUniverso] = useState<Company[] | null>(null);
   const [metricaHist, setMetricaHist] = useState<MetricaHistorica>("roe");
+  const [ia, setIa] = useState<EstadoIA>({ fase: "inactivo" });
+  const pedidoIa = useRef(0);
 
   useDocumentTitle(data ? `Centinela — ${data.company.nombre}` : "Centinela");
 
@@ -102,6 +122,12 @@ export function CompanyDetail() {
   useEffect(() => {
     getMacroIndicators().then(setMacro);
   }, []);
+
+  // Al cambiar de empresa se descarta el analisis de IA anterior (y se ignora cualquier respuesta en vuelo).
+  useEffect(() => {
+    pedidoIa.current += 1;
+    setIa({ fase: "inactivo" });
+  }, [ticker]);
 
   useEffect(() => {
     let activo = true;
@@ -143,6 +169,8 @@ export function CompanyDetail() {
   const analisis = generarAnalisisEjecutivo(company, altman, lineasMacro);
   const benchmark = universo ? benchmarkPorMercado(company, universo) : null;
   const mon = (v: number | null) => fmtMonto(v, company);
+  /** Texto del analisis contextual con IA (null si todavia no se generó). Disponible para el informe PDF. */
+  const analisisIA: string | null = ia.fase === "listo" ? textoPlanoIA(ia.resultado.texto) : null;
 
   const metricas: Array<{ label: string; valor: string }> = [
     { label: "Market Cap", valor: mon(m.marketCap) },
@@ -170,7 +198,23 @@ export function CompanyDetail() {
       analisis,
       benchmark: benchmarkPorMercado(company, todas),
       contextoMacro: lineasMacro,
+      // TODO(cableado PDF): cuando DatosInformeEmpresa tenga `analisisIA?: string | null`, pasar `analisisIA` aca.
     });
+  }
+
+  async function generarIA(forzar = false) {
+    const pedido = ++pedidoIa.current;
+    setIa({ fase: "cargando" });
+    const payload = construirPayloadAnalisis({ company, altman, score, analisis, benchmark, lineasMacro });
+    const r = await generarAnalisisIA(payload, { forzar });
+    if (pedido !== pedidoIa.current) return;
+    if (r.ok) {
+      setIa({ fase: "listo", resultado: { texto: r.texto, proveedor: r.proveedor, modelo: r.modelo, generado: r.generado } });
+    } else if (r.sinConfigurar) {
+      setIa({ fase: "sinConfigurar" });
+    } else {
+      setIa({ fase: "error", mensaje: r.mensaje, limite: r.limite });
+    }
   }
 
   async function descargarExcel() {
@@ -544,6 +588,96 @@ export function CompanyDetail() {
           ))}
         </ul>
         <p className="mt-4 text-xs text-ink-muted">{analisis.nota}</p>
+      </Card>
+
+      <Card className="mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold text-ink">Análisis contextual con IA</h2>
+          <span className="rounded-full border border-border px-2.5 py-1 text-xs text-ink-muted">
+            Redactado con IA · orientativo, no es recomendación
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-ink-muted">
+          Hipótesis generales sobre por qué podrían estar pasando estos números y cómo podrían afectarle el tipo de
+          cambio, la inflación, las tasas y la competitividad de su sector frente a otros mercados. La IA solo redacta
+          sobre las cifras ya calculadas en esta ficha: no calcula, no conoce hechos puntuales de la empresa y puede
+          equivocarse.
+        </p>
+
+        {ia.fase === "inactivo" && (
+          <>
+            <p className="mt-3 text-xs text-ink-muted">
+              {esPropia
+                ? "Al generarlo se envían a un servicio externo de IA solo cifras agregadas de tu balance (importes, ratios y semáforo que ves en esta ficha); no se envía el archivo cargado. No se genera solo."
+                : "Al generarlo se envían a un servicio externo de IA las cifras, ratios y contexto macro que ves en esta ficha. No se genera solo."}
+            </p>
+            <button
+              type="button"
+              onClick={() => void generarIA()}
+              disabled={sinDatos}
+              className="mt-3 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90 focus-ring disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Generar análisis
+            </button>
+          </>
+        )}
+
+        {ia.fase === "cargando" && (
+          <p role="status" className="mt-4 text-sm text-ink-muted">
+            Generando el análisis... puede tardar unos segundos.
+          </p>
+        )}
+
+        {ia.fase === "listo" && (
+          <>
+            <div className="mt-4 whitespace-pre-line text-sm leading-relaxed text-ink">{textoPlanoIA(ia.resultado.texto)}</div>
+            <p className="mt-3 text-xs text-ink-muted">
+              Redactado con IA ({ia.resultado.proveedor}
+              {ia.resultado.modelo ? ` · ${ia.resultado.modelo}` : ""}) el {fmtFecha(ia.resultado.generado)}. Orientativo: no
+              es una recomendación de inversión ni de crédito y puede contener errores.
+            </p>
+            <button
+              type="button"
+              onClick={() => void generarIA(true)}
+              className="mt-2 rounded-lg border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink focus-ring"
+            >
+              Volver a generar
+            </button>
+          </>
+        )}
+
+        {ia.fase === "error" && (
+          <div role="alert" className="mt-4 rounded-xl border border-warn/40 bg-warn-soft p-3 text-sm text-warn">
+            {ia.mensaje}
+            {!ia.limite && (
+              <button
+                type="button"
+                onClick={() => void generarIA(true)}
+                className="ml-2 underline focus-ring"
+              >
+                Reintentar
+              </button>
+            )}
+          </div>
+        )}
+
+        {ia.fase === "sinConfigurar" && (
+          <div className="mt-4">
+            <p className="text-sm text-ink-muted">
+              El análisis con IA todavía no está activado en este despliegue. Mientras tanto, esta es la lectura
+              determinística de la plataforma:
+            </p>
+            <p className="mt-3 text-sm text-ink">{analisis.resumen}</p>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-ink">
+              {analisis.aspectosParaRevisar.map((pregunta) => (
+                <li key={pregunta}>{pregunta}</li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-ink-muted">
+              Texto de respaldo, armado sin IA con los mismos indicadores y umbrales de arriba.
+            </p>
+          </div>
+        )}
       </Card>
     </div>
   );

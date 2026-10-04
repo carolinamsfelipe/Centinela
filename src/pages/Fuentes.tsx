@@ -99,6 +99,18 @@ export function Fuentes() {
       </div>
 
       <Card className="mt-6">
+        <h2 className="font-semibold text-ink">Análisis contextual con IA (opcional)</h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          Si el administrador del sitio activó el servicio, el botón &quot;Generar análisis&quot; de cada ficha envía a
+          Groq (modelo de lenguaje abierto, tier gratuito) las cifras, ratios, semáforo y contexto macro que ya calculó
+          Centinela, y devuelve un texto con hipótesis generales sobre tipo de cambio, inflación, tasas y competitividad
+          del sector. La IA solo redacta sobre cifras ya calculadas: no calcula, no consulta noticias ni conoce hechos
+          puntuales de la empresa, y puede equivocarse. Es orientativo y no una recomendación de inversión ni de crédito.
+          No se genera automáticamente, y para empresas propias se envían solo cifras agregadas, nunca el archivo cargado.
+        </p>
+      </Card>
+
+      <Card className="mt-6">
         <h2 className="font-semibold text-ink">Indicadores que no se muestran</h2>
         <p className="mt-2 text-sm text-ink-muted">
           Riesgo país, actividad económica (EMAE) y desempleo no están integrados: no encontramos una fuente pública,
