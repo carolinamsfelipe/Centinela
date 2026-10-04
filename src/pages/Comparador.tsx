@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Legend,
   CartesianGrid,
@@ -15,11 +15,21 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { TOOLTIP_CONTENT_STYLE, TOOLTIP_LABEL_STYLE } from "@/components/charts/chartStyle";
 import { Badge } from "@/components/ui/Badge";
+import { BotonDescarga } from "@/components/ui/BotonDescarga";
 import { Card } from "@/components/ui/Card";
-import { fmtMoney, fmtNum, fmtPct, fmtX } from "@/lib/format";
+import { MERCADOS, nombreMercado, nombreSector } from "@/data/companies";
+import { ESTADO_LABEL } from "@/lib/financial/diagnostics";
+import { aUsd, fmtMonto, fmtNum, fmtPct, fmtX } from "@/lib/format";
+import {
+  FILAS_COMPARATIVAS,
+  NOTA_COMPARACION,
+  descargarExcelComparativo,
+  descargarInformeComparativo,
+} from "@/lib/reports/comparativo";
 import { getCompanies, getCompanyAnalysis } from "@/services/companyService";
-import type { Company, HistoricalPoint } from "@/types";
+import type { Company, HistoricalPoint, Mercado } from "@/types";
 
 type AnalisisEmpresa = NonNullable<Awaited<ReturnType<typeof getCompanyAnalysis>>>;
 
@@ -43,21 +53,6 @@ const CATEGORIAS: Array<{ key: keyof AnalisisEmpresa["score"]["categorias"]; lab
   { key: "eficiencia", label: "Eficiencia" },
 ];
 
-const FILAS_TABLA: Array<{ label: string; valor: (a: AnalisisEmpresa) => string }> = [
-  { label: "Score Centinela", valor: (a) => (a.score.total !== null ? `${a.score.total} / 100` : "N/D") },
-  { label: "Altman Z''", valor: (a) => fmtNum(a.altman.zScore) },
-  { label: "Market Cap", valor: (a) => fmtMoney(a.company.metrics.marketCap) },
-  { label: "Revenue", valor: (a) => fmtMoney(a.company.metrics.revenue) },
-  { label: "EBITDA", valor: (a) => fmtMoney(a.company.metrics.ebitda) },
-  { label: "Margen neto", valor: (a) => fmtPct(a.company.metrics.margenNeto) },
-  { label: "ROE", valor: (a) => fmtPct(a.company.metrics.roe) },
-  { label: "ROA", valor: (a) => fmtPct(a.company.metrics.roa) },
-  { label: "Debt/Equity", valor: (a) => fmtX(a.company.metrics.debtToEquity) },
-  { label: "Current Ratio", valor: (a) => fmtNum(a.company.metrics.currentRatio) },
-  { label: "P/E", valor: (a) => fmtNum(a.company.metrics.pe) },
-  { label: "EV/EBITDA", valor: (a) => fmtNum(a.company.metrics.evEbitda) },
-];
-
 type MetricaEvolucion = keyof Omit<HistoricalPoint, "periodo">;
 type TipoFormato = "pct" | "money" | "x" | "num";
 
@@ -79,7 +74,7 @@ function formatearPorTipo(v: number | null, tipo: TipoFormato): string {
     case "pct":
       return fmtPct(v);
     case "money":
-      return fmtMoney(v);
+      return fmtMonto(v, { monedaReporte: "USD", tipoCambioUsd: 1 });
     case "x":
       return fmtX(v);
     case "num":
@@ -88,14 +83,27 @@ function formatearPorTipo(v: number | null, tipo: TipoFormato): string {
 }
 
 export function Comparador() {
+  const [params] = useSearchParams();
   const [empresas, setEmpresas] = useState<Company[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [seleccion, setSeleccion] = useState<string[]>([]);
   const [analisis, setAnalisis] = useState<AnalisisEmpresa[]>([]);
   const [filtro, setFiltro] = useState("");
+  const [filtroMercado, setFiltroMercado] = useState<Mercado | "Todos">("Todos");
   const [metricaEvolucion, setMetricaEvolucion] = useState<MetricaEvolucion>("roe");
 
   useEffect(() => {
-    getCompanies().then(setEmpresas);
+    getCompanies().then((cs) => {
+      setEmpresas(cs);
+      setCargando(false);
+      const inicial = (params.get("empresas") ?? "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => cs.some((c) => c.ticker === t));
+      if (inicial.length > 0) setSeleccion(inicial.slice(0, MAX_SELECCION));
+    });
+    // Solo se lee el parametro al abrir la pagina.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -113,16 +121,24 @@ export function Comparador() {
     };
   }, [seleccion]);
 
+  const mercadosDisponibles = useMemo(
+    () => MERCADOS.filter((m) => empresas.some((c) => c.mercado === m.id)),
+    [empresas]
+  );
+
   const empresasFiltradas = useMemo(() => {
     const q = filtro.trim().toLowerCase();
-    if (!q) return empresas;
-    return empresas.filter(
-      (c) =>
+    return empresas.filter((c) => {
+      if (filtroMercado !== "Todos" && c.mercado !== filtroMercado) return false;
+      if (!q) return true;
+      return (
         c.nombre.toLowerCase().includes(q) ||
         c.ticker.toLowerCase().includes(q) ||
-        c.sector.toLowerCase().includes(q)
-    );
-  }, [empresas, filtro]);
+        nombreSector(c.sector).toLowerCase().includes(q) ||
+        nombreMercado(c.mercado).toLowerCase().includes(q)
+      );
+    });
+  }, [empresas, filtro, filtroMercado]);
 
   function toggleSeleccion(ticker: string) {
     setSeleccion((prev) => {
@@ -146,19 +162,23 @@ export function Comparador() {
 
   const metricaInfo = METRICAS_EVOLUCION.find((m) => m.id === metricaEvolucion) ?? METRICAS_EVOLUCION[0];
 
+  // Las empresas no tienen los mismos cierres ni la misma moneda: se alinean por posicion
+  // (ultimo ejercicio con ultimo ejercicio) y los importes se pasan a US$ para poder
+  // superponerlos. Los ratios no dependen de la moneda.
   const evolucionData = useMemo(() => {
     const maxLen = analisis.reduce((max, a) => Math.max(max, a.company.historico.length), 0);
     return Array.from({ length: maxLen }, (_, i) => {
-      const fila: Record<string, string | number | null> = {
-        periodo: analisis[0]?.company.historico[i]?.periodo ?? `P${i + 1}`,
-      };
+      const fila: Record<string, string | number | null> = { periodo: `Ejercicio -${maxLen - 1 - i}` };
+      if (i === maxLen - 1) fila.periodo = "Último ejercicio";
       analisis.forEach((a) => {
-        const punto = a.company.historico[i];
-        fila[a.company.ticker] = punto ? punto[metricaEvolucion] : null;
+        const h = a.company.historico;
+        const punto = h[h.length - maxLen + i];
+        const valor = punto ? punto[metricaEvolucion] : null;
+        fila[a.company.ticker] = valor !== null && metricaInfo.tipo === "money" ? aUsd(valor, a.company) : valor;
       });
       return fila;
     });
-  }, [analisis, metricaEvolucion]);
+  }, [analisis, metricaEvolucion, metricaInfo.tipo]);
 
   const rankingRelativo = useMemo(() => {
     return [...analisis].sort((a, b) => {
@@ -169,26 +189,56 @@ export function Comparador() {
     });
   }, [analisis]);
 
+  const hayMercadosMezclados = new Set(analisis.map((a) => a.company.mercado)).size > 1;
+  const hayARS = analisis.some((a) => a.company.monedaReporte === "ARS");
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-      <h1 className="text-2xl font-bold text-ink">Comparador de empresas</h1>
-      <p className="mt-1 text-sm text-ink-muted">
-        Elegí entre {MIN_SELECCION} y {MAX_SELECCION} empresas para ver sus indicadores, categorías del
-        Score Centinela y evolución histórica una junto a la otra. Las diferencias se muestran de forma
-        objetiva; la interpretación queda a tu criterio.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Comparador de empresas</h1>
+          <p className="mt-1 max-w-3xl text-sm text-ink-muted">
+            Elegí entre {MIN_SELECCION} y {MAX_SELECCION} empresas, de cualquier mercado y sector, incluidas las que
+            cargaste vos (&quot;Mi empresa&quot;), para ver sus indicadores, categorías del Score Centinela y evolución
+            una junto a la otra. Las diferencias se muestran de forma objetiva; la interpretación queda a tu criterio.
+          </p>
+        </div>
+        <Link
+          to="/mi-empresa"
+          className="rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:text-ink focus-ring"
+        >
+          + Cargar mi empresa
+        </Link>
+      </div>
 
       <Card className="mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold text-ink">Selección ({seleccion.length}/{MAX_SELECCION})</h2>
-          <input
-            type="search"
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
-            placeholder="Filtrar por nombre, ticker o sector..."
-            aria-label="Filtrar empresas"
-            className="w-full max-w-xs rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus-ring"
-          />
+          <h2 className="font-semibold text-ink">
+            Selección ({seleccion.length}/{MAX_SELECCION})
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={filtroMercado}
+              onChange={(e) => setFiltroMercado(e.target.value as Mercado | "Todos")}
+              aria-label="Filtrar por mercado"
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus-ring"
+            >
+              <option value="Todos">Todos los mercados</option>
+              {mercadosDisponibles.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nombre}
+                </option>
+              ))}
+            </select>
+            <input
+              type="search"
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+              placeholder="Filtrar por nombre, ticker, sector o mercado..."
+              aria-label="Filtrar empresas"
+              className="w-full max-w-xs rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus-ring"
+            />
+          </div>
         </div>
 
         {seleccion.length > 0 && (
@@ -202,7 +252,7 @@ export function Comparador() {
                   className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-semibold"
                   style={{ color: COLORES[i % COLORES.length] }}
                 >
-                  {c.nombre} ({c.ticker})
+                  {c.nombre} · {nombreMercado(c.mercado)}
                   <button
                     onClick={() => toggleSeleccion(ticker)}
                     aria-label={`Quitar ${c.nombre} de la comparación`}
@@ -216,8 +266,10 @@ export function Comparador() {
           </div>
         )}
 
-        <div className="mt-4 max-h-64 overflow-y-auto rounded-lg border border-border">
-          {empresasFiltradas.length === 0 ? (
+        <div className="mt-4 max-h-72 overflow-y-auto rounded-lg border border-border">
+          {cargando ? (
+            <p className="p-4 text-center text-sm text-ink-muted">Consultando balances y precios en vivo...</p>
+          ) : empresasFiltradas.length === 0 ? (
             <p className="p-4 text-center text-sm text-ink-muted">Ninguna empresa coincide con el filtro.</p>
           ) : (
             <ul className="divide-y divide-border">
@@ -240,9 +292,13 @@ export function Comparador() {
                           className="rounded border-border"
                         />
                         <span className="font-medium text-ink">{c.nombre}</span>
-                        <span className="font-mono text-xs text-ink-muted">{c.ticker}</span>
+                        <span className="font-mono text-xs text-ink-muted">
+                          {c.fuente === "propia" ? "mi empresa" : c.ticker}
+                        </span>
                       </span>
-                      <span className="text-xs text-ink-muted">{c.sector}</span>
+                      <span className="text-xs text-ink-muted">
+                        {nombreMercado(c.mercado)} · {nombreSector(c.sector)}
+                      </span>
                     </label>
                   </li>
                 );
@@ -258,7 +314,23 @@ export function Comparador() {
         </Card>
       ) : (
         <>
-          <Card className="mt-6 overflow-x-auto">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-ink-muted">
+              {hayMercadosMezclados
+                ? "Comparación entre mercados distintos: los importes están en US$ y los ratios son directamente comparables."
+                : "Comparación dentro de un mismo mercado."}
+            </p>
+            <div className="flex flex-wrap items-start gap-2">
+              <BotonDescarga
+                label="Descargar informe PDF"
+                variante="principal"
+                onDescargar={() => descargarInformeComparativo(analisis)}
+              />
+              <BotonDescarga label="Descargar Excel" onDescargar={() => descargarExcelComparativo(analisis)} />
+            </div>
+          </div>
+
+          <Card className="mt-4 overflow-x-auto">
             <h2 className="font-semibold text-ink">Tabla comparativa</h2>
             <table className="mt-3 w-full min-w-[600px] text-sm">
               <thead>
@@ -273,13 +345,15 @@ export function Comparador() {
                       >
                         {a.company.nombre}
                       </Link>
-                      <div className="font-mono text-xs text-ink-muted">{a.company.ticker}</div>
+                      <div className="font-mono text-xs text-ink-muted">
+                        {a.company.fuente === "propia" ? "mi empresa" : a.company.ticker}
+                      </div>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {FILAS_TABLA.map((fila) => (
+                {FILAS_COMPARATIVAS.map((fila) => (
                   <tr key={fila.label} className="border-b border-border last:border-0 [&>td]:px-3 [&>td]:py-2">
                     <td className="text-ink-muted">{fila.label}</td>
                     {analisis.map((a) => (
@@ -291,6 +365,7 @@ export function Comparador() {
                 ))}
               </tbody>
             </table>
+            <p className="mt-3 text-xs text-ink-muted">{NOTA_COMPARACION}</p>
           </Card>
 
           <Card className="mt-6">
@@ -304,7 +379,7 @@ export function Comparador() {
                   {analisis.map((a, i) => (
                     <Radar
                       key={a.company.ticker}
-                      name={`${a.company.nombre} (${a.company.ticker})`}
+                      name={a.company.fuente === "propia" ? `${a.company.nombre} (mi empresa)` : `${a.company.nombre} (${a.company.ticker})`}
                       dataKey={a.company.ticker}
                       stroke={COLORES[i % COLORES.length]}
                       fill={COLORES[i % COLORES.length]}
@@ -312,10 +387,18 @@ export function Comparador() {
                     />
                   ))}
                   <Legend />
-                  <RechartsTooltip />
+                  <RechartsTooltip
+                    contentStyle={TOOLTIP_CONTENT_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    formatter={(v: number) => `${Math.round(v)} / 100`}
+                  />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
+            <p className="mt-2 text-xs text-ink-muted">
+              Las categorías sin dato (por ejemplo los bancos, que no tienen Score) se dibujan en 0 y se informan como
+              N/A en la tabla.
+            </p>
           </Card>
 
           <Card className="mt-6">
@@ -334,6 +417,11 @@ export function Comparador() {
                 ))}
               </select>
             </div>
+            <p className="mt-1 text-xs text-ink-muted">
+              Cada empresa cierra su balance en fechas distintas: se alinean por ejercicio (el último con el último).
+              {metricaInfo.tipo === "money" && " Importes en US$ al tipo de cambio actual."}
+              {metricaInfo.tipo === "money" && hayARS && " Las cifras en pesos no están ajustadas por inflación: su evolución nominal no es comparable en términos reales."}
+            </p>
             <div className="mt-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={evolucionData}>
@@ -342,16 +430,21 @@ export function Comparador() {
                   <YAxis
                     stroke="rgb(var(--ink-muted))"
                     fontSize={12}
+                    width={70}
                     tickFormatter={(v: number) => formatearPorTipo(v, metricaInfo.tipo)}
                   />
-                  <RechartsTooltip formatter={(v: number) => formatearPorTipo(v, metricaInfo.tipo)} />
+                  <RechartsTooltip
+                    contentStyle={TOOLTIP_CONTENT_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    formatter={(v: number) => formatearPorTipo(v, metricaInfo.tipo)}
+                  />
                   <Legend />
                   {analisis.map((a, i) => (
                     <Line
                       key={a.company.ticker}
                       type="monotone"
                       dataKey={a.company.ticker}
-                      name={`${a.company.nombre} (${a.company.ticker})`}
+                      name={a.company.fuente === "propia" ? `${a.company.nombre} (mi empresa)` : `${a.company.nombre} (${a.company.ticker})`}
                       stroke={COLORES[i % COLORES.length]}
                       strokeWidth={2}
                       dot
@@ -366,8 +459,8 @@ export function Comparador() {
           <Card className="mt-6">
             <h2 className="font-semibold text-ink">Ranking relativo (Score Centinela)</h2>
             <p className="mt-1 text-xs text-ink-muted">
-              Orden de las empresas seleccionadas según su Score Centinela, de mayor a menor. No implica
-              una recomendación de inversión.
+              Orden de las empresas seleccionadas según su Score Centinela, de mayor a menor. No implica una
+              recomendación de inversión.
             </p>
             <ol className="mt-3 space-y-2">
               {rankingRelativo.map((a, i) => (
@@ -380,11 +473,11 @@ export function Comparador() {
                     <Link to={`/empresas/${a.company.ticker}`} className="font-medium text-ink hover:text-accent focus-ring">
                       {a.company.nombre}
                     </Link>
-                    <span className="font-mono text-xs text-ink-muted">{a.company.ticker}</span>
+                    <span className="text-xs text-ink-muted">{nombreMercado(a.company.mercado)}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm text-ink">{a.score.total ?? "N/D"} / 100</span>
-                    <Badge estado={a.score.estado} />
+                    <span className="font-mono text-sm text-ink">{a.score.total ?? "N/A"} / 100</span>
+                    <Badge estado={a.score.estado} texto={ESTADO_LABEL[a.score.estado]} />
                   </div>
                 </li>
               ))}

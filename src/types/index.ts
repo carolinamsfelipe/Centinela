@@ -8,13 +8,24 @@ export type Sector =
   | "Construccion"
   | "Agro"
   | "Consumo"
-  | "Materiales";
+  | "Materiales"
+  | "Tecnologia"
+  | "Salud"
+  | "Inmobiliario";
 
-export type Mercado = "Argentina" | "Internacional";
+export type Mercado =
+  | "Argentina"
+  | "Brasil"
+  | "Chile"
+  | "Mexico"
+  | "Estados Unidos"
+  | "Europa"
+  | "Asia";
 
 export type TamanoEmpresa = "Small" | "Mid" | "Large";
 
-export type FuenteDato = "real" | "demo";
+/** "real": cotiza y se consulta en vivo a Yahoo Finance. "propia": balance cargado por el usuario. */
+export type FuenteDato = "real" | "propia";
 
 export interface FinancialMetrics {
   periodo: string;
@@ -107,6 +118,16 @@ export interface Company {
   envivo?: boolean;
   /** timestamp ISO de cuando se consulto en vivo (null si nunca se pudo). */
   actualizado?: string | null;
+  /** Moneda en la que estan expresadas las magnitudes de balance y resultados (ISO 4217). */
+  monedaReporte: string;
+  /** Unidades de monedaReporte por 1 USD (1 si ya es USD, null si no hay cotizacion disponible). */
+  tipoCambioUsd: number | null;
+  /** Moneda del precio de la accion (USD para los ADR). */
+  monedaPrecio?: string | null;
+  /** Aclaraciones sobre aproximaciones o datos faltantes, mostradas en ficha e informes. */
+  notas?: string[];
+  /** Solo empresas propias: ISO de cuando se cargo. */
+  creada?: string;
 }
 
 export interface MacroIndicator {
@@ -118,6 +139,8 @@ export interface MacroIndicator {
   fecha: string;
   fuente: string;
   historico?: Array<{ periodo: string; valor: number }>;
+  /** Solo indicadores de referencia global: mercado al que da contexto ("Global" si aplica a todos). */
+  mercado?: string;
 }
 
 export interface RiesgoEtiqueta {

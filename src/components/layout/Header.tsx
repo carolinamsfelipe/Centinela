@@ -4,13 +4,13 @@ import { useTheme } from "@/hooks/useTheme";
 import { SearchBox } from "./SearchBox";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Inicio" },
   { to: "/empresas", label: "Empresas" },
   { to: "/comparador", label: "Comparador" },
   { to: "/rankings", label: "Rankings" },
   { to: "/mercado", label: "Mercado" },
   { to: "/macro", label: "Macro" },
   { to: "/simulador", label: "Simulador" },
+  { to: "/mi-empresa", label: "Mi empresa" },
   { to: "/favoritos", label: "Favoritos" },
   { to: "/metodologia", label: "Metodología" },
 ];
@@ -30,7 +30,7 @@ export function Header() {
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 lg:px-8">
         <NavLink to="/" className="flex items-center gap-2 font-mono text-lg font-bold text-ink">
           <img src="/shield.svg" alt="" className="h-7 w-7" aria-hidden="true" />
-          CENTINELA <span className="text-accent">PyME</span>
+          CENTINELA
         </NavLink>
 
         <nav className="hidden flex-1 items-center gap-1 lg:flex" aria-label="Navegación principal">
@@ -69,7 +69,7 @@ export function Header() {
             <SearchBox />
           </div>
           <nav className="flex flex-col gap-1" aria-label="Navegación móvil">
-            {NAV_ITEMS.map((item) => (
+            {[{ to: "/", label: "Inicio" }, ...NAV_ITEMS].map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

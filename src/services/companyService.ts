@@ -1,176 +1,179 @@
-import { COMPANIES } from "@/data/companies";
-import { calcularAltman } from "@/lib/financial/altman";
-import { calcularDeudaSobrePatrimonio, calcularLiquidez, calcularMargenNeto, calcularRoa, calcularRoe } from "@/lib/financial/ratios";
-import { calcularCentinelaScore } from "@/lib/financial/scores";
+import { COMPANIES, nombreMercado, nombreSector } from "@/data/companies";
+import { NOTA_ENTIDAD_FINANCIERA, analizarEmpresa, esEntidadFinanciera } from "@/lib/financial/analysis";
+import { historicoDesdePeriodos, metricsDesdePeriodo } from "@/lib/financial/metrics";
+import type { PeriodoDatos } from "@/lib/financial/metrics";
 import { generarSenales } from "@/lib/financial/signals";
-import type { Company, FinancialMetrics, HistoricalPoint } from "@/types";
+import { getTipoCambioUsd } from "@/services/fxService";
+import {
+  empresaPropiaACompany,
+  esEmpresaPropia,
+  listarEmpresasPropias,
+} from "@/services/userCompanies";
+import type { Company } from "@/types";
 
 /**
- * Capa de acceso a datos de empresas. Para las 5 empresas reales (fuente
- * "real") intenta traer datos en vivo de Yahoo Finance via /api/company/:ticker
- * (funcion serverless, evita CORS); si falla por cualquier motivo, cae al
- * respaldo estatico de /data/companies.ts con un aviso claro en la UI
- * (campo `envivo`). Las empresas demo nunca pegan a la red: siempre son
- * estaticas, a proposito.
+ * Capa de acceso a datos de empresas. Todas las empresas del universo
+ * cotizan: sus balances, resultados, capitalizacion y precio se traen en
+ * vivo de Yahoo Finance via /api/companies (funcion serverless, evita CORS)
+ * en lotes. Si la consulta falla, se cae al respaldo guardado (las 5
+ * empresas del prototipo original lo tienen; el resto queda con "sin dato")
+ * y la interfaz lo avisa con el campo `envivo`. Las empresas propias (balance
+ * cargado por el usuario) salen del navegador, nunca de la red.
  *
  * La UI nunca llama a la API ni a COMPANIES directamente, siempre pasa por
- * estas funciones -- así se puede ajustar la estrategia de cache o la
+ * estas funciones -- asi se puede ajustar la estrategia de cache o la
  * fuente sin tocar componentes.
  */
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
+const CACHE_TTL_FALLO_MS = 60 * 1000;
+const TAMANO_LOTE = 6;
+
+interface EmpresaApi {
+  ticker: string;
+  actualizado: string;
+  monedaReporte: string | null;
+  tipoCambioUsd: number | null;
+  ultimo: PeriodoDatos & { monedaPrecio?: string | null };
+  historico: PeriodoDatos[];
+}
+
+const BASE = new Map(COMPANIES.map((c) => [c.ticker, c]));
 const cache = new Map<string, { empresa: Company; obtenido: number }>();
+const enCurso = new Map<string, Promise<void>>();
 
-interface PeriodoApi {
-  periodo: string;
-  activosCorrientes?: number | null;
-  activosTotales?: number | null;
-  pasivosCorrientes?: number | null;
-  pasivosTotales?: number | null;
-  patrimonioNeto?: number | null;
-  gananciasRetenidas?: number | null;
-  deudaTotal?: number | null;
-  capitalTrabajo?: number | null;
-  ebit?: number | null;
-  revenue?: number | null;
-  netIncome?: number | null;
-  efectivo?: number | null;
-  ppeNeto?: number | null;
-  precio?: number | null;
-  variacionDiaria?: number | null;
-  moneda?: string | null;
-  marketCap?: number | null;
-  pe?: number | null;
-  eps?: number | null;
-  evEbitda?: number | null;
+function notasDe(company: Company): string[] {
+  const notas: string[] = [];
+  if (esEntidadFinanciera(company)) notas.push(NOTA_ENTIDAD_FINANCIERA);
+  if (company.envivo && company.metrics.marketCap === null && !esEntidadFinanciera(company)) {
+    notas.push(
+      "Yahoo Finance no informa la capitalización de mercado de este ticker en este momento: el Altman Z'' y los múltiplos de valuación (P/B, EV/EBITDA) no pueden calcularse. Se prefiere mostrarlos sin dato antes que estimarlos."
+    );
+  }
+  if (company.monedaReporte === "ARS") {
+    notas.push(
+      "Cifras reportadas en pesos (moneda de alta inflación): las variaciones nominales entre ejercicios no están ajustadas por inflación y no son comparables en términos reales. Los ratios sí son comparables."
+    );
+  }
+  return notas;
 }
 
-function metricsDesdePeriodo(p: PeriodoApi, base: FinancialMetrics): FinancialMetrics {
-  const metrics: FinancialMetrics = {
+function combinar(base: Company, api: EmpresaApi): Company {
+  const monedaReporte = api.monedaReporte ?? base.monedaReporte;
+  const metrics = metricsDesdePeriodo(api.ultimo);
+  const historico = historicoDesdePeriodos(api.historico ?? []);
+  const empresa: Company = {
     ...base,
-    periodo: p.periodo,
-    precio: p.precio ?? null,
-    variacionDiaria: p.variacionDiaria ?? null,
-    marketCap: p.marketCap ?? null,
-    revenue: p.revenue ?? null,
-    ebitda: null,
-    ebitMargin: null,
-    netIncome: p.netIncome ?? null,
-    roe: null,
-    roa: null,
-    margenNeto: null,
-    debtToEquity: null,
-    currentRatio: null,
-    quickRatio: null,
-    freeCashFlow: null,
-    eps: p.eps ?? null,
-    pe: p.pe ?? null,
-    pb: null,
-    evEbitda: p.evEbitda ?? null,
-    activosCorrientes: p.activosCorrientes ?? null,
-    activosTotales: p.activosTotales ?? null,
-    pasivosCorrientes: p.pasivosCorrientes ?? null,
-    pasivosTotales: p.pasivosTotales ?? null,
-    patrimonioNeto: p.patrimonioNeto ?? null,
-    gananciasRetenidas: p.gananciasRetenidas ?? null,
-    deudaTotal: p.deudaTotal ?? null,
-    ebit: p.ebit ?? null,
+    metrics,
+    historico: historico.length > 0 ? historico : base.historico,
+    envivo: true,
+    actualizado: api.actualizado ?? new Date().toISOString(),
+    monedaReporte,
+    tipoCambioUsd: api.tipoCambioUsd,
+    monedaPrecio: api.ultimo.monedaPrecio ?? "USD",
   };
-  // Se recalculan con las mismas funciones que usa el resto de la app (nunca
-  // se leen "crudas" de la API): una sola fuente de verdad para las fórmulas.
-  metrics.roe = calcularRoe(metrics);
-  metrics.roa = calcularRoa(metrics);
-  metrics.margenNeto = calcularMargenNeto(metrics);
-  metrics.debtToEquity = calcularDeudaSobrePatrimonio(metrics);
-  metrics.currentRatio = calcularLiquidez(metrics);
-  metrics.ebitMargin = metrics.ebit !== null && p.revenue ? metrics.ebit / p.revenue : null;
-  return metrics;
+  return { ...empresa, notas: notasDe(empresa) };
 }
 
-function historicoDesdeApi(periodos: PeriodoApi[], base: FinancialMetrics): HistoricalPoint[] {
-  return periodos.map((p) => {
-    const m = metricsDesdePeriodo(p, base);
-    return {
-      periodo: p.periodo,
-      revenue: m.revenue,
-      ebitda: m.ebitda,
-      netIncome: m.netIncome,
-      roe: m.roe,
-      roa: m.roa,
-      debtToEquity: m.debtToEquity,
-      freeCashFlow: null,
-      // Altman/Score historicos necesitarian el market cap de cada periodo
-      // pasado, que Yahoo no da por este camino -- se dejan en null en vez
-      // de aproximar con el market cap de hoy.
-      altmanZ: null,
-      centinelaScore: null,
-    };
-  });
+function respaldo(base: Company): Company {
+  const empresa: Company = { ...base, envivo: false, actualizado: null };
+  return { ...empresa, notas: notasDe(empresa) };
 }
 
-async function obtenerEnVivo(base: Company): Promise<Company | null> {
+async function pedirLote(tickers: string[]): Promise<Record<string, EmpresaApi | null> | null> {
   try {
-    const resp = await fetch(`/api/company/${encodeURIComponent(base.ticker)}`);
+    const resp = await fetch(`/api/companies?tickers=${encodeURIComponent(tickers.join(","))}`);
     if (!resp.ok) return null;
     const data = await resp.json();
-    if (!data?.ultimo) return null;
-
-    const metrics = metricsDesdePeriodo(data.ultimo, base.metrics);
-    const historico = historicoDesdeApi(data.historico ?? [], base.metrics);
-
-    return {
-      ...base,
-      metrics,
-      historico: historico.length > 0 ? historico : base.historico,
-      envivo: true,
-      actualizado: data.actualizado ?? new Date().toISOString(),
-    };
+    return (data?.empresas as Record<string, EmpresaApi | null>) ?? null;
   } catch {
     return null;
   }
 }
 
-async function obtenerConCache(ticker: string): Promise<Company | undefined> {
-  const base = COMPANIES.find((c) => c.ticker === ticker);
-  if (!base) return undefined;
-  if (base.fuente !== "real") return base;
+function cargarLote(tickers: string[]): Promise<void> {
+  const promesa = (async () => {
+    const respuestas = await pedirLote(tickers);
+    for (const ticker of tickers) {
+      const base = BASE.get(ticker);
+      if (!base) continue;
+      const api = respuestas?.[ticker] ?? null;
+      cache.set(ticker, { empresa: api ? combinar(base, api) : respaldo(base), obtenido: Date.now() });
+    }
+  })().finally(() => {
+    for (const t of tickers) enCurso.delete(t);
+  });
+  for (const t of tickers) enCurso.set(t, promesa);
+  return promesa;
+}
 
-  const cacheada = cache.get(ticker);
-  if (cacheada && Date.now() - cacheada.obtenido < CACHE_TTL_MS) {
-    return cacheada.empresa;
+function vigente(ticker: string): boolean {
+  const c = cache.get(ticker);
+  if (!c) return false;
+  const ttl = c.empresa.envivo ? CACHE_TTL_MS : CACHE_TTL_FALLO_MS;
+  return Date.now() - c.obtenido < ttl;
+}
+
+async function asegurarCargados(tickers: string[]): Promise<void> {
+  const esperando: Array<Promise<void>> = [];
+  const pendientes: string[] = [];
+  for (const t of tickers) {
+    if (!BASE.has(t) || vigente(t)) continue;
+    const ya = enCurso.get(t);
+    if (ya) esperando.push(ya);
+    else pendientes.push(t);
   }
+  for (let i = 0; i < pendientes.length; i += TAMANO_LOTE) {
+    esperando.push(cargarLote(pendientes.slice(i, i + TAMANO_LOTE)));
+  }
+  await Promise.all(esperando);
+}
 
-  const enVivo = await obtenerEnVivo(base);
-  const empresa = enVivo ?? { ...base, envivo: false, actualizado: null };
-  cache.set(ticker, { empresa, obtenido: Date.now() });
-  return empresa;
+async function empresasPropias(): Promise<Company[]> {
+  const guardadas = listarEmpresasPropias();
+  if (guardadas.length === 0) return [];
+  const monedas = Array.from(new Set(guardadas.map((g) => g.moneda)));
+  const tipos = await Promise.all(monedas.map((m) => getTipoCambioUsd(m)));
+  const porMoneda = new Map(monedas.map((m, i) => [m, tipos[i]]));
+  return guardadas.map((g) => empresaPropiaACompany(g, porMoneda.get(g.moneda) ?? null));
 }
 
 export async function getCompanies(): Promise<Company[]> {
-  const resultados = await Promise.all(COMPANIES.map((c) => obtenerConCache(c.ticker)));
-  return resultados.filter((c): c is Company => c !== undefined);
+  await asegurarCargados(COMPANIES.map((c) => c.ticker));
+  const cotizantes = COMPANIES.map((c) => cache.get(c.ticker)?.empresa ?? respaldo(c));
+  const propias = await empresasPropias();
+  return [...cotizantes, ...propias];
 }
 
 export async function getCompanyByTicker(ticker: string): Promise<Company | undefined> {
-  return obtenerConCache(ticker);
+  if (esEmpresaPropia(ticker)) {
+    return (await empresasPropias()).find((e) => e.ticker === ticker);
+  }
+  if (!BASE.has(ticker)) return undefined;
+  await asegurarCargados([ticker]);
+  return cache.get(ticker)?.empresa ?? respaldo(BASE.get(ticker) as Company);
 }
 
 export async function getCompanyAnalysis(ticker: string) {
   const company = await getCompanyByTicker(ticker);
   if (!company) return undefined;
-  const altman = calcularAltman(company.metrics, company.metrics.marketCap);
-  const score = calcularCentinelaScore(company.metrics, company.metrics.marketCap);
+  const { altman, score, aplicaModeloCorporativo } = analizarEmpresa(company);
   const senales = generarSenales(company);
-  return { company, altman, score, senales };
+  return { company, altman, score, senales, aplicaModeloCorporativo };
+}
+
+function normalizar(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 export async function searchCompanies(query: string): Promise<Company[]> {
-  const q = query.trim().toLowerCase();
+  const q = normalizar(query.trim());
   if (!q) return [];
-  return COMPANIES.filter(
-    (c) =>
-      c.nombre.toLowerCase().includes(q) ||
-      c.ticker.toLowerCase().includes(q) ||
-      c.sector.toLowerCase().includes(q)
+  const propias = listarEmpresasPropias().map((g) => empresaPropiaACompany(g, null));
+  return [...propias, ...COMPANIES].filter((c) =>
+    normalizar(`${c.nombre} ${c.ticker} ${nombreSector(c.sector)} ${nombreMercado(c.mercado)}`).includes(q)
   );
 }

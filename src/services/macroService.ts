@@ -3,6 +3,8 @@ import type { MacroIndicator } from "@/types";
 
 export interface MacroResultado {
   indicadores: MacroIndicator[];
+  /** Referencias de otros mercados (S&P 500, Bovespa, Euro Stoxx...). Vacio si no hay conexion. */
+  globales: MacroIndicator[];
   envivo: boolean;
   actualizado: string | null;
 }
@@ -24,6 +26,7 @@ export async function getMacroIndicators(): Promise<MacroResultado> {
     }
     const resultado: MacroResultado = {
       indicadores: data.indicadores,
+      globales: Array.isArray(data.globales) ? data.globales : [],
       envivo: true,
       actualizado: data.actualizado ?? new Date().toISOString(),
     };
@@ -32,6 +35,7 @@ export async function getMacroIndicators(): Promise<MacroResultado> {
   } catch {
     const resultado: MacroResultado = {
       indicadores: MACRO_INDICATORS_RESPALDO,
+      globales: [],
       envivo: false,
       actualizado: null,
     };

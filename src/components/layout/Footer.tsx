@@ -7,6 +7,7 @@ const LINKS = [
   { to: "/mercado", label: "Mercado" },
   { to: "/macro", label: "Macro" },
   { to: "/simulador", label: "Simulador" },
+  { to: "/mi-empresa", label: "Mi empresa" },
   { to: "/metodologia", label: "Metodología" },
   { to: "/fuentes", label: "Fuentes" },
 ];
@@ -18,10 +19,10 @@ export function Footer() {
         <div className="flex flex-col gap-6 md:flex-row md:justify-between">
           <div>
             <div className="font-mono text-lg font-bold">
-              CENTINELA <span className="text-accent">PyME</span>
+              CENTINELA
             </div>
             <p className="mt-1 max-w-sm text-sm text-ink-muted">
-              Convertimos datos financieros en señales.
+              Convertimos datos financieros en señales. Copiloto de diagnóstico y alerta temprana.
             </p>
           </div>
           <nav className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-ink-muted sm:grid-cols-4" aria-label="Enlaces del pie de página">
@@ -33,7 +34,7 @@ export function Footer() {
           </nav>
         </div>
         <div className="mt-8 border-t border-border pt-6 text-xs leading-relaxed text-ink-muted">
-          Centinela PyME es una herramienta educativa y de análisis. La información presentada no
+          Centinela es una herramienta educativa y de análisis. La información presentada no
           constituye asesoramiento financiero, recomendación de inversión ni garantía de resultados
           futuros. Los modelos e indicadores utilizados presentan limitaciones y deben interpretarse
           dentro de su contexto. Ver <Link to="/metodologia" className="underline">metodología</Link> y{" "}

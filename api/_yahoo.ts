@@ -70,35 +70,67 @@ export async function fetchChart(ticker: string): Promise<ChartData> {
   };
 }
 
-export interface QuoteSummaryData {
-  marketCap: number | null;
-  pe: number | null;
-  eps: number | null;
-  evEbitda: number | null;
+/**
+ * Unidades de `moneda` por 1 USD (ej. ARS => ~1500, EUR => ~0.89, USD => 1).
+ * Yahoo publica estos cruces como "<MONEDA>=X". Cacheado en memoria 15 min.
+ * Devuelve null si Yahoo no responde: nunca se inventa un tipo de cambio.
+ */
+const fxCache = new Map<string, { valor: number | null; obtenido: number }>();
+const FX_TTL_MS = 15 * 60 * 1000;
+
+export async function fetchFxPorUsd(moneda: string): Promise<number | null> {
+  const codigo = moneda.toUpperCase();
+  if (codigo === "USD") return 1;
+  const cacheado = fxCache.get(codigo);
+  if (cacheado && Date.now() - cacheado.obtenido < FX_TTL_MS) return cacheado.valor;
+  let valor: number | null = null;
+  try {
+    const chart = await fetchChart(`${codigo}=X`);
+    valor = chart.precio !== null && chart.precio > 0 ? chart.precio : null;
+  } catch {
+    valor = null;
+  }
+  fxCache.set(codigo, { valor, obtenido: Date.now() });
+  return valor;
 }
 
-export async function fetchQuoteSummary(ticker: string): Promise<QuoteSummaryData> {
+export interface QuoteSummaryData {
+  marketCap: number | null;
+  monedaCotizacion: string | null;
+  pe: number | null;
+  eps: number | null;
+}
+
+const QUOTE_VACIO: QuoteSummaryData = { marketCap: null, monedaCotizacion: null, pe: null, eps: null };
+
+async function quoteSummaryUnaVez(ticker: string): Promise<QuoteSummaryData | null> {
   const { cookie, crumb } = await obtenerAuth();
   const modules = "price,summaryDetail,defaultKeyStatistics";
   const resp = await fetch(
     `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}&crumb=${encodeURIComponent(crumb)}`,
     { headers: { "User-Agent": UA, Cookie: cookie } }
   );
-  if (!resp.ok) return { marketCap: null, pe: null, eps: null, evEbitda: null };
+  if (!resp.ok) return null;
   const data = await resp.json();
   const result = data?.quoteSummary?.result?.[0];
-  if (!result) return { marketCap: null, pe: null, eps: null, evEbitda: null };
+  if (!result) return null;
   const price = result.price ?? {};
   const summary = result.summaryDetail ?? {};
   const stats = result.defaultKeyStatistics ?? {};
-  const ev = stats.enterpriseValue?.raw ?? null;
-  const ebitda = summary.ebitda?.raw ?? null;
   return {
-    marketCap: price.marketCap?.raw ?? null,
+    marketCap: price.marketCap?.raw ?? summary.marketCap?.raw ?? null,
+    monedaCotizacion: price.currency ?? summary.currency ?? null,
     pe: summary.trailingPE?.raw ?? null,
     eps: stats.trailingEps?.raw ?? null,
-    evEbitda: ev !== null && ebitda ? ev / ebitda : null,
   };
+}
+
+/** Un reintento: Yahoo a veces devuelve el bloque vacio en el primer pedido. */
+export async function fetchQuoteSummary(ticker: string): Promise<QuoteSummaryData> {
+  const primero = await quoteSummaryUnaVez(ticker).catch(() => null);
+  if (primero && primero.marketCap !== null) return primero;
+  const segundo = await quoteSummaryUnaVez(ticker).catch(() => null);
+  return segundo ?? primero ?? QUOTE_VACIO;
 }
 
 const TIMESERIES_FIELDS: Record<string, string> = {
@@ -111,10 +143,12 @@ const TIMESERIES_FIELDS: Record<string, string> = {
   annualTotalDebt: "deudaTotal",
   annualWorkingCapital: "capitalTrabajo",
   annualEBIT: "ebit",
+  annualEBITDA: "ebitda",
   annualTotalRevenue: "revenue",
   annualNetIncomeCommonStockholders: "netIncome",
   annualCashAndCashEquivalents: "efectivo",
-  annualNetPPE: "ppeNeto",
+  annualInventory: "inventario",
+  annualFreeCashFlow: "freeCashFlow",
 };
 
 export interface PeriodoFinanciero {
@@ -122,37 +156,170 @@ export interface PeriodoFinanciero {
   [campo: string]: string | number | null;
 }
 
-export async function fetchTimeseries(ticker: string): Promise<PeriodoFinanciero[]> {
+export interface SerieFinanciera {
+  moneda: string | null;
+  periodos: PeriodoFinanciero[];
+}
+
+/**
+ * Trae hasta ~5 anios de balance y resultados anuales. Cada valor viene con
+ * su moneda (currencyCode); hay empresas que cambiaron de moneda de reporte
+ * entre un ejercicio y otro (ej. YPF: 2022 en ARS, 2023+ en USD). Mezclar
+ * monedas en una misma serie falsea cualquier ratio y tendencia, asi que se
+ * toma como moneda de reporte la del ultimo ejercicio y se descarta todo
+ * valor de otra moneda en vez de convertirlo con un tipo de cambio de hoy.
+ */
+export async function fetchTimeseries(ticker: string): Promise<SerieFinanciera> {
   const { cookie, crumb } = await obtenerAuth();
   const types = Object.keys(TIMESERIES_FIELDS).join(",");
   const now = Math.floor(Date.now() / 1000);
-  const period1 = now - 4 * 365 * 24 * 3600;
+  const period1 = now - 5 * 365 * 24 * 3600;
   const resp = await fetch(
     `https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(ticker)}?type=${types}&period1=${period1}&period2=${now}&crumb=${encodeURIComponent(crumb)}`,
     { headers: { "User-Agent": UA, Cookie: cookie } }
   );
-  if (!resp.ok) return [];
+  if (!resp.ok) return { moneda: null, periodos: [] };
   const data = await resp.json();
   const blocks: Array<{ meta: { type: string[] }; [key: string]: unknown }> =
     data?.timeseries?.result ?? [];
 
-  const porPeriodo: Record<string, PeriodoFinanciero> = {};
+  interface Entrada {
+    asOfDate: string;
+    currencyCode?: string;
+    reportedValue?: { raw: number };
+  }
+
+  const entradas: Array<{ campo: string; fecha: string; moneda: string | null; valor: number | null }> = [];
   for (const block of blocks) {
     const tipoYahoo = block.meta?.type?.[0];
     if (!tipoYahoo) continue;
     const campo = TIMESERIES_FIELDS[tipoYahoo];
     if (!campo) continue;
-    const entradas = (block[tipoYahoo] as Array<{
-      asOfDate: string;
-      reportedValue?: { raw: number };
-    } | null>) ?? [];
-    for (const entrada of entradas) {
-      if (!entrada) continue;
-      const fecha = entrada.asOfDate;
-      if (!porPeriodo[fecha]) porPeriodo[fecha] = { periodo: fecha };
-      porPeriodo[fecha][campo] = entrada.reportedValue?.raw ?? null;
+    const lista = (block[tipoYahoo] as Array<Entrada | null>) ?? [];
+    for (const e of lista) {
+      if (!e) continue;
+      entradas.push({
+        campo,
+        fecha: e.asOfDate,
+        moneda: e.currencyCode ?? null,
+        valor: e.reportedValue?.raw ?? null,
+      });
     }
   }
+  if (entradas.length === 0) return { moneda: null, periodos: [] };
 
-  return Object.values(porPeriodo).sort((a, b) => a.periodo.localeCompare(b.periodo));
+  // Moneda de reporte = la del activo total mas reciente (o, si falta, la del dato mas reciente).
+  const activos = entradas.filter((e) => e.campo === "activosTotales" && e.moneda);
+  const referencia = (activos.length > 0 ? activos : entradas.filter((e) => e.moneda)).sort((a, b) =>
+    b.fecha.localeCompare(a.fecha)
+  )[0];
+  const moneda = referencia?.moneda ?? null;
+
+  const porPeriodo: Record<string, PeriodoFinanciero> = {};
+  for (const e of entradas) {
+    if (moneda !== null && e.moneda !== null && e.moneda !== moneda) continue;
+    if (!porPeriodo[e.fecha]) porPeriodo[e.fecha] = { periodo: e.fecha };
+    porPeriodo[e.fecha][e.campo] = e.valor;
+  }
+
+  // Un ejercicio sin activos totales ni patrimonio no sirve para ningun ratio.
+  const periodos = Object.values(porPeriodo)
+    .filter((p) => p.activosTotales != null || p.patrimonioNeto != null)
+    .sort((a, b) => a.periodo.localeCompare(b.periodo));
+
+  return { moneda, periodos };
+}
+
+export interface EmpresaEnVivo {
+  ticker: string;
+  envivo: true;
+  actualizado: string;
+  monedaReporte: string | null;
+  tipoCambioUsd: number | null;
+  ultimo: Record<string, string | number | null>;
+  historico: PeriodoFinanciero[];
+}
+
+function numero(v: string | number | null | undefined): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+/**
+ * Arma todo lo que la plataforma necesita de una empresa a partir de Yahoo.
+ * Devuelve null si Yahoo no tiene ni balance ni precio para el ticker.
+ *
+ * Las magnitudes de balance/resultados quedan en la moneda de reporte; la
+ * capitalizacion de mercado (que Yahoo da en la moneda de cotizacion, USD
+ * para los ADR) se convierte a esa misma moneda para que X4 del Altman
+ * (market cap / pasivos) y P/B o EV/EBITDA sean consistentes. Si no hay tipo
+ * de cambio, el market cap queda en null: nunca se mezclan monedas.
+ */
+export async function cargarEmpresa(ticker: string): Promise<EmpresaEnVivo | null> {
+  const [chart, quote, serie] = await Promise.all([
+    fetchChart(ticker).catch(() => ({ precio: null, variacionDiaria: null, moneda: null }) as ChartData),
+    fetchQuoteSummary(ticker).catch(() => QUOTE_VACIO),
+    fetchTimeseries(ticker).catch(() => ({ moneda: null, periodos: [] }) as SerieFinanciera),
+  ]);
+
+  if (serie.periodos.length === 0 && chart.precio === null) return null;
+
+  const monedaReporte = serie.moneda;
+  const monedaCotizacion = quote.monedaCotizacion ?? chart.moneda ?? "USD";
+
+  let tipoCambioUsd: number | null = null; // unidades de moneda de reporte por 1 USD
+  let marketCap: number | null = null;
+  if (monedaReporte) {
+    const [fxReporte, fxCotizacion] = await Promise.all([
+      fetchFxPorUsd(monedaReporte),
+      fetchFxPorUsd(monedaCotizacion),
+    ]);
+    tipoCambioUsd = fxReporte;
+    if (quote.marketCap !== null && fxReporte !== null && fxCotizacion !== null) {
+      marketCap = (quote.marketCap / fxCotizacion) * fxReporte;
+    }
+  } else if (monedaCotizacion.toUpperCase() === "USD") {
+    marketCap = quote.marketCap;
+  }
+
+  const ultimoPeriodo: PeriodoFinanciero =
+    serie.periodos[serie.periodos.length - 1] ?? { periodo: new Date().toISOString().slice(0, 10) };
+
+  const patrimonio = numero(ultimoPeriodo.patrimonioNeto);
+  const deuda = numero(ultimoPeriodo.deudaTotal);
+  const efectivo = numero(ultimoPeriodo.efectivo);
+  const ebitda = numero(ultimoPeriodo.ebitda);
+  const activosCorr = numero(ultimoPeriodo.activosCorrientes);
+  const inventario = numero(ultimoPeriodo.inventario);
+  const pasivosCorr = numero(ultimoPeriodo.pasivosCorrientes);
+
+  const pb = marketCap !== null && patrimonio !== null && patrimonio > 0 ? marketCap / patrimonio : null;
+  const evEbitda =
+    marketCap !== null && deuda !== null && efectivo !== null && ebitda !== null && ebitda > 0
+      ? (marketCap + deuda - efectivo) / ebitda
+      : null;
+  const quickRatio =
+    activosCorr !== null && inventario !== null && pasivosCorr !== null && pasivosCorr > 0
+      ? (activosCorr - inventario) / pasivosCorr
+      : null;
+
+  return {
+    ticker,
+    envivo: true,
+    actualizado: new Date().toISOString(),
+    monedaReporte,
+    tipoCambioUsd,
+    ultimo: {
+      ...ultimoPeriodo,
+      precio: chart.precio,
+      variacionDiaria: chart.variacionDiaria,
+      monedaPrecio: monedaCotizacion,
+      marketCap,
+      pe: quote.pe,
+      eps: quote.eps,
+      pb,
+      evEbitda,
+      quickRatio,
+    },
+    historico: serie.periodos,
+  };
 }

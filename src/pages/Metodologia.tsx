@@ -8,7 +8,7 @@ export function Metodologia() {
     <div className="mx-auto max-w-3xl px-4 py-10 lg:px-8">
       <h1 className="text-2xl font-bold text-ink">Metodología</h1>
       <p className="mt-2 text-ink-muted">
-        La transparencia metodológica es parte central de Centinela PyME. Esta página documenta
+        La transparencia metodológica es parte central de Centinela. Esta página documenta
         cómo se calcula cada indicador, qué supuestos usa y qué limitaciones tiene.
       </p>
 
@@ -32,7 +32,7 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
         </p>
         <p className="mt-2 text-xs text-ink-muted">
           Limitación: calibrado con datos de EE.UU. y mercados emergentes en general, no
-          específicamente para PyMEs ni empresas argentinas por sector.
+          específicamente para empresas medianas o chicas ni para cada sector.
         </p>
       </Card>
 
@@ -126,6 +126,40 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
           <li>• Resultado neto cae ≥ {SIGNAL_RULES.MARGIN_CHANGE_THRESHOLD * 100}% en términos relativos respecto del período anterior con margen conocido → caída de margen.</li>
           <li>• Altman Z'' cae ≥ {SIGNAL_RULES.ALTMAN_DROP_THRESHOLD} puntos entre períodos → deterioro significativo de solvencia.</li>
           <li>• Liquidez corriente &lt; 1 en el último período → alerta de liquidez (se evalúa siempre, no depende del histórico).</li>
+        </ul>
+      </Card>
+
+      <Card className="mt-6">
+        <h2 className="font-semibold text-ink">Qué no se calcula (y por qué)</h2>
+        <ul className="mt-2 space-y-2 text-sm text-ink-muted">
+          <li>
+            <strong className="text-ink">Bancos y entidades financieras:</strong> el Altman Z&apos;&apos; y los umbrales de
+            liquidez, endeudamiento y capital de trabajo están pensados para empresas no financieras. En un banco el
+            pasivo es el negocio (depósitos), no existe activo corriente ni EBIT comparables y un endeudamiento de 90% es
+            normal; aplicarles el modelo daría números sin sentido. Para ellos se muestran ROE, ROA y capitalización, y el
+            Score figura como N/A.
+          </li>
+          <li>
+            <strong className="text-ink">Valores sin dato:</strong> si una fuente no informa una cifra (por ejemplo la
+            capitalización de mercado de un ticker en un momento dado), el indicador que la necesita queda en N/D. No se
+            estima ni se completa con un valor inventado.
+          </li>
+          <li>
+            <strong className="text-ink">Cifras en pesos argentinos:</strong> las empresas que reportan en ARS (moneda de
+            alta inflación) muestran cifras nominales sin ajuste por inflación. Sus ratios son comparables; la variación
+            nominal de ingresos entre ejercicios no, y por eso no entran al ranking de crecimiento.
+          </li>
+          <li>
+            <strong className="text-ink">Mezcla de monedas:</strong> el balance se expresa en la moneda de reporte de cada
+            empresa y la capitalización de mercado se convierte a esa misma moneda antes de calcular el Altman Z&apos;&apos;.
+            Cuando una empresa cambió de moneda de reporte entre ejercicios se descartan los ejercicios en la otra moneda
+            en vez de convertirlos con un tipo de cambio de hoy.
+          </li>
+          <li>
+            <strong className="text-ink">Empresas que no cotizan:</strong> en un balance cargado por el usuario, si no se
+            informa el valor de mercado del patrimonio se usa el valor libro (ajuste que el propio modelo recomienda para
+            empresas privadas) y se aclara en la ficha y en el informe.
+          </li>
         </ul>
       </Card>
 

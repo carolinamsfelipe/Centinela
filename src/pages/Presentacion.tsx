@@ -24,15 +24,14 @@ import type { Signal } from "@/types";
 
 type AnalisisEmpresa = Awaited<ReturnType<typeof getCompanyAnalysis>>;
 
-// Dos empresas con datos reales (YPF, TEO) y una demo claramente marcada
-// (CNRP), elegidas para mostrar variedad de sectores y de estados de riesgo.
-const DASHBOARD_TICKERS = ["YPF", "TEO", "CNRP"];
+// Tres empresas reales de dos mercados (YPF y Telecom Argentina, Apple), elegidas
+// para mostrar variedad de sectores, de mercados y de estados de riesgo.
+const DASHBOARD_TICKERS = ["YPF", "TEO", "AAPL"];
 const EJEMPLO_TICKER = "YPF";
 
 interface SenalDestacada {
   ticker: string;
   nombre: string;
-  demo: boolean;
   signal: Signal;
 }
 
@@ -63,7 +62,7 @@ function MiniEmpresaCard({ analysis }: { analysis: AnalisisEmpresa | undefined }
           <div className="font-mono text-sm font-semibold text-ink">{company.ticker}</div>
           <div className="text-xs text-ink-muted">{company.nombre}</div>
         </div>
-        {company.fuente === "demo" && <Badge estado="sin_datos" texto="Datos demo" />}
+        <span className="text-[11px] text-ink-muted">{company.mercado}</span>
       </div>
       <div className="mt-4 flex items-end justify-between">
         <div className="font-mono text-3xl font-bold text-ink">
@@ -102,17 +101,15 @@ export function Presentacion() {
         destacadas.push({
           ticker: ypf.company.ticker,
           nombre: ypf.company.nombre,
-          demo: ypf.company.fuente === "demo",
           signal: ypf.senales[0],
         });
       }
-      const cnrp = mapa["CNRP"];
-      if (cnrp && cnrp.senales.length > 0) {
-        const negativa = cnrp.senales.find((s) => s.tipo === "negativa") ?? cnrp.senales[0];
+      const aapl = mapa["AAPL"];
+      if (aapl && aapl.senales.length > 0) {
+        const negativa = aapl.senales.find((x) => x.tipo === "negativa") ?? aapl.senales[0];
         destacadas.push({
-          ticker: cnrp.company.ticker,
-          nombre: cnrp.company.nombre,
-          demo: cnrp.company.fuente === "demo",
+          ticker: aapl.company.ticker,
+          nombre: aapl.company.nombre,
           signal: negativa,
         });
       }
@@ -129,10 +126,10 @@ export function Presentacion() {
       <section className="border-b border-border bg-gradient-to-b from-accent-soft/40 to-transparent">
         <div className="mx-auto max-w-4xl px-4 py-24 text-center lg:px-8">
           <p className="mb-4 font-mono text-sm font-semibold uppercase tracking-widest text-accent">
-            Centinela PyME · Presentación
+            Centinela · Presentación
           </p>
           <h1 className="font-mono text-5xl font-bold tracking-tight text-ink sm:text-6xl">
-            CENTINELA <span className="text-accent">PyME</span>
+            CENTINELA
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-ink-muted">
             Inteligencia financiera para empresas: salud financiera, riesgo y contexto
@@ -152,7 +149,7 @@ export function Presentacion() {
             Una empresa puede mostrar números prolijos un trimestre y entrar en problemas de
             solvencia pocos meses después. Las señales de ese deterioro suelen estar dispersas
             entre balances, ratios financieros y contexto macroeconómico — y casi nunca se leen
-            juntas. Para una PyME, un inversor minorista o un analista sin un equipo de research
+            juntas. Para una empresa mediana o chica, un inversor minorista o un analista sin un equipo de research
             propio, detectar el riesgo a tiempo hoy depende de cruzar manualmente demasiadas
             fuentes.
           </p>
@@ -203,8 +200,8 @@ export function Presentacion() {
             Una ficha por empresa, siempre con el mismo criterio.
           </h2>
           <p className="mt-4 max-w-2xl text-ink-muted">
-            Esto no es una maqueta: son tres empresas reales del dataset actual, calculadas en
-            vivo con la misma lógica que corre en{" "}
+            Esto no es una maqueta: son tres empresas reales de dos mercados, calculadas en
+            vivo con datos de Yahoo Finance con la misma lógica que corre en{" "}
             <Link to="/empresas" className="underline">
               /empresas
             </Link>
@@ -306,13 +303,13 @@ export function Presentacion() {
           <p className="mt-4 text-ink-muted">
             Las señales no se infieren con un modelo de lenguaje: surgen de reglas explícitas que
             comparan el último período disponible contra el anterior. Estos dos ejemplos son
-            señales reales, generadas por ese motor sobre el dataset actual.
+            señales reales, generadas por ese motor con datos en vivo.
           </p>
           <div className="mt-8 space-y-3">
             {senales.length === 0 ? (
               <p className="text-ink-muted">Cargando señales…</p>
             ) : (
-              senales.map(({ ticker, nombre, demo, signal }) => (
+              senales.map(({ ticker, nombre, signal }) => (
                 <div
                   key={signal.id}
                   className="flex items-start gap-3 rounded-lg border border-border bg-surface p-4"
@@ -324,7 +321,6 @@ export function Presentacion() {
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs text-ink-muted">{ticker}</span>
                       <span className="text-xs text-ink-muted">{nombre}</span>
-                      {demo && <Badge estado="sin_datos" texto="Datos demo" />}
                     </div>
                     <div className="mt-1 font-semibold text-ink">{signal.titulo}</div>
                     <div className="text-sm text-ink-muted">{signal.descripcion}</div>
@@ -342,15 +338,14 @@ export function Presentacion() {
           <Eyebrow>06 · Contexto macro</Eyebrow>
           <h2 className="text-3xl font-bold text-ink">Ninguna empresa opera en el vacío.</h2>
           <p className="mt-5 text-lg leading-relaxed text-ink-muted">
-            El roadmap de Centinela incluye un panel de contexto macroeconómico argentino — dólar,
-            inflación, tasa de interés de referencia, riesgo país, reservas y Merval — cada
-            indicador con su fuente y fecha de actualización explícitas, para leer la salud de una
-            empresa junto al escenario en el que opera. Está planificado para la Fase 4 del
-            proyecto (ver{" "}
+            Centinela trae en vivo el dólar, la inflación, la tasa BADLAR, las reservas y el Merval de
+            Argentina, y referencias de otros mercados (S&amp;P 500, Bovespa, Euro Stoxx, Nikkei, bono
+            de EE.UU. a 10 años, oro y petróleo), cada indicador con su fuente y fecha explícitas, para
+            leer la salud de una empresa junto al escenario en el que opera (ver{" "}
             <Link to="/macro" className="underline">
               /macro
             </Link>
-            ) y todavía no forma parte del análisis por empresa que ya está construido.
+            ). No se muestran indicadores sin una fuente pública y actualizada.
           </p>
         </div>
       </section>
@@ -363,13 +358,17 @@ export function Presentacion() {
             Comparar empresas no debería ser abrir diez pestañas.
           </h2>
           <p className="mt-5 text-lg leading-relaxed text-ink-muted">
-            El Comparador (Fase 3 del roadmap) va a permitir elegir entre 2 y 5 empresas y verlas
-            lado a lado: tabla de indicadores, radar por categoría del Score Centinela y ranking
-            relativo dentro del grupo elegido. Mientras se construye, la tabla de{" "}
-            <Link to="/empresas" className="underline">
-              /empresas
+            El{" "}
+            <Link to="/comparador" className="underline">
+              Comparador
             </Link>{" "}
-            ya permite ordenar todo el dataset por cualquier indicador.
+            permite elegir entre 2 y 5 empresas, de distintos mercados y sectores —incluida la tuya,
+            cargada desde{" "}
+            <Link to="/mi-empresa" className="underline">
+              Mi empresa
+            </Link>
+            — y verlas lado a lado: tabla de indicadores en US$, radar por categoría del Score
+            Centinela, evolución y ranking relativo, con informe descargable en PDF y Excel.
           </p>
         </div>
       </section>
@@ -400,7 +399,7 @@ export function Presentacion() {
             ¿A quién le sirve ver el riesgo antes de que explote?
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-ink-muted">
-            A una PyME que necesita entender su propia salud financiera sin pagar una auditoría. A
+            A una empresa que necesita entender su propia salud financiera sin pagar una auditoría (cargando su balance y comparándola con empresas de otros mercados). A
             un inversor minorista que quiere algo más que el precio de la acción. A un analista o
             estudiante que busca una segunda lectura, rápida y transparente, antes de profundizar.
             Centinela no reemplaza el análisis profesional ni predice el futuro: ordena información

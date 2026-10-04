@@ -10,6 +10,7 @@ import { Macro } from "@/pages/Macro";
 import { Mercado } from "@/pages/Mercado";
 import { Simulador } from "@/pages/Simulador";
 import { Favoritos } from "@/pages/Favoritos";
+import { MiEmpresa } from "@/pages/MiEmpresa";
 import { Presentacion } from "@/pages/Presentacion";
 import { Metodologia } from "@/pages/Metodologia";
 import { Fuentes } from "@/pages/Fuentes";
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/mercado" element={<Mercado />} />
           <Route path="/macro" element={<Macro />} />
           <Route path="/simulador" element={<Simulador />} />
+          <Route path="/mi-empresa" element={<MiEmpresa />} />
           <Route path="/favoritos" element={<Favoritos />} />
           <Route path="/presentacion" element={<Presentacion />} />
           <Route path="/metodologia" element={<Metodologia />} />
@@ -39,7 +41,7 @@ export default function App() {
               <ComingSoon
                 titulo="Página no encontrada"
                 fase="404"
-                descripcion="Esa ruta no existe todavía en Centinela PyME."
+                descripcion="Esa ruta no existe en Centinela."
               />
             }
           />

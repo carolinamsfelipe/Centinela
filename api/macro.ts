@@ -1,6 +1,6 @@
 /**
  * GET /api/macro
- * Contexto macroeconomico argentino en vivo:
+ * Contexto macroeconomico en vivo. Argentina (campo `indicadores`):
  *  - Dolar (oficial, blue, MEP) -- dolarapi.com
  *  - Reservas, inflacion mensual/interanual, tasa BADLAR -- API publica del BCRA v4.0
  *  - Merval -- Yahoo Finance (^MERV), mismo cliente que /api/company
@@ -9,6 +9,12 @@
  * y "desempleo": no encontramos una fuente publica, gratuita y realmente
  * actualizada para esos tres -- mejor no mostrarlos que mostrar un numero
  * viejo o inventado como si fuera en vivo.
+ *
+ * Referencias de otros mercados (campo `globales`, Yahoo Finance): S&P 500,
+ * Nasdaq, VIX, bono EE.UU. 10 anios, Bovespa, real/dolar, IPC de Mexico, Euro
+ * Stoxx 50, euro/dolar, Nikkei, Hang Seng, oro y petroleo. Sirven para dar
+ * contexto a empresas de otros mercados cuando se comparan contra las
+ * argentinas.
  *
  * Cacheado 15 min en el borde de Vercel.
  */
@@ -77,15 +83,66 @@ function construirIndicador(
   };
 }
 
+interface Global {
+  id: string;
+  simbolo: string;
+  nombre: string;
+  unidad: string;
+  mercado: "Estados Unidos" | "Brasil" | "Mexico" | "Europa" | "Asia" | "Global";
+}
+
+const GLOBALES: Global[] = [
+  { id: "sp500", simbolo: "^GSPC", nombre: "S&P 500", unidad: "puntos", mercado: "Estados Unidos" },
+  { id: "nasdaq", simbolo: "^IXIC", nombre: "Nasdaq Composite", unidad: "puntos", mercado: "Estados Unidos" },
+  { id: "vix", simbolo: "^VIX", nombre: "VIX (volatilidad esperada)", unidad: "puntos", mercado: "Estados Unidos" },
+  { id: "bono_eeuu_10a", simbolo: "^TNX", nombre: "Rendimiento bono EE.UU. 10 años", unidad: "%", mercado: "Estados Unidos" },
+  { id: "bovespa", simbolo: "^BVSP", nombre: "Ibovespa", unidad: "puntos", mercado: "Brasil" },
+  { id: "real_dolar", simbolo: "BRL=X", nombre: "Real por dólar", unidad: "BRL", mercado: "Brasil" },
+  { id: "mexbol", simbolo: "^MXX", nombre: "S&P/BMV IPC", unidad: "puntos", mercado: "Mexico" },
+  { id: "eurostoxx", simbolo: "^STOXX50E", nombre: "Euro Stoxx 50", unidad: "puntos", mercado: "Europa" },
+  { id: "euro_dolar", simbolo: "EURUSD=X", nombre: "Euro en dólares", unidad: "USD", mercado: "Europa" },
+  { id: "nikkei", simbolo: "^N225", nombre: "Nikkei 225", unidad: "puntos", mercado: "Asia" },
+  { id: "hangseng", simbolo: "^HSI", nombre: "Hang Seng", unidad: "puntos", mercado: "Asia" },
+  { id: "oro", simbolo: "GC=F", nombre: "Oro (futuro)", unidad: "USD/oz", mercado: "Global" },
+  { id: "petroleo", simbolo: "CL=F", nombre: "Petróleo WTI (futuro)", unidad: "USD/barril", mercado: "Global" },
+];
+
+async function fetchGlobales() {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const datos = await Promise.all(
+    GLOBALES.map(async (g) => {
+      try {
+        const chart = await fetchChart(g.simbolo);
+        if (chart.precio === null) return null;
+        return {
+          id: g.id,
+          nombre: g.nombre,
+          unidad: g.unidad,
+          valor: chart.precio,
+          variacion: chart.variacionDiaria,
+          fecha: hoy,
+          fuente: "Yahoo Finance",
+          mercado: g.mercado,
+          historico: [],
+        };
+      } catch {
+        return null;
+      }
+    })
+  );
+  return datos.filter((d) => d !== null);
+}
+
 export default async function handler(_req: any, res: any) {
   try {
-    const [dolares, reservas, inflacionMensual, inflacionInteranual, badlar, merval] = await Promise.all([
+    const [dolares, reservas, inflacionMensual, inflacionInteranual, badlar, merval, globales] = await Promise.all([
       fetchDolar(),
       fetchBcraSerie(1),
       fetchBcraSerie(27),
       fetchBcraSerie(28),
       fetchBcraSerie(7),
       fetchChart("^MERV").catch(() => ({ precio: null, variacionDiaria: null, moneda: null })),
+      fetchGlobales(),
     ]);
 
     const oficial = dolares.find((d) => d.casa === "oficial");
@@ -140,7 +197,7 @@ export default async function handler(_req: any, res: any) {
     ].filter(Boolean);
 
     res.setHeader("Cache-Control", "public, s-maxage=900, stale-while-revalidate=1800");
-    res.status(200).json({ envivo: true, actualizado: new Date().toISOString(), indicadores });
+    res.status(200).json({ envivo: true, actualizado: new Date().toISOString(), indicadores, globales });
   } catch (error) {
     res.status(502).json({ error: `No se pudo consultar el contexto macro: ${(error as Error).message}` });
   }

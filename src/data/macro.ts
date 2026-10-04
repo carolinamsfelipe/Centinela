@@ -1,5 +1,5 @@
 import { fmtNum, fmtPct } from "@/lib/format";
-import type { MacroIndicator, Sector } from "@/types";
+import type { MacroIndicator, Mercado, Sector } from "@/types";
 
 /**
  * Respaldo estático de indicadores macro — se usa SOLO si /api/macro (Fase
@@ -114,7 +114,8 @@ export function formatMacroValor(indicador: MacroIndicator): string {
   if (indicador.unidad === "%") return `${fmtNum(indicador.valor, 1)}%`;
   if (indicador.unidad === "ARS") return `$${fmtNum(indicador.valor, 2)}`;
   if (indicador.unidad === "USD millones") return `US$ ${fmtNum(indicador.valor, 0)} M`;
-  return `${fmtNum(indicador.valor, 0)} ${indicador.unidad}`;
+  const decimales = Math.abs(indicador.valor) < 100 ? 2 : 0;
+  return `${fmtNum(indicador.valor, decimales)} ${indicador.unidad}`;
 }
 
 export function formatMacroVariacion(variacion: number | null): { texto: string; clase: string } {
@@ -222,6 +223,9 @@ export const RELEVANCIA_POR_SECTOR: Record<Sector, RelevanciaMacro[]> = {
   Construccion: DEFAULT_RELEVANCIA,
   Agro: DEFAULT_RELEVANCIA,
   Materiales: DEFAULT_RELEVANCIA,
+  Tecnologia: DEFAULT_RELEVANCIA,
+  Salud: DEFAULT_RELEVANCIA,
+  Inmobiliario: DEFAULT_RELEVANCIA,
 };
 
 export function getRelevanciaSector(
@@ -235,4 +239,66 @@ export function getRelevanciaSector(
     if (indicador) resultado.push({ indicador, motivo: item.motivo });
   }
   return resultado;
+}
+
+/**
+ * Contexto para empresas de otros mercados: referencias globales en vivo
+ * (Yahoo Finance) del propio mercado, en lugar de los indicadores
+ * argentinos, que no tienen relacion con una empresa que no opera en
+ * Argentina. Igual que arriba, el motivo describe por que el indicador es
+ * una referencia pertinente, no que explique a una empresa puntual.
+ */
+const CONTEXTO_POR_MERCADO: Record<string, RelevanciaMacro[]> = {
+  "Estados Unidos": [
+    { indicadorId: "sp500", motivo: "es la referencia general del mercado accionario estadounidense." },
+    { indicadorId: "vix", motivo: "mide la volatilidad esperada del mercado y suele asociarse al apetito por riesgo." },
+    { indicadorId: "bono_eeuu_10a", motivo: "es la tasa libre de riesgo de referencia que condiciona el costo de capital de las empresas." },
+  ],
+  Brasil: [
+    { indicadorId: "bovespa", motivo: "es la referencia general del mercado accionario brasileño." },
+    { indicadorId: "real_dolar", motivo: "el tipo de cambio incide en costos, deuda en dólares y resultados de empresas exportadoras o importadoras." },
+    { indicadorId: "bono_eeuu_10a", motivo: "la tasa de EE.UU. condiciona el costo de financiamiento externo de los mercados emergentes." },
+  ],
+  Mexico: [
+    { indicadorId: "mexbol", motivo: "es la referencia general del mercado accionario mexicano." },
+    { indicadorId: "sp500", motivo: "la economía mexicana está fuertemente vinculada al ciclo de EE.UU." },
+  ],
+  Europa: [
+    { indicadorId: "eurostoxx", motivo: "es la referencia general de las grandes empresas de la zona euro." },
+    { indicadorId: "euro_dolar", motivo: "el tipo de cambio incide en los resultados de empresas europeas con ventas en dólares." },
+  ],
+  Asia: [
+    { indicadorId: "nikkei", motivo: "es una referencia del mercado accionario japonés y del ciclo industrial asiático." },
+    { indicadorId: "hangseng", motivo: "es una referencia del mercado accionario de Hong Kong y de China continental." },
+  ],
+  Chile: [
+    { indicadorId: "sp500", motivo: "es una referencia global del apetito por riesgo que influye en los mercados emergentes." },
+    { indicadorId: "bono_eeuu_10a", motivo: "la tasa de EE.UU. condiciona el costo de financiamiento externo de los mercados emergentes." },
+  ],
+};
+
+export function getContextoMercado(
+  mercado: Mercado,
+  sector: Sector,
+  argentinos: MacroIndicator[],
+  globales: MacroIndicator[]
+): Array<{ indicador: MacroIndicator; motivo: string }> {
+  if (mercado === "Argentina") return getRelevanciaSector(sector, argentinos);
+  const items = CONTEXTO_POR_MERCADO[mercado] ?? [];
+  const resultado: Array<{ indicador: MacroIndicator; motivo: string }> = [];
+  for (const item of items) {
+    const indicador = getMacroIndicator(globales, item.indicadorId);
+    if (indicador) {
+      resultado.push({ indicador, motivo: item.motivo });
+    }
+  }
+  return resultado;
+}
+
+/** Lineas de texto para el analisis ejecutivo y los informes. */
+export function lineasContextoMacro(items: Array<{ indicador: MacroIndicator }>): string[] {
+  return items.map(({ indicador }) => {
+    const variacion = indicador.variacion !== null ? ` (${formatMacroVariacion(indicador.variacion).texto} respecto del dato anterior)` : "";
+    return `${indicador.nombre}: ${formatMacroValor(indicador)}${variacion}. Fuente: ${indicador.fuente}, dato al ${indicador.fecha}.`;
+  });
 }

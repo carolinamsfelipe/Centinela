@@ -3,14 +3,15 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { useFavorites } from "@/hooks/useFavorites";
+import { nombreMercado, nombreSector } from "@/data/companies";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { getCompanyAnalysis } from "@/services/companyService";
 
 type Analisis = Awaited<ReturnType<typeof getCompanyAnalysis>>;
 
-function fmtPrecio(v: number | null): string {
+function fmtPrecio(v: number | null, moneda: string | null | undefined): string {
   if (v === null) return "N/D";
-  return `$${v.toFixed(2)}`;
+  return `${moneda ?? "USD"} ${v.toFixed(2)}`;
 }
 
 function VariacionTexto({ v }: { v: number | null }) {
@@ -76,7 +77,7 @@ export function Favoritos() {
             return (
               <Card key={ticker} className="flex items-center justify-between">
                 <p className="text-sm text-ink-muted">
-                  La empresa &quot;{ticker}&quot; ya no está disponible en el dataset.
+                  La empresa &quot;{ticker}&quot; ya no está disponible (por ejemplo, una empresa propia que eliminaste).
                 </p>
                 <button
                   onClick={() => toggleFavorite(ticker)}
@@ -103,17 +104,21 @@ export function Favoritos() {
                       {company.nombre}
                     </Link>
                     <span className="font-mono text-xs text-ink-muted">{company.ticker}</span>
-                    {company.fuente === "demo" && <Badge estado="sin_datos" texto="Datos demo" />}
+                    {company.fuente === "propia" && (
+                      <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
+                        Balance propio
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 text-xs text-ink-muted">
-                    {company.sector} · {company.pais}
+                    {nombreSector(company.sector)} · {nombreMercado(company.mercado)}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <div className="text-xs text-ink-muted">Precio</div>
-                    <div className="font-mono font-semibold text-ink">{fmtPrecio(m.precio)}</div>
+                    <div className="font-mono font-semibold text-ink">{fmtPrecio(m.precio, company.monedaPrecio)}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-ink-muted">Variación</div>
@@ -123,7 +128,7 @@ export function Favoritos() {
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-ink-muted">Score Centinela</div>
-                    <div className="font-mono font-semibold text-ink">{score.total ?? "N/D"} / 100</div>
+                    <div className="font-mono font-semibold text-ink">{score.total ?? "N/A"} / 100</div>
                   </div>
                   <Badge estado={score.estado} />
                   <button

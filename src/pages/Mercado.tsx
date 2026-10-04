@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
-import { SECTORES } from "@/data/companies";
-import { calcularCentinelaScore } from "@/lib/financial/scores";
+import { MERCADOS, SECTORES } from "@/data/companies";
+import { analizarEmpresa } from "@/lib/financial/analysis";
 import { SCORE_ESTADO_THRESHOLDS } from "@/lib/financial/scoreConfig";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { getCompanies } from "@/services/companyService";
@@ -32,17 +32,19 @@ function fmtVariacionConSigno(v: number): string {
 }
 
 export function Mercado() {
-  const [empresas, setEmpresas] = useState<Company[]>([]);
+  const [empresas, setEmpresas] = useState<Company[] | null>(null);
 
   useEffect(() => {
     getCompanies().then(setEmpresas);
   }, []);
 
+  const lista = useMemo(() => empresas ?? [], [empresas]);
+
   const conVariacion: FilaVariacion[] = useMemo(() => {
-    return empresas
+    return lista
       .filter((c) => c.metrics.variacionDiaria !== null)
       .map((c) => ({ company: c, variacion: c.metrics.variacionDiaria as number }));
-  }, [empresas]);
+  }, [lista]);
 
   const ganadores = useMemo(
     () =>
@@ -63,9 +65,9 @@ export function Mercado() {
 
   const heatmap = useMemo(() => {
     return SECTORES.map((s) => {
-      const delSector = empresas.filter((c) => c.sector === s.id);
+      const delSector = lista.filter((c) => c.sector === s.id);
       const scores = delSector
-        .map((c) => calcularCentinelaScore(c.metrics, c.metrics.marketCap).total)
+        .map((c) => analizarEmpresa(c).score.total)
         .filter((v): v is number => v !== null);
       const promedio = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
       return {
@@ -74,8 +76,25 @@ export function Mercado() {
         estado: estadoDesdePromedio(promedio),
         cantidadEmpresas: delSector.length,
       };
-    });
-  }, [empresas]);
+    }).filter((h) => h.cantidadEmpresas > 0);
+  }, [lista]);
+
+  const porMercado = useMemo(() => {
+    return MERCADOS.map((mk) => {
+      const delMercado = lista.filter((c) => c.mercado === mk.id);
+      const scores = delMercado
+        .map((c) => analizarEmpresa(c).score.total)
+        .filter((v): v is number => v !== null);
+      const promedio = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+      return {
+        mercado: mk,
+        promedio,
+        estado: estadoDesdePromedio(promedio),
+        cantidadEmpresas: delMercado.length,
+        conScore: scores.length,
+      };
+    }).filter((h) => h.cantidadEmpresas > 0);
+  }, [lista]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
@@ -89,9 +108,9 @@ export function Mercado() {
         <Card>
           <h2 className="font-semibold text-ink">Ganadores del día</h2>
           <p className="mt-1 text-xs text-ink-muted">
-            Solo empresas con variación diaria disponible en el dataset (hoy, exclusivamente las
-            marcadas como datos demo — las empresas con balance real aún no tienen precio de mercado
-            cargado).
+            Variación del último día de negociación de cada empresa, en vivo desde Yahoo Finance
+            (precio en la moneda de cotización: US$ para los ADR). Un mercado cerrado muestra la
+            variación de su última rueda.
           </p>
           <ul className="mt-3 space-y-2">
             {ganadores.map((f) => (
@@ -107,7 +126,7 @@ export function Mercado() {
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-sm text-ink">
-                    {f.company.metrics.precio !== null ? `$${fmtNum(f.company.metrics.precio, 2)}` : "N/D"}
+                    {f.company.metrics.precio !== null ? `${f.company.monedaPrecio ?? "USD"} ${fmtNum(f.company.metrics.precio, 2)}` : "N/D"}
                   </div>
                   <div className="font-mono text-sm font-semibold text-ok">
                     {fmtVariacionConSigno(f.variacion)}
@@ -117,7 +136,7 @@ export function Mercado() {
             ))}
             {ganadores.length === 0 && (
               <li className="rounded-lg border border-border p-3 text-sm text-ink-muted">
-                No hay empresas con variación diaria disponible todavía.
+                {empresas === null ? "Consultando precios en vivo..." : "No hay empresas con variación diaria disponible."}
               </li>
             )}
           </ul>
@@ -126,7 +145,7 @@ export function Mercado() {
         <Card>
           <h2 className="font-semibold text-ink">Perdedores del día</h2>
           <p className="mt-1 text-xs text-ink-muted">
-            Idem: solo empresas con variación diaria disponible en el dataset.
+            Idem: variación de la última rueda de cada empresa.
           </p>
           <ul className="mt-3 space-y-2">
             {perdedores.map((f) => (
@@ -142,7 +161,7 @@ export function Mercado() {
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-sm text-ink">
-                    {f.company.metrics.precio !== null ? `$${fmtNum(f.company.metrics.precio, 2)}` : "N/D"}
+                    {f.company.metrics.precio !== null ? `${f.company.monedaPrecio ?? "USD"} ${fmtNum(f.company.metrics.precio, 2)}` : "N/D"}
                   </div>
                   <div className="font-mono text-sm font-semibold text-bad">
                     {fmtVariacionConSigno(f.variacion)}
@@ -152,7 +171,7 @@ export function Mercado() {
             ))}
             {perdedores.length === 0 && (
               <li className="rounded-lg border border-border p-3 text-sm text-ink-muted">
-                No hay empresas con variación diaria disponible todavía.
+                {empresas === null ? "Consultando precios en vivo..." : "No hay empresas con variación diaria disponible."}
               </li>
             )}
           </ul>
@@ -162,9 +181,9 @@ export function Mercado() {
       <Card className="mt-6">
         <h2 className="font-semibold text-ink">Heatmap sectorial — Score Centinela promedio</h2>
         <p className="mt-1 text-xs text-ink-muted">
-          Cada celda es el promedio del Score Centinela de las empresas del sector en este dataset.
-          No es un índice sectorial oficial; con pocas empresas por sector, el promedio puede no ser
-          representativo del sector real.
+          Cada celda es el promedio del Score Centinela de las empresas del sector en el universo de
+          Centinela (los bancos no tienen Score). No es un índice sectorial oficial; con pocas
+          empresas por sector, el promedio puede no ser representativo del sector real.
         </p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {heatmap.map((h) => (
@@ -180,6 +199,31 @@ export function Mercado() {
                 {h.cantidadEmpresas} {h.cantidadEmpresas === 1 ? "empresa" : "empresas"}
               </div>
             </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="mt-6">
+        <h2 className="font-semibold text-ink">Score Centinela promedio por mercado</h2>
+        <p className="mt-1 text-xs text-ink-muted">
+          Promedio de las empresas de cada mercado que tienen Score (excluye bancos). Sirve para
+          comparar la salud financiera típica entre mercados; no es un índice de mercado.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {porMercado.map((h) => (
+            <Link
+              key={h.mercado.id}
+              to={`/empresas?mercado=${encodeURIComponent(h.mercado.id)}`}
+              className={`rounded-lg border p-3 focus-ring ${ESTADO_TILE_CLASSES[h.estado]}`}
+            >
+              <div className="text-xs font-medium opacity-90">{h.mercado.nombre}</div>
+              <div className="mt-1 font-mono text-xl font-bold">
+                {h.promedio !== null ? Math.round(h.promedio) : "N/D"}
+              </div>
+              <div className="mt-1 text-xs opacity-80">
+                {h.conScore} de {h.cantidadEmpresas} {h.cantidadEmpresas === 1 ? "empresa" : "empresas"} con Score
+              </div>
+            </Link>
           ))}
         </div>
       </Card>

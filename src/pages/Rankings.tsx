@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { calcularCentinelaScore } from "@/lib/financial/scores";
-import { fmtMoney, fmtPct, fmtX } from "@/lib/format";
+import { MERCADOS, nombreMercado, nombreSector } from "@/data/companies";
+import { analizarEmpresa, esEntidadFinanciera } from "@/lib/financial/analysis";
+import { aUsd, fmtMonto, fmtPct, fmtX } from "@/lib/format";
 import { getCompanies } from "@/services/companyService";
-import type { Company, Estado } from "@/types";
+import type { Company, Estado, Mercado } from "@/types";
 
 type RankingId = "score" | "roe" | "margenNeto" | "endeudamiento" | "marketCap" | "crecimiento";
 
@@ -26,7 +27,12 @@ interface RankingConfig {
   format: (v: number | null) => string;
 }
 
+// En monedas de alta inflacion la variacion nominal de ingresos no mide crecimiento real:
+// esas empresas quedan fuera de este ranking en lugar de aparecer arriba por la inflacion.
+const MONEDAS_ALTA_INFLACION = ["ARS"];
+
 function calcularCrecimientoRevenue(company: Company): number | null {
+  if (MONEDAS_ALTA_INFLACION.includes(company.monedaReporte)) return null;
   const h = company.historico;
   if (h.length < 2) return null;
   const last = h[h.length - 1];
@@ -66,26 +72,26 @@ const RANKINGS: RankingConfig[] = [
   {
     id: "endeudamiento",
     label: "Menor endeudamiento",
-    descripcion: "Empresas ordenadas de menor a mayor relación Deuda/Patrimonio (Debt/Equity).",
+    descripcion: "Empresas ordenadas de menor a mayor relación Deuda/Patrimonio (Debt/Equity). No incluye bancos: en una entidad financiera la deuda es parte del negocio.",
     valorLabel: "Debt/Equity",
     asc: true,
-    getValor: (f) => f.company.metrics.debtToEquity,
+    getValor: (f) => (esEntidadFinanciera(f.company) ? null : f.company.metrics.debtToEquity),
     format: fmtX,
   },
   {
     id: "marketCap",
     label: "Mayor Market Cap",
-    descripcion: "Empresas ordenadas de mayor a menor capitalización de mercado.",
+    descripcion: "Empresas ordenadas de mayor a menor capitalización de mercado, en US$ al tipo de cambio actual.",
     valorLabel: "Market Cap",
     asc: false,
-    getValor: (f) => f.company.metrics.marketCap,
-    format: fmtMoney,
+    getValor: (f) => aUsd(f.company.metrics.marketCap, f.company),
+    format: (v) => fmtMonto(v, { monedaReporte: "USD", tipoCambioUsd: 1 }),
   },
   {
     id: "crecimiento",
     label: "Mayor crecimiento de ingresos",
     descripcion:
-      "Variación de ingresos entre los dos últimos períodos históricos disponibles. Solo se calcula para empresas con revenue informado en ambos períodos.",
+      "Variación de ingresos entre los dos últimos ejercicios. Solo se calcula para empresas con ingresos informados en ambos y que no reporten en una moneda de alta inflación (pesos argentinos): su variación nominal no mide crecimiento real.",
     valorLabel: "Crecimiento de ingresos",
     asc: false,
     getValor: (f) => f.crecimientoRevenue,
@@ -94,24 +100,27 @@ const RANKINGS: RankingConfig[] = [
 ];
 
 export function Rankings() {
-  const [empresas, setEmpresas] = useState<Company[]>([]);
+  const [empresas, setEmpresas] = useState<Company[] | null>(null);
   const [rankingId, setRankingId] = useState<RankingId>("score");
+  const [mercado, setMercado] = useState<Mercado | "Todos">("Todos");
 
   useEffect(() => {
     getCompanies().then(setEmpresas);
   }, []);
 
   const filas: Fila[] = useMemo(() => {
-    return empresas.map((company) => {
-      const score = calcularCentinelaScore(company.metrics, company.metrics.marketCap);
-      return {
-        company,
-        scoreTotal: score.total,
-        scoreEstado: score.estado,
-        crecimientoRevenue: calcularCrecimientoRevenue(company),
-      };
-    });
-  }, [empresas]);
+    return (empresas ?? [])
+      .filter((company) => mercado === "Todos" || company.mercado === mercado)
+      .map((company) => {
+        const { score } = analizarEmpresa(company);
+        return {
+          company,
+          scoreTotal: score.total,
+          scoreEstado: score.estado,
+          crecimientoRevenue: calcularCrecimientoRevenue(company),
+        };
+      });
+  }, [empresas, mercado]);
 
   const ranking = RANKINGS.find((r) => r.id === rankingId) ?? RANKINGS[0];
 
@@ -152,7 +161,24 @@ export function Rankings() {
         ))}
       </div>
 
-      <p className="mt-3 text-xs text-ink-muted">{ranking.descripcion}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-ink-muted">
+          Mercado
+          <select
+            value={mercado}
+            onChange={(e) => setMercado(e.target.value as Mercado | "Todos")}
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink focus-ring"
+          >
+            <option value="Todos">Todos los mercados</option>
+            {MERCADOS.filter((m) => (empresas ?? []).some((c) => c.mercado === m.id)).map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.nombre}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-xs text-ink-muted">{ranking.descripcion}</p>
+      </div>
 
       <Card className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[700px] text-sm">
@@ -160,6 +186,7 @@ export function Rankings() {
             <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left">
               <th>#</th>
               <th>Empresa</th>
+              <th>Mercado</th>
               <th>Sector</th>
               <th>{ranking.valorLabel}</th>
               <th>Estado</th>
@@ -177,20 +204,29 @@ export function Rankings() {
                     {f.company.nombre}
                   </Link>
                   <div className="font-mono text-xs text-ink-muted">
-                    {f.company.ticker}
-                    {f.company.fuente === "demo" && " · demo"}
+                    {f.company.fuente === "propia" ? "Mi empresa" : f.company.ticker}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-ink-muted">{f.company.sector}</td>
-                <td className="px-4 py-3 font-mono text-ink">{ranking.format(ranking.getValor(f))}</td>
+                <td className="px-4 py-3 text-ink-muted">{nombreMercado(f.company.mercado)}</td>
+                <td className="px-4 py-3 text-ink-muted">{nombreSector(f.company.sector)}</td>
+                <td className="px-4 py-3 font-mono text-ink">
+                  {ranking.format(ranking.getValor(f))}
+                </td>
                 <td className="px-4 py-3">
                   <Badge estado={f.scoreEstado} />
                 </td>
               </tr>
             ))}
-            {ordenadas.length === 0 && (
+            {empresas === null && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-ink-muted">
+                <td colSpan={6} className="px-4 py-10 text-center text-ink-muted">
+                  Cargando datos en vivo...
+                </td>
+              </tr>
+            )}
+            {empresas !== null && ordenadas.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-ink-muted">
                   No hay empresas disponibles.
                 </td>
               </tr>

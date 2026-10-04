@@ -1,15 +1,13 @@
-import { fetchChart, fetchQuoteSummary, fetchTimeseries } from "../_yahoo.js";
+import { cargarEmpresa } from "../_yahoo.js";
 
 /**
  * GET /api/company/:ticker
  * Datos en vivo de Yahoo Finance para una empresa que cotiza: balance,
  * resultados y mercado del ultimo periodo disponible, mas el historico de
- * periodos previos (sin datos de mercado historicos, Yahoo no los da por
- * este camino -- se deja en null en vez de aproximar).
+ * periodos previos, con la moneda de reporte y el tipo de cambio a USD.
  *
- * Cacheado 15 min en el borde de Vercel (misma logica que el prototipo
- * Python: evita pegarle a Yahoo en cada visita y reduce el riesgo de que
- * Yahoo empiece a tirar 429 por demasiados pedidos).
+ * Cacheado 15 min en el borde de Vercel: evita pegarle a Yahoo en cada
+ * visita y reduce el riesgo de que empiece a tirar 429.
  */
 export default async function handler(req: any, res: any) {
   const ticker = Array.isArray(req.query.ticker) ? req.query.ticker[0] : req.query.ticker;
@@ -19,36 +17,13 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const [chart, quoteSummary, periodos] = await Promise.all([
-      fetchChart(ticker),
-      fetchQuoteSummary(ticker).catch(() => ({ marketCap: null, pe: null, eps: null, evEbitda: null })),
-      fetchTimeseries(ticker),
-    ]);
-
-    if (periodos.length === 0 && chart.precio === null) {
+    const empresa = await cargarEmpresa(ticker);
+    if (!empresa) {
       res.status(404).json({ error: `No se encontraron datos para ${ticker}.` });
       return;
     }
-
-    const ultimo = periodos[periodos.length - 1] ?? { periodo: new Date().toISOString().slice(0, 10) };
-
     res.setHeader("Cache-Control", "public, s-maxage=900, stale-while-revalidate=1800");
-    res.status(200).json({
-      ticker,
-      envivo: true,
-      actualizado: new Date().toISOString(),
-      ultimo: {
-        ...ultimo,
-        precio: chart.precio,
-        variacionDiaria: chart.variacionDiaria,
-        moneda: chart.moneda,
-        marketCap: quoteSummary.marketCap,
-        pe: quoteSummary.pe,
-        eps: quoteSummary.eps,
-        evEbitda: quoteSummary.evEbitda,
-      },
-      historico: periodos,
-    });
+    res.status(200).json(empresa);
   } catch (error) {
     res.status(502).json({ error: `No se pudo consultar Yahoo Finance: ${(error as Error).message}` });
   }

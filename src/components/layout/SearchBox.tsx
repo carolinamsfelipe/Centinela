@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { nombreMercado, nombreSector } from "@/data/companies";
 import { useDebounce } from "@/hooks/useDebounce";
 import { searchCompanies } from "@/services/companyService";
 import type { Company } from "@/types";
@@ -42,8 +43,8 @@ export function SearchBox({ grande = false }: { grande?: boolean }) {
         }}
         onFocus={() => setAbierto(true)}
         onBlur={() => setTimeout(() => setAbierto(false), 150)}
-        placeholder="Buscar empresa, ticker o sector..."
-        aria-label="Buscar empresa, ticker o sector"
+        placeholder="Buscar empresa, ticker, sector o mercado..."
+        aria-label="Buscar empresa, ticker, sector o mercado"
         className={`w-full rounded-xl border border-border bg-surface text-ink placeholder:text-ink-muted focus-ring ${
           grande ? "px-5 py-4 text-lg" : "px-4 py-2 text-sm"
         }`}
@@ -58,9 +59,11 @@ export function SearchBox({ grande = false }: { grande?: boolean }) {
               >
                 <span>
                   <span className="font-semibold">{c.nombre}</span>{" "}
-                  <span className="text-ink-muted">{c.ticker}</span>
+                  <span className="text-ink-muted">{c.fuente === "propia" ? "mi empresa" : c.ticker}</span>
                 </span>
-                <span className="text-xs text-ink-muted">{c.sector}</span>
+                <span className="text-xs text-ink-muted">
+                  {nombreMercado(c.mercado)} · {nombreSector(c.sector)}
+                </span>
               </button>
             </li>
           ))}

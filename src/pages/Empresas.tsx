@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
-import { calcularAltman, diagnosticarAltman } from "@/lib/financial/altman";
-import { calcularCentinelaScore } from "@/lib/financial/scores";
-import { fmtMoney, fmtNum, fmtPct, fmtX } from "@/lib/format";
-import { SECTORES } from "@/data/companies";
+import { BotonDescarga } from "@/components/ui/BotonDescarga";
+import { MERCADOS, SECTORES, nombreMercado, nombreSector } from "@/data/companies";
+import { diagnosticarAltman } from "@/lib/financial/altman";
+import { analizarEmpresa } from "@/lib/financial/analysis";
+import type { AnalisisCalculado } from "@/lib/financial/analysis";
+import { aUsd, fmtMonto, fmtNum, fmtPct, fmtX } from "@/lib/format";
+import { descargarExcelComparativo } from "@/lib/reports/comparativo";
 import { getCompanies } from "@/services/companyService";
 import type { Company, Estado, Mercado, Sector } from "@/types";
 
 type ColumnaOrden =
   | "nombre"
+  | "mercado"
   | "marketCap"
   | "revenue"
   | "roe"
@@ -20,6 +24,7 @@ type ColumnaOrden =
 
 interface Fila {
   company: Company;
+  analisis: AnalisisCalculado;
   altman: number | null;
   altmanEstado: Estado;
   score: number | null;
@@ -28,7 +33,7 @@ interface Fila {
 
 export function Empresas() {
   const [params, setParams] = useSearchParams();
-  const [empresas, setEmpresas] = useState<Company[]>([]);
+  const [empresas, setEmpresas] = useState<Company[] | null>(null);
   const [sectoresSel, setSectoresSel] = useState<Set<Sector>>(new Set());
   const [mercado, setMercado] = useState<Mercado | "Todos">("Todos");
   const [riesgo, setRiesgo] = useState<Estado | "Todos">("Todos");
@@ -42,21 +47,40 @@ export function Empresas() {
   useEffect(() => {
     const sectorParam = params.get("sector") as Sector | null;
     if (sectorParam) setSectoresSel(new Set([sectorParam]));
+    const mercadoParam = params.get("mercado") as Mercado | null;
+    if (mercadoParam) setMercado(mercadoParam);
   }, [params]);
 
+  const lista = useMemo(() => empresas ?? [], [empresas]);
+
   const filas: Fila[] = useMemo(() => {
-    return empresas.map((company) => {
-      const altmanResult = calcularAltman(company.metrics, company.metrics.marketCap);
-      const score = calcularCentinelaScore(company.metrics, company.metrics.marketCap);
+    return lista.map((company) => {
+      const analisis = analizarEmpresa(company);
       return {
         company,
-        altman: altmanResult.zScore,
-        altmanEstado: diagnosticarAltman(altmanResult.zScore),
-        score: score.total,
-        scoreEstado: score.estado,
+        analisis,
+        altman: analisis.altman.zScore,
+        altmanEstado: diagnosticarAltman(analisis.altman.zScore),
+        score: analisis.score.total,
+        scoreEstado: analisis.score.estado,
       };
     });
-  }, [empresas]);
+  }, [lista]);
+
+  const sectoresDisponibles = useMemo(
+    () =>
+      SECTORES.map((s) => ({ ...s, cantidad: lista.filter((c) => c.sector === s.id).length })).filter(
+        (s) => s.cantidad > 0
+      ),
+    [lista]
+  );
+  const mercadosDisponibles = useMemo(
+    () =>
+      MERCADOS.map((m) => ({ ...m, cantidad: lista.filter((c) => c.mercado === m.id).length })).filter(
+        (m) => m.cantidad > 0
+      ),
+    [lista]
+  );
 
   const filtradas = useMemo(() => {
     return filas.filter((f) => {
@@ -77,13 +101,17 @@ export function Empresas() {
           va = a.company.nombre;
           vb = b.company.nombre;
           break;
+        case "mercado":
+          va = nombreMercado(a.company.mercado);
+          vb = nombreMercado(b.company.mercado);
+          break;
         case "marketCap":
-          va = a.company.metrics.marketCap;
-          vb = b.company.metrics.marketCap;
+          va = aUsd(a.company.metrics.marketCap, a.company);
+          vb = aUsd(b.company.metrics.marketCap, b.company);
           break;
         case "revenue":
-          va = a.company.metrics.revenue;
-          vb = b.company.metrics.revenue;
+          va = aUsd(a.company.metrics.revenue, a.company);
+          vb = aUsd(b.company.metrics.revenue, b.company);
           break;
         case "roe":
           va = a.company.metrics.roe;
@@ -144,26 +172,49 @@ export function Empresas() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-      <h1 className="text-2xl font-bold text-ink">Empresas</h1>
-      <p className="mt-1 text-sm text-ink-muted">
-        {ordenadas.length} de {empresas.length} empresas · ordenamiento basado exclusivamente en el
-        indicador seleccionado, no es una recomendación.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Empresas</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            {empresas === null
+              ? "Consultando datos en vivo de Yahoo Finance..."
+              : `${ordenadas.length} de ${lista.length} empresas · datos en vivo · ordenamiento basado exclusivamente en el indicador seleccionado, no es una recomendación.`}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            Importes en US$ al tipo de cambio actual. Altman Z&apos;&apos; y Score no se calculan para bancos (N/A).
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <BotonDescarga
+            label="Descargar listado (Excel)"
+            disabled={ordenadas.length === 0}
+            onDescargar={() =>
+              descargarExcelComparativo(ordenadas.map((f) => ({ company: f.company, altman: f.analisis.altman, score: f.analisis.score })))
+            }
+          />
+          <Link
+            to="/mi-empresa"
+            className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90 focus-ring"
+          >
+            + Cargar mi empresa
+          </Link>
+        </div>
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr]">
         <aside className="space-y-6">
           <div>
             <h2 className="mb-2 text-sm font-semibold text-ink">Sector</h2>
             <div className="space-y-1.5">
-              {SECTORES.map((s) => (
+              {sectoresDisponibles.map((s) => (
                 <label key={s.id} className="flex items-center gap-2 text-sm text-ink-muted">
                   <input
                     type="checkbox"
-                    checked={sectoresSel.has(s.id as Sector)}
-                    onChange={() => toggleSector(s.id as Sector)}
+                    checked={sectoresSel.has(s.id)}
+                    onChange={() => toggleSector(s.id)}
                     className="rounded border-border"
                   />
-                  {s.nombre}
+                  {s.nombre} <span className="text-xs">({s.cantidad})</span>
                 </label>
               ))}
             </div>
@@ -172,15 +223,14 @@ export function Empresas() {
           <div>
             <h2 className="mb-2 text-sm font-semibold text-ink">Mercado</h2>
             <div className="space-y-1.5">
-              {(["Todos", "Argentina", "Internacional"] as const).map((m) => (
-                <label key={m} className="flex items-center gap-2 text-sm text-ink-muted">
-                  <input
-                    type="radio"
-                    name="mercado"
-                    checked={mercado === m}
-                    onChange={() => setMercado(m)}
-                  />
-                  {m}
+              <label className="flex items-center gap-2 text-sm text-ink-muted">
+                <input type="radio" name="mercado" checked={mercado === "Todos"} onChange={() => setMercado("Todos")} />
+                Todos
+              </label>
+              {mercadosDisponibles.map((m) => (
+                <label key={m.id} className="flex items-center gap-2 text-sm text-ink-muted">
+                  <input type="radio" name="mercado" checked={mercado === m.id} onChange={() => setMercado(m.id)} />
+                  {m.nombre} <span className="text-xs">({m.cantidad})</span>
                 </label>
               ))}
             </div>
@@ -191,12 +241,7 @@ export function Empresas() {
             <div className="space-y-1.5">
               {(["Todos", "normal", "atencion", "alerta"] as const).map((r) => (
                 <label key={r} className="flex items-center gap-2 text-sm text-ink-muted">
-                  <input
-                    type="radio"
-                    name="riesgo"
-                    checked={riesgo === r}
-                    onChange={() => setRiesgo(r)}
-                  />
+                  <input type="radio" name="riesgo" checked={riesgo === r} onChange={() => setRiesgo(r)} />
                   {r === "Todos" ? "Todos" : r === "normal" ? "Saludable" : r === "atencion" ? "Atención" : "Riesgo"}
                 </label>
               ))}
@@ -205,10 +250,11 @@ export function Empresas() {
         </aside>
 
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[1000px] text-sm">
             <thead className="border-b border-border bg-bg/50">
-              <tr className="[&>th]:px-4 [&>th]:py-3">
+              <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left">
                 <th>{headerBtn("Empresa", "nombre")}</th>
+                <th>{headerBtn("Mercado", "mercado")}</th>
                 <th>Sector</th>
                 <th>{headerBtn("Market Cap", "marketCap")}</th>
                 <th>{headerBtn("Revenue", "revenue")}</th>
@@ -216,7 +262,7 @@ export function Empresas() {
                 <th>{headerBtn("ROA", "roa")}</th>
                 <th>{headerBtn("D/E", "debtToEquity")}</th>
                 <th>{headerBtn("Altman Z''", "altman")}</th>
-                <th>{headerBtn("Score Centinela", "score")}</th>
+                <th>{headerBtn("Score", "score")}</th>
                 <th>Señal</th>
               </tr>
             </thead>
@@ -228,26 +274,34 @@ export function Empresas() {
                       {f.company.nombre}
                     </Link>
                     <div className="font-mono text-xs text-ink-muted">
-                      {f.company.ticker}
-                      {f.company.fuente === "demo" && " · demo"}
+                      {f.company.fuente === "propia" ? "Mi empresa" : f.company.ticker}
+                      {f.company.fuente === "real" && !f.company.envivo && " · respaldo"}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-ink-muted">{f.company.sector}</td>
-                  <td className="px-4 py-3 font-mono">{fmtMoney(f.company.metrics.marketCap)}</td>
-                  <td className="px-4 py-3 font-mono">{fmtMoney(f.company.metrics.revenue)}</td>
+                  <td className="px-4 py-3 text-ink-muted">{nombreMercado(f.company.mercado)}</td>
+                  <td className="px-4 py-3 text-ink-muted">{nombreSector(f.company.sector)}</td>
+                  <td className="px-4 py-3 font-mono">{fmtMonto(f.company.metrics.marketCap, f.company)}</td>
+                  <td className="px-4 py-3 font-mono">{fmtMonto(f.company.metrics.revenue, f.company)}</td>
                   <td className="px-4 py-3 font-mono">{fmtPct(f.company.metrics.roe)}</td>
                   <td className="px-4 py-3 font-mono">{fmtPct(f.company.metrics.roa)}</td>
                   <td className="px-4 py-3 font-mono">{fmtX(f.company.metrics.debtToEquity)}</td>
-                  <td className="px-4 py-3 font-mono">{fmtNum(f.altman)}</td>
-                  <td className="px-4 py-3 font-mono">{f.score ?? "N/D"}</td>
+                  <td className="px-4 py-3 font-mono">{f.analisis.aplicaModeloCorporativo ? fmtNum(f.altman) : "N/A"}</td>
+                  <td className="px-4 py-3 font-mono">{f.score ?? (f.analisis.aplicaModeloCorporativo ? "N/D" : "N/A")}</td>
                   <td className="px-4 py-3">
                     <Badge estado={f.scoreEstado} />
                   </td>
                 </tr>
               ))}
-              {ordenadas.length === 0 && (
+              {empresas === null && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-10 text-center text-ink-muted">
+                  <td colSpan={11} className="px-4 py-10 text-center text-ink-muted">
+                    Cargando balances y precios en vivo...
+                  </td>
+                </tr>
+              )}
+              {empresas !== null && ordenadas.length === 0 && (
+                <tr>
+                  <td colSpan={11} className="px-4 py-10 text-center text-ink-muted">
                     Ninguna empresa coincide con los filtros seleccionados.
                   </td>
                 </tr>

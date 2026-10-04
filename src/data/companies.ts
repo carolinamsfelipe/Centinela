@@ -1,17 +1,22 @@
-import type { Company } from "@/types";
+import type { Company, FinancialMetrics, Mercado, Sector, TamanoEmpresa } from "@/types";
 
 /**
- * Empresas con fuente "real": los campos de balance (activos, pasivos,
- * patrimonio, EBIT) y la capitalización de mercado provienen de una captura
- * real de Yahoo Finance (ver snapshot_data.json del prototipo en Python).
- * Los campos que esa fuente no provee (revenue, net income, P/E, etc.) se
- * dejan en null ("N/D") en vez de inventarse.
+ * Universo de empresas de Centinela. TODAS cotizan y se consultan en vivo a
+ * Yahoo Finance (ver /api/companies): balance, resultados, capitalizacion y
+ * precio no estan escritos aca. Lo unico fijo en este archivo es la ficha de
+ * clasificacion (nombre, sector, mercado) -- es metadata, no un dato
+ * financiero. No hay empresas ficticias: si una empresa no se puede traer
+ * de una fuente real, no esta en la plataforma.
  *
- * Empresas con fuente "demo": todas sus cifras son ficticias, creadas para
- * poblar sectores que el prototipo real no cubre (financiero, industria,
- * construcción, agro, consumo, materiales). Nunca se presentan como reales.
+ * Las 5 empresas del prototipo original conservan ademas una captura real de
+ * Yahoo Finance como RESPALDO por si la consulta en vivo falla; la interfaz
+ * lo avisa ("Datos de respaldo"). Donde la captura guardaba la capitalizacion
+ * de mercado en una moneda distinta a la del balance (TEO, CRESY, LOMA:
+ * balance en ARS, market cap en USD) se anula en el respaldo para no mezclar
+ * monedas en el Altman Z''.
  */
-export const COMPANIES: Company[] = [
+
+const RESPALDO_REAL: Company[] = [
   {
     ticker: "YPF",
     nombre: "YPF S.A.",
@@ -20,6 +25,8 @@ export const COMPANIES: Company[] = [
     tamano: "Large",
     pais: "Argentina",
     fuente: "real",
+    monedaReporte: "USD",
+    tipoCambioUsd: 1,
     metrics: {
       periodo: "2025-12-31",
       precio: null,
@@ -63,6 +70,8 @@ export const COMPANIES: Company[] = [
     tamano: "Large",
     pais: "Argentina",
     fuente: "real",
+    monedaReporte: "USD",
+    tipoCambioUsd: 1,
     metrics: {
       periodo: "2025-12-31",
       precio: null,
@@ -106,11 +115,13 @@ export const COMPANIES: Company[] = [
     tamano: "Large",
     pais: "Argentina",
     fuente: "real",
+    monedaReporte: "ARS",
+    tipoCambioUsd: null,
     metrics: {
       periodo: "2025-12-31",
       precio: null,
       variacionDiaria: null,
-      marketCap: 6050097432,
+      marketCap: null,
       revenue: null,
       ebitda: null,
       ebitMargin: null,
@@ -149,11 +160,13 @@ export const COMPANIES: Company[] = [
     tamano: "Mid",
     pais: "Argentina",
     fuente: "real",
+    monedaReporte: "ARS",
+    tipoCambioUsd: null,
     metrics: {
       periodo: "2026-06-30",
       precio: null,
       variacionDiaria: null,
-      marketCap: 894366697,
+      marketCap: null,
       revenue: null,
       ebitda: null,
       ebitMargin: null,
@@ -192,11 +205,13 @@ export const COMPANIES: Company[] = [
     tamano: "Mid",
     pais: "Argentina",
     fuente: "real",
+    monedaReporte: "ARS",
+    tipoCambioUsd: null,
     metrics: {
       periodo: "2025-12-31",
       precio: null,
       variacionDiaria: null,
-      marketCap: 1108629670,
+      marketCap: null,
       revenue: null,
       ebitda: null,
       ebitMargin: null,
@@ -227,224 +242,93 @@ export const COMPANIES: Company[] = [
       { periodo: "2025-12-31", revenue: null, ebitda: null, netIncome: null, roe: null, roa: null, debtToEquity: 303400246000 / 1067218651000, freeCashFlow: null, altmanZ: null, centinelaScore: null },
     ],
   },
-  {
-    ticker: "BCFS",
-    nombre: "Banco Capital Federal S.A. (demo)",
-    sector: "Finanzas",
-    mercado: "Argentina",
-    tamano: "Mid",
-    pais: "Argentina",
-    fuente: "demo",
-    metrics: {
-      periodo: "2025-12-31",
-      precio: 1450,
-      variacionDiaria: 0.012,
-      marketCap: 85_000_000_000,
-      revenue: 42_000_000_000,
-      ebitda: 15_000_000_000,
-      ebitMargin: 0.3,
-      netIncome: 9_800_000_000,
-      roe: 0.19,
-      roa: 0.03,
-      margenNeto: 0.233,
-      debtToEquity: 1.4,
-      currentRatio: 1.15,
-      quickRatio: 1.05,
-      freeCashFlow: 6_200_000_000,
-      eps: 142,
-      pe: 10.2,
-      pb: 1.6,
-      evEbitda: 6.8,
-      activosCorrientes: 60_000_000_000,
-      activosTotales: 320_000_000_000,
-      pasivosCorrientes: 52_000_000_000,
-      pasivosTotales: 268_000_000_000,
-      patrimonioNeto: 52_000_000_000,
-      gananciasRetenidas: 18_000_000_000,
-      deudaTotal: 72_800_000_000,
-      ebit: 12_600_000_000,
-    },
-    historico: [
-      { periodo: "2023", revenue: 31_000_000_000, ebitda: 10_500_000_000, netIncome: 6_200_000_000, roe: 0.15, roa: 0.024, debtToEquity: 1.7, freeCashFlow: 4_000_000_000, altmanZ: 2.1, centinelaScore: 58 },
-      { periodo: "2024", revenue: 36_500_000_000, ebitda: 12_800_000_000, netIncome: 7_900_000_000, roe: 0.17, roa: 0.027, debtToEquity: 1.55, freeCashFlow: 5_100_000_000, altmanZ: 2.4, centinelaScore: 63 },
-      { periodo: "2025", revenue: 42_000_000_000, ebitda: 15_000_000_000, netIncome: 9_800_000_000, roe: 0.19, roa: 0.03, debtToEquity: 1.4, freeCashFlow: 6_200_000_000, altmanZ: 2.8, centinelaScore: 69 },
-    ],
-  },
-  {
-    ticker: "MTLS",
-    nombre: "Metalúrgica del Sur S.A. (demo)",
-    sector: "Industria",
-    mercado: "Argentina",
-    tamano: "Small",
-    pais: "Argentina",
-    fuente: "demo",
-    metrics: {
-      periodo: "2025-12-31",
-      precio: 310,
-      variacionDiaria: -0.008,
-      marketCap: 6_200_000_000,
-      revenue: 11_200_000_000,
-      ebitda: 2_100_000_000,
-      ebitMargin: 0.168,
-      netIncome: 980_000_000,
-      roe: 0.158,
-      roa: 0.082,
-      margenNeto: 0.0875,
-      debtToEquity: 0.55,
-      currentRatio: 2.31,
-      quickRatio: 1.6,
-      freeCashFlow: 720_000_000,
-      eps: 49,
-      pe: 6.3,
-      pb: 0.9,
-      evEbitda: 4.1,
-      activosCorrientes: 4_850_000_000,
-      activosTotales: 12_000_000_000,
-      pasivosCorrientes: 2_100_000_000,
-      pasivosTotales: 5_800_000_000,
-      patrimonioNeto: 6_200_000_000,
-      gananciasRetenidas: 1_550_000_000,
-      deudaTotal: 3_400_000_000,
-      ebit: 1_880_000_000,
-    },
-    historico: [
-      { periodo: "2023", revenue: 8_900_000_000, ebitda: 1_500_000_000, netIncome: 610_000_000, roe: 0.12, roa: 0.06, debtToEquity: 0.72, freeCashFlow: 400_000_000, altmanZ: 3.2, centinelaScore: 71 },
-      { periodo: "2024", revenue: 9_900_000_000, ebitda: 1_780_000_000, netIncome: 790_000_000, roe: 0.14, roa: 0.071, debtToEquity: 0.63, freeCashFlow: 560_000_000, altmanZ: 3.5, centinelaScore: 75 },
-      { periodo: "2025", revenue: 11_200_000_000, ebitda: 2_100_000_000, netIncome: 980_000_000, roe: 0.158, roa: 0.082, debtToEquity: 0.55, freeCashFlow: 720_000_000, altmanZ: 3.7, centinelaScore: 79 },
-    ],
-  },
-  {
-    ticker: "CNRP",
-    nombre: "Constructora Rioplatense S.A. (demo)",
-    sector: "Construccion",
-    mercado: "Argentina",
-    tamano: "Small",
-    pais: "Argentina",
-    fuente: "demo",
-    metrics: {
-      periodo: "2025-12-31",
-      precio: 95,
-      variacionDiaria: -0.021,
-      marketCap: 2_100_000_000,
-      revenue: 7_400_000_000,
-      ebitda: 430_000_000,
-      ebitMargin: 0.047,
-      netIncome: -180_000_000,
-      roe: -0.09,
-      roa: -0.021,
-      margenNeto: -0.0243,
-      debtToEquity: 2.3,
-      currentRatio: 0.82,
-      quickRatio: 0.51,
-      freeCashFlow: -310_000_000,
-      eps: -8.1,
-      pe: null,
-      pb: 0.7,
-      evEbitda: 9.8,
-      activosCorrientes: 3_100_000_000,
-      activosTotales: 8_600_000_000,
-      pasivosCorrientes: 3_780_000_000,
-      pasivosTotales: 6_070_000_000,
-      patrimonioNeto: 2_530_000_000,
-      gananciasRetenidas: -640_000_000,
-      deudaTotal: 5_820_000_000,
-      ebit: 348_000_000,
-    },
-    historico: [
-      { periodo: "2023", revenue: 8_200_000_000, ebitda: 780_000_000, netIncome: 210_000_000, roe: 0.08, roa: 0.021, debtToEquity: 1.6, freeCashFlow: 90_000_000, altmanZ: 1.9, centinelaScore: 54 },
-      { periodo: "2024", revenue: 7_900_000_000, ebitda: 610_000_000, netIncome: 40_000_000, roe: 0.015, roa: 0.004, debtToEquity: 1.95, freeCashFlow: -60_000_000, altmanZ: 1.5, centinelaScore: 44 },
-      { periodo: "2025", revenue: 7_400_000_000, ebitda: 430_000_000, netIncome: -180_000_000, roe: -0.09, roa: -0.021, debtToEquity: 2.3, freeCashFlow: -310_000_000, altmanZ: 1.1, centinelaScore: 31 },
-    ],
-  },
-  {
-    ticker: "AGRN",
-    nombre: "Agropecuaria Norte S.A. (demo)",
-    sector: "Agro",
-    mercado: "Argentina",
-    tamano: "Mid",
-    pais: "Argentina",
-    fuente: "demo",
-    metrics: {
-      periodo: "2025-12-31",
-      precio: 540,
-      variacionDiaria: 0.015,
-      marketCap: 9_800_000_000,
-      revenue: 14_600_000_000,
-      ebitda: 3_200_000_000,
-      ebitMargin: 0.195,
-      netIncome: 2_050_000_000,
-      roe: 0.168,
-      roa: 0.095,
-      margenNeto: 0.14,
-      debtToEquity: 0.68,
-      currentRatio: 1.9,
-      quickRatio: 1.1,
-      freeCashFlow: 1_400_000_000,
-      eps: 113,
-      pe: 4.8,
-      pb: 0.8,
-      evEbitda: 3.9,
-      activosCorrientes: 6_200_000_000,
-      activosTotales: 21_600_000_000,
-      pasivosCorrientes: 3_260_000_000,
-      pasivosTotales: 9_400_000_000,
-      patrimonioNeto: 12_200_000_000,
-      gananciasRetenidas: 4_100_000_000,
-      deudaTotal: 8_300_000_000,
-      ebit: 2_850_000_000,
-    },
-    historico: [
-      { periodo: "2023", revenue: 11_900_000_000, ebitda: 2_400_000_000, netIncome: 1_380_000_000, roe: 0.13, roa: 0.071, debtToEquity: 0.82, freeCashFlow: 900_000_000, altmanZ: 3.0, centinelaScore: 68 },
-      { periodo: "2024", revenue: 13_100_000_000, ebitda: 2_780_000_000, netIncome: 1_720_000_000, roe: 0.15, roa: 0.084, debtToEquity: 0.74, freeCashFlow: 1_150_000_000, altmanZ: 3.3, centinelaScore: 74 },
-      { periodo: "2025", revenue: 14_600_000_000, ebitda: 3_200_000_000, netIncome: 2_050_000_000, roe: 0.168, roa: 0.095, debtToEquity: 0.68, freeCashFlow: 1_400_000_000, altmanZ: 3.6, centinelaScore: 78 },
-    ],
-  },
-  {
-    ticker: "CMDP",
-    nombre: "Consumo Masivo del Plata S.A. (demo)",
-    sector: "Consumo",
-    mercado: "Argentina",
-    tamano: "Mid",
-    pais: "Argentina",
-    fuente: "demo",
-    metrics: {
-      periodo: "2025-12-31",
-      precio: 210,
-      variacionDiaria: 0.004,
-      marketCap: 5_400_000_000,
-      revenue: 18_900_000_000,
-      ebitda: 1_900_000_000,
-      ebitMargin: 0.082,
-      netIncome: 740_000_000,
-      roe: 0.091,
-      roa: 0.044,
-      margenNeto: 0.0392,
-      debtToEquity: 1.05,
-      currentRatio: 1.22,
-      quickRatio: 0.78,
-      freeCashFlow: 310_000_000,
-      eps: 18,
-      pe: 7.3,
-      pb: 0.95,
-      evEbitda: 5.6,
-      activosCorrientes: 7_900_000_000,
-      activosTotales: 16_700_000_000,
-      pasivosCorrientes: 6_470_000_000,
-      pasivosTotales: 8_600_000_000,
-      patrimonioNeto: 8_100_000_000,
-      gananciasRetenidas: 2_200_000_000,
-      deudaTotal: 8_500_000_000,
-      ebit: 1_550_000_000,
-    },
-    historico: [
-      { periodo: "2023", revenue: 16_200_000_000, ebitda: 1_750_000_000, netIncome: 690_000_000, roe: 0.088, roa: 0.045, debtToEquity: 1.02, freeCashFlow: 280_000_000, altmanZ: 2.5, centinelaScore: 60 },
-      { periodo: "2024", revenue: 17_600_000_000, ebitda: 1_820_000_000, netIncome: 715_000_000, roe: 0.089, roa: 0.044, debtToEquity: 1.04, freeCashFlow: 300_000_000, altmanZ: 2.6, centinelaScore: 61 },
-      { periodo: "2025", revenue: 18_900_000_000, ebitda: 1_900_000_000, netIncome: 740_000_000, roe: 0.091, roa: 0.044, debtToEquity: 1.05, freeCashFlow: 310_000_000, altmanZ: 2.6, centinelaScore: 62 },
-    ],
-  },
 ];
 
-export const SECTORES: Array<{ id: string; nombre: string }> = [
+interface Ficha {
+  ticker: string;
+  nombre: string;
+  sector: Sector;
+  mercado: Mercado;
+  pais: string;
+  tamano: TamanoEmpresa;
+}
+
+const METRICAS_VACIAS: FinancialMetrics = {
+  periodo: "",
+  precio: null,
+  variacionDiaria: null,
+  marketCap: null,
+  revenue: null,
+  ebitda: null,
+  ebitMargin: null,
+  netIncome: null,
+  roe: null,
+  roa: null,
+  margenNeto: null,
+  debtToEquity: null,
+  currentRatio: null,
+  quickRatio: null,
+  freeCashFlow: null,
+  eps: null,
+  pe: null,
+  pb: null,
+  evEbitda: null,
+  activosCorrientes: null,
+  activosTotales: null,
+  pasivosCorrientes: null,
+  pasivosTotales: null,
+  patrimonioNeto: null,
+  gananciasRetenidas: null,
+  deudaTotal: null,
+  ebit: null,
+};
+
+function sinRespaldo(f: Ficha): Company {
+  return {
+    ...f,
+    fuente: "real",
+    monedaReporte: "USD",
+    tipoCambioUsd: null,
+    metrics: { ...METRICAS_VACIAS },
+    historico: [],
+  };
+}
+
+const FICHAS_SIN_RESPALDO: Ficha[] = [
+  // Argentina
+  { ticker: "CEPU", nombre: "Central Puerto S.A.", sector: "Energia", mercado: "Argentina", pais: "Argentina", tamano: "Mid" },
+  { ticker: "EDN", nombre: "Edenor S.A.", sector: "Energia", mercado: "Argentina", pais: "Argentina", tamano: "Mid" },
+  { ticker: "TGS", nombre: "Transportadora de Gas del Sur S.A.", sector: "Energia", mercado: "Argentina", pais: "Argentina", tamano: "Mid" },
+  { ticker: "IRS", nombre: "IRSA Inversiones y Representaciones S.A.", sector: "Inmobiliario", mercado: "Argentina", pais: "Argentina", tamano: "Mid" },
+  { ticker: "GGAL", nombre: "Grupo Financiero Galicia S.A.", sector: "Finanzas", mercado: "Argentina", pais: "Argentina", tamano: "Large" },
+  { ticker: "BMA", nombre: "Banco Macro S.A.", sector: "Finanzas", mercado: "Argentina", pais: "Argentina", tamano: "Large" },
+  { ticker: "BBAR", nombre: "BBVA Argentina S.A.", sector: "Finanzas", mercado: "Argentina", pais: "Argentina", tamano: "Large" },
+  // Brasil
+  { ticker: "PBR", nombre: "Petrobras", sector: "Energia", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
+  { ticker: "VALE", nombre: "Vale S.A.", sector: "Materiales", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
+  { ticker: "ITUB", nombre: "Itaú Unibanco", sector: "Finanzas", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
+  { ticker: "NU", nombre: "Nu Holdings (Nubank)", sector: "Finanzas", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
+  { ticker: "ABEV", nombre: "Ambev S.A.", sector: "Consumo", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
+  // Estados Unidos
+  { ticker: "AAPL", nombre: "Apple Inc.", sector: "Tecnologia", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "MSFT", nombre: "Microsoft Corporation", sector: "Tecnologia", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "KO", nombre: "The Coca-Cola Company", sector: "Consumo", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "WMT", nombre: "Walmart Inc.", sector: "Consumo", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "JPM", nombre: "JPMorgan Chase & Co.", sector: "Finanzas", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "XOM", nombre: "Exxon Mobil Corporation", sector: "Energia", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "JNJ", nombre: "Johnson & Johnson", sector: "Salud", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  // Europa
+  { ticker: "SAP", nombre: "SAP SE", sector: "Tecnologia", mercado: "Europa", pais: "Alemania", tamano: "Large" },
+  { ticker: "NVO", nombre: "Novo Nordisk A/S", sector: "Salud", mercado: "Europa", pais: "Dinamarca", tamano: "Large" },
+  { ticker: "SHEL", nombre: "Shell plc", sector: "Energia", mercado: "Europa", pais: "Reino Unido", tamano: "Large" },
+  // Asia
+  { ticker: "TSM", nombre: "Taiwan Semiconductor (TSMC)", sector: "Tecnologia", mercado: "Asia", pais: "Taiwán", tamano: "Large" },
+  { ticker: "BABA", nombre: "Alibaba Group", sector: "Consumo", mercado: "Asia", pais: "China", tamano: "Large" },
+];
+
+export const COMPANIES: Company[] = [...RESPALDO_REAL, ...FICHAS_SIN_RESPALDO.map(sinRespaldo)];
+
+export const SECTORES: Array<{ id: Sector; nombre: string }> = [
   { id: "Energia", nombre: "Energía" },
   { id: "Telecomunicaciones", nombre: "Telecomunicaciones" },
   { id: "Finanzas", nombre: "Finanzas" },
@@ -453,4 +337,40 @@ export const SECTORES: Array<{ id: string; nombre: string }> = [
   { id: "Agro", nombre: "Agro" },
   { id: "Consumo", nombre: "Consumo" },
   { id: "Materiales", nombre: "Materiales" },
+  { id: "Tecnologia", nombre: "Tecnología" },
+  { id: "Salud", nombre: "Salud" },
+  { id: "Inmobiliario", nombre: "Inmobiliario" },
 ];
+
+export const MERCADOS: Array<{ id: Mercado; nombre: string; monedaHabitual: string }> = [
+  { id: "Argentina", nombre: "Argentina", monedaHabitual: "ARS" },
+  { id: "Brasil", nombre: "Brasil", monedaHabitual: "BRL" },
+  { id: "Chile", nombre: "Chile", monedaHabitual: "CLP" },
+  { id: "Mexico", nombre: "México", monedaHabitual: "MXN" },
+  { id: "Estados Unidos", nombre: "Estados Unidos", monedaHabitual: "USD" },
+  { id: "Europa", nombre: "Europa", monedaHabitual: "EUR" },
+  { id: "Asia", nombre: "Asia", monedaHabitual: "USD" },
+];
+
+export const MONEDAS: Array<{ id: string; nombre: string }> = [
+  { id: "ARS", nombre: "Peso argentino (ARS)" },
+  { id: "USD", nombre: "Dólar estadounidense (USD)" },
+  { id: "BRL", nombre: "Real brasileño (BRL)" },
+  { id: "CLP", nombre: "Peso chileno (CLP)" },
+  { id: "MXN", nombre: "Peso mexicano (MXN)" },
+  { id: "COP", nombre: "Peso colombiano (COP)" },
+  { id: "UYU", nombre: "Peso uruguayo (UYU)" },
+  { id: "PEN", nombre: "Sol peruano (PEN)" },
+  { id: "EUR", nombre: "Euro (EUR)" },
+  { id: "GBP", nombre: "Libra esterlina (GBP)" },
+  { id: "CNY", nombre: "Yuan chino (CNY)" },
+  { id: "JPY", nombre: "Yen japonés (JPY)" },
+];
+
+/** Etiqueta legible de un id de sector/mercado (los ids no llevan tildes). */
+export function nombreSector(id: string): string {
+  return SECTORES.find((s) => s.id === id)?.nombre ?? id;
+}
+export function nombreMercado(id: string): string {
+  return MERCADOS.find((m) => m.id === id)?.nombre ?? id;
+}

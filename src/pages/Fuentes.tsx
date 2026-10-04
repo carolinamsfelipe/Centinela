@@ -12,19 +12,36 @@ interface Fuente {
 const FUENTES: Fuente[] = [
   {
     fuente: "Yahoo Finance",
-    variable: "Balance, EBIT, capitalización de mercado",
-    frecuencia: "Por período contable reportado",
-    actualizacion: "Captura puntual, ver fecha en cada ficha",
+    variable: "Balance, resultados, flujo de caja, capitalización, precio y tipos de cambio",
+    frecuencia: "Estados anuales por ejercicio; precio y tipo de cambio en la última rueda",
+    actualizacion: "En vivo: se consulta al abrir cada pantalla (caché de 15 minutos)",
     url: "https://finance.yahoo.com",
-    descripcion: "Balances de empresas argentinas que cotizan (YPF, Pampa Energía, Telecom Argentina, Cresud, Loma Negra).",
+    descripcion:
+      "29 empresas que cotizan en Argentina, Brasil, Estados Unidos, Europa y Asia (ADR en dólares). Cada ficha indica a qué hora se consultó la fuente y en qué moneda reporta la empresa.",
   },
   {
-    fuente: "Datos Argentina (series de tiempo)",
-    variable: "Inflación, tasa de interés de referencia",
-    frecuencia: "Mensual",
-    actualizacion: "Según publicación del organismo de origen",
-    url: "https://apis.datos.gob.ar/series/api",
-    descripcion: "API pública de series de tiempo del Estado argentino, usada en el prototipo original de análisis.",
+    fuente: "dolarapi.com",
+    variable: "Dólar oficial, blue y MEP",
+    frecuencia: "Continua",
+    actualizacion: "En vivo (caché de 15 minutos)",
+    url: "https://dolarapi.com",
+    descripcion: "Cotizaciones del dólar en Argentina.",
+  },
+  {
+    fuente: "BCRA — Estadísticas monetarias v4.0",
+    variable: "Reservas internacionales, inflación mensual e interanual (IPC), tasa BADLAR",
+    frecuencia: "Diaria (reservas, BADLAR) y mensual (IPC)",
+    actualizacion: "En vivo (caché de 15 minutos); la fecha de cada dato se muestra en /macro",
+    url: "https://api.bcra.gob.ar",
+    descripcion: "API pública del Banco Central de la República Argentina.",
+  },
+  {
+    fuente: "Yahoo Finance — índices y referencias globales",
+    variable: "Merval, S&P 500, Nasdaq, VIX, bono EE.UU. 10 años, Ibovespa, S&P/BMV IPC, Euro Stoxx 50, Nikkei, Hang Seng, euro y real, oro y petróleo",
+    frecuencia: "Última rueda",
+    actualizacion: "En vivo (caché de 15 minutos)",
+    url: "https://finance.yahoo.com",
+    descripcion: "Referencias de contexto para empresas de cada mercado.",
   },
 ];
 
@@ -33,29 +50,20 @@ export function Fuentes() {
     <div className="mx-auto max-w-4xl px-4 py-10 lg:px-8">
       <h1 className="text-2xl font-bold text-ink">Fuentes</h1>
       <p className="mt-2 text-ink-muted">
-        Cada dato que se muestra en Centinela PyME tiene una fuente identificable. Las empresas
-        marcadas como <strong>demo</strong> en la plataforma tienen cifras ficticias, creadas para
-        cubrir sectores sin datos públicos reales disponibles en el plazo de este proyecto — nunca
-        se presentan como información real.
+        Cada dato que se muestra en Centinela tiene una fuente identificable y se consulta en vivo. No hay
+        empresas ni cifras ficticias: lo que no se puede obtener de una fuente real se muestra sin dato.
+        Lo único que no viene de una fuente externa son los balances que cargás vos en{" "}
+        <a href="/mi-empresa" className="underline">Mi empresa</a>, que se guardan solo en tu navegador y se
+        identifican como "Balance propio".
       </p>
 
       <Card className="mt-6">
-        <h2 className="font-semibold text-ink">Empresas con datos reales</h2>
+        <h2 className="font-semibold text-ink">Datos de respaldo</h2>
         <p className="mt-2 text-sm text-ink-muted">
-          YPF, Pampa Energía (PAM), Telecom Argentina (TEO), Cresud (CRESY) y Loma Negra (LOMA)
-          usan cifras de balance de una captura puntual de Yahoo Finance. El resto del dataset está
-          marcado <code className="font-mono text-xs">fuente: &quot;demo&quot;</code> en el código y con el
-          badge &quot;Datos demo&quot; en la interfaz.
-        </p>
-        <p className="mt-2 text-sm text-ink-muted">
-          Esa captura de Yahoo Finance trae balance (activos, pasivos, patrimonio, EBIT) y
-          capitalización de mercado, pero no trae estado de resultados completo. Por eso, en la
-          ficha de estas cinco empresas, campos como <em>Revenue</em>, <em>Net Income</em>,{" "}
-          <em>ROE</em>, <em>ROA</em>, <em>P/E</em> o <em>EV/EBITDA</em> aparecen como &quot;N/D&quot;: no es un
-          error de carga ni un dato faltante por accidente, es que esta plataforma prefiere mostrar
-          &quot;sin dato&quot; antes que inventar o estimar un número que no puede respaldar con una fuente
-          real. El Score Centinela y el Altman Z'' de estas empresas sí se calculan igual, porque
-          ambos modelos pueden resolverse solo con datos de balance.
+          Si Yahoo Finance no responde en un momento dado, la ficha lo avisa con la etiqueta &quot;Datos de
+          respaldo&quot;. Solo YPF, Pampa Energía, Telecom Argentina, Cresud y Loma Negra conservan una captura anterior
+          de sus balances como respaldo; para el resto de las empresas, sin conexión se muestra &quot;sin dato&quot; en
+          lugar de inventar cifras.
         </p>
       </Card>
 
@@ -91,11 +99,11 @@ export function Fuentes() {
       </div>
 
       <Card className="mt-6">
-        <h2 className="font-semibold text-ink">Roadmap de fuentes (no integradas todavía)</h2>
+        <h2 className="font-semibold text-ink">Indicadores que no se muestran</h2>
         <p className="mt-2 text-sm text-ink-muted">
-          INDEC, BCRA, BYMA y CNV son candidatas naturales para el dashboard de Macro y Mercado
-          (Fase 4). No se declaran como integradas hasta que efectivamente lo estén — ver{" "}
-          <a href="/macro" className="underline">Macro</a>.
+          Riesgo país, actividad económica (EMAE) y desempleo no están integrados: no encontramos una fuente pública,
+          gratuita y realmente actualizada para esos tres, y se prefiere no mostrarlos antes que mostrar un número viejo o
+          inventado como si fuera en vivo.
         </p>
       </Card>
     </div>

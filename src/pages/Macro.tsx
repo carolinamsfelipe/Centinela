@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { Card } from "@/components/ui/Card";
+import { nombreMercado } from "@/data/companies";
 import { formatMacroValor, formatMacroVariacion, MACRO_DISCLAIMER_RESPALDO } from "@/data/macro";
 import { fmtNum } from "@/lib/format";
 import { getMacroIndicators } from "@/services/macroService";
@@ -58,6 +59,7 @@ function IndicadorCard({ indicador }: { indicador: MacroIndicator }) {
 
 export function Macro() {
   const [indicadores, setIndicadores] = useState<MacroIndicator[]>([]);
+  const [globales, setGlobales] = useState<MacroIndicator[]>([]);
   const [envivo, setEnvivo] = useState<boolean | null>(null);
   const [actualizado, setActualizado] = useState<string | null>(null);
 
@@ -66,6 +68,7 @@ export function Macro() {
     getMacroIndicators().then((r) => {
       if (!activo) return;
       setIndicadores(r.indicadores);
+      setGlobales(r.globales);
       setEnvivo(r.envivo);
       setActualizado(r.actualizado);
     });
@@ -78,8 +81,9 @@ export function Macro() {
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
       <h1 className="text-2xl font-bold text-ink">Contexto macroeconómico</h1>
       <p className="mt-1 text-sm text-ink-muted">
-        Indicadores de referencia de la economía argentina: dólar, inflación, tasa BADLAR, reservas
-        internacionales e índice Merval.
+        Indicadores de referencia de la economía argentina (dólar, inflación, tasa BADLAR, reservas
+        internacionales e índice Merval) y de los mercados con los que se comparan las empresas: Estados
+        Unidos, Brasil, México, Europa y Asia.
       </p>
 
       {envivo === true && (
@@ -106,6 +110,25 @@ export function Macro() {
           <p className="text-sm text-ink-muted">Consultando fuentes en vivo...</p>
         )}
       </div>
+
+      {globales.length > 0 && (
+        <>
+          <h2 className="mt-10 text-lg font-semibold text-ink">Referencias de otros mercados</h2>
+          <p className="mt-1 text-sm text-ink-muted">
+            Se usan como contexto de las empresas de cada mercado en su ficha y en los informes.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {globales.map((indicador) => (
+              <div key={indicador.id}>
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  {indicador.mercado === "Global" ? "Global" : nombreMercado(indicador.mercado ?? "")}
+                </div>
+                <IndicadorCard indicador={indicador} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

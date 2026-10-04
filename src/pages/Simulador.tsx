@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/Card";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import type { EscenarioSimulado, SupuestosSimulacion } from "@/lib/financial/simulation";
 import { simularEscenarios } from "@/lib/financial/simulation";
-import { fmtMoney, fmtNum, fmtPct } from "@/lib/format";
+import { esEntidadFinanciera } from "@/lib/financial/analysis";
+import { fmtMonto, fmtNum, fmtPct } from "@/lib/format";
 import { getCompanies } from "@/services/companyService";
 import type { Company } from "@/types";
 
@@ -52,7 +53,15 @@ const ESCENARIO_BADGE_CLASSES: Record<EscenarioSimulado["nombre"], string> = {
   adverso: "bg-bad-soft text-bad",
 };
 
-function ScenarioCard({ escenario, supuestosBase }: { escenario: EscenarioSimulado; supuestosBase: SupuestosSimulacion }) {
+function ScenarioCard({
+  escenario,
+  supuestosBase,
+  company,
+}: {
+  escenario: EscenarioSimulado;
+  supuestosBase: SupuestosSimulacion;
+  company: Company;
+}) {
   const { metricas, altman, score } = escenario;
   const difiereDelBase = escenario.nombre !== "base";
 
@@ -73,11 +82,11 @@ function ScenarioCard({ escenario, supuestosBase }: { escenario: EscenarioSimula
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <div className="text-xs text-ink-muted">Revenue proyectado</div>
-          <div className="mt-1 font-mono font-semibold text-ink">{fmtMoney(metricas.revenue)}</div>
+          <div className="mt-1 font-mono font-semibold text-ink">{fmtMonto(metricas.revenue, company)}</div>
         </div>
         <div>
           <div className="text-xs text-ink-muted">Resultado neto proyectado</div>
-          <div className="mt-1 font-mono font-semibold text-ink">{fmtMoney(metricas.netIncome)}</div>
+          <div className="mt-1 font-mono font-semibold text-ink">{fmtMonto(metricas.netIncome, company)}</div>
         </div>
         <div>
           <div className="text-xs text-ink-muted">Margen neto proyectado</div>
@@ -139,7 +148,9 @@ export function Simulador() {
   const [tasaInteres, setTasaInteres] = useState<number>(DEFAULTS.tasaInteres);
 
   useEffect(() => {
-    getCompanies().then((cs) => {
+    getCompanies().then((todas) => {
+      // El modelo (Altman, liquidez, endeudamiento) no aplica a bancos: no se simulan.
+      const cs = todas.filter((c) => !esEntidadFinanciera(c));
       setEmpresas(cs);
       if (cs.length > 0) setTicker((prev) => prev || cs[0].ticker);
     });
@@ -194,7 +205,7 @@ export function Simulador() {
             >
               {empresas.map((c) => (
                 <option key={c.ticker} value={c.ticker}>
-                  {c.nombre} ({c.ticker})
+                  {c.fuente === "propia" ? `${c.nombre} (mi empresa)` : `${c.nombre} (${c.ticker})`}
                 </option>
               ))}
             </select>
@@ -208,7 +219,8 @@ export function Simulador() {
         <p className="mt-3 text-xs text-ink-muted">
           Los escenarios &quot;Optimista&quot; y &quot;Adverso&quot; se calculan ajustando estos
           supuestos base con multiplicadores fijos (ver código del simulador), no son supuestos
-          independientes que tengas que completar.
+          independientes que tengas que completar. Los bancos y entidades financieras no se
+          simulan: el Altman Z&apos;&apos; y los umbrales de liquidez y endeudamiento no se les aplican.
         </p>
       </Card>
 
@@ -216,9 +228,9 @@ export function Simulador() {
         <Card className="mt-6 text-center text-ink-muted">Seleccioná una empresa para simular escenarios.</Card>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <ScenarioCard escenario={resultado.base} supuestosBase={supuestosBase} />
-          <ScenarioCard escenario={resultado.optimista} supuestosBase={supuestosBase} />
-          <ScenarioCard escenario={resultado.adverso} supuestosBase={supuestosBase} />
+          <ScenarioCard escenario={resultado.base} supuestosBase={supuestosBase} company={company} />
+          <ScenarioCard escenario={resultado.optimista} supuestosBase={supuestosBase} company={company} />
+          <ScenarioCard escenario={resultado.adverso} supuestosBase={supuestosBase} company={company} />
         </div>
       )}
 
