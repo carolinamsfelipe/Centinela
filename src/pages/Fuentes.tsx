@@ -20,6 +20,15 @@ const FUENTES: Fuente[] = [
       "44 empresas que cotizan en Argentina, Brasil, México, Estados Unidos, Europa y Asia (ADR en dólares). Cada ficha indica a qué hora se consultó la fuente y en qué moneda reporta la empresa.",
   },
   {
+    fuente: "SEC EDGAR (complemento de Yahoo Finance)",
+    variable: "Solo para el Altman Z'': ganancias retenidas, activos y pasivos corrientes y pasivos totales, cuando Yahoo Finance no los informa",
+    frecuencia: "Estados anuales (formularios 10-K y 20-F presentados ante la SEC)",
+    actualizacion: "En vivo, solo si Yahoo no trae el dato (caché de 6 horas)",
+    url: "https://www.sec.gov/edgar",
+    descripcion:
+      "API pública y gratuita de la SEC (data.sec.gov), sin clave. Es un complemento: nunca pisa un dato de Yahoo y solo se acepta si coincide la moneda de reporte y el cierre del ejercicio, y si el total de activos de la SEC coincide con el de Yahoo. Cuando se usa, la ficha lo indica en una nota. No se completa EBIT ni capitalización de mercado, y los bancos quedan afuera porque el Altman no les aplica; si ninguna fuente tiene el dato, se muestra sin dato.",
+  },
+  {
     fuente: "dolarapi.com",
     variable: "Dólar oficial, blue y MEP",
     frecuencia: "Continua",
