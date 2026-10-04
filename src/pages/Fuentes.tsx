@@ -17,7 +17,16 @@ const FUENTES: Fuente[] = [
     actualizacion: "En vivo: se consulta al abrir cada pantalla (caché de 15 minutos)",
     url: "https://finance.yahoo.com",
     descripcion:
-      "29 empresas que cotizan en Argentina, Brasil, Estados Unidos, Europa y Asia (ADR en dólares). Cada ficha indica a qué hora se consultó la fuente y en qué moneda reporta la empresa.",
+      "44 empresas que cotizan en Argentina, Brasil, México, Estados Unidos, Europa y Asia (ADR en dólares). Cada ficha indica a qué hora se consultó la fuente y en qué moneda reporta la empresa.",
+  },
+  {
+    fuente: "SEC EDGAR (complemento de Yahoo Finance)",
+    variable: "Solo para el Altman Z'': ganancias retenidas, activos y pasivos corrientes y pasivos totales, cuando Yahoo Finance no los informa",
+    frecuencia: "Estados anuales (formularios 10-K y 20-F presentados ante la SEC)",
+    actualizacion: "En vivo, solo si Yahoo no trae el dato (caché de 6 horas)",
+    url: "https://www.sec.gov/edgar",
+    descripcion:
+      "API pública y gratuita de la SEC (data.sec.gov), sin clave. Es un complemento: nunca pisa un dato de Yahoo y solo se acepta si coincide la moneda de reporte y el cierre del ejercicio, y si el total de activos de la SEC coincide con el de Yahoo. Cuando se usa, la ficha lo indica en una nota. No se completa EBIT ni capitalización de mercado, y los bancos quedan afuera porque el Altman no les aplica; si ninguna fuente tiene el dato, se muestra sin dato.",
   },
   {
     fuente: "dolarapi.com",
@@ -97,6 +106,18 @@ export function Fuentes() {
           </Card>
         ))}
       </div>
+
+      <Card className="mt-6">
+        <h2 className="font-semibold text-ink">Análisis contextual con IA (opcional)</h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          Si el administrador del sitio activó el servicio, el botón &quot;Generar análisis&quot; de cada ficha envía a
+          Groq (modelo de lenguaje abierto, tier gratuito) las cifras, ratios, semáforo y contexto macro que ya calculó
+          Centinela, y devuelve un texto con hipótesis generales sobre tipo de cambio, inflación, tasas y competitividad
+          del sector. La IA solo redacta sobre cifras ya calculadas: no calcula, no consulta noticias ni conoce hechos
+          puntuales de la empresa, y puede equivocarse. Es orientativo y no una recomendación de inversión ni de crédito.
+          No se genera automáticamente, y para empresas propias se envían solo cifras agregadas, nunca el archivo cargado.
+        </p>
+      </Card>
 
       <Card className="mt-6">
         <h2 className="font-semibold text-ink">Indicadores que no se muestran</h2>

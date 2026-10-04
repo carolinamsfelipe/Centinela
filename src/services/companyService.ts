@@ -29,6 +29,20 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 const CACHE_TTL_FALLO_MS = 60 * 1000;
 const TAMANO_LOTE = 6;
 
+/** Dato que Yahoo no informaba y la API completo con otra fuente (ver api/_complemento.ts). */
+interface ComplementoApi {
+  campo: string;
+  fuente: string;
+  periodo: string;
+}
+
+const ETIQUETA_CAMPO: Record<string, string> = {
+  gananciasRetenidas: "Ganancias retenidas",
+  activosCorrientes: "Activos corrientes",
+  pasivosCorrientes: "Pasivos corrientes",
+  pasivosTotales: "Pasivos totales",
+};
+
 interface EmpresaApi {
   ticker: string;
   actualizado: string;
@@ -36,15 +50,25 @@ interface EmpresaApi {
   tipoCambioUsd: number | null;
   ultimo: PeriodoDatos & { monedaPrecio?: string | null };
   historico: PeriodoDatos[];
+  complementos?: ComplementoApi[];
 }
 
 const BASE = new Map(COMPANIES.map((c) => [c.ticker, c]));
 const cache = new Map<string, { empresa: Company; obtenido: number }>();
 const enCurso = new Map<string, Promise<void>>();
 
-function notasDe(company: Company): string[] {
+function notasDe(company: Company, complementos: ComplementoApi[] = []): string[] {
   const notas: string[] = [];
   if (esEntidadFinanciera(company)) notas.push(NOTA_ENTIDAD_FINANCIERA);
+  // Las entidades financieras no usan el Altman: no se anotan complementos sobre ellas.
+  if (!esEntidadFinanciera(company)) {
+    for (const c of complementos) {
+      const dato = ETIQUETA_CAMPO[c.campo] ?? c.campo;
+      notas.push(
+        `${dato} completado con ${c.fuente} (ejercicio ${c.periodo}) porque Yahoo Finance no lo informa. Se usó solo con la misma moneda de reporte y el mismo cierre de ejercicio, y el total de activos coincide con el de Yahoo.`
+      );
+    }
+  }
   if (company.envivo && company.metrics.marketCap === null && !esEntidadFinanciera(company)) {
     notas.push(
       "Yahoo Finance no informa la capitalización de mercado de este ticker en este momento: el Altman Z'' y los múltiplos de valuación (P/B, EV/EBITDA) no pueden calcularse. Se prefiere mostrarlos sin dato antes que estimarlos."
@@ -72,7 +96,7 @@ function combinar(base: Company, api: EmpresaApi): Company {
     tipoCambioUsd: api.tipoCambioUsd,
     monedaPrecio: api.ultimo.monedaPrecio ?? "USD",
   };
-  return { ...empresa, notas: notasDe(empresa) };
+  return { ...empresa, notas: notasDe(empresa, api.complementos ?? []) };
 }
 
 function respaldo(base: Company): Company {

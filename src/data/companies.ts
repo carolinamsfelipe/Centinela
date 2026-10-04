@@ -303,12 +303,16 @@ const FICHAS_SIN_RESPALDO: Ficha[] = [
   { ticker: "GGAL", nombre: "Grupo Financiero Galicia S.A.", sector: "Finanzas", mercado: "Argentina", pais: "Argentina", tamano: "Large" },
   { ticker: "BMA", nombre: "Banco Macro S.A.", sector: "Finanzas", mercado: "Argentina", pais: "Argentina", tamano: "Large" },
   { ticker: "BBAR", nombre: "BBVA Argentina S.A.", sector: "Finanzas", mercado: "Argentina", pais: "Argentina", tamano: "Large" },
+  { ticker: "TS", nombre: "Tenaris S.A.", sector: "Industria", mercado: "Argentina", pais: "Luxemburgo", tamano: "Large" },
   // Brasil
   { ticker: "PBR", nombre: "Petrobras", sector: "Energia", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
   { ticker: "VALE", nombre: "Vale S.A.", sector: "Materiales", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
   { ticker: "ITUB", nombre: "Itaú Unibanco", sector: "Finanzas", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
   { ticker: "NU", nombre: "Nu Holdings (Nubank)", sector: "Finanzas", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
   { ticker: "ABEV", nombre: "Ambev S.A.", sector: "Consumo", mercado: "Brasil", pais: "Brasil", tamano: "Large" },
+  { ticker: "GGB", nombre: "Gerdau S.A.", sector: "Industria", mercado: "Brasil", pais: "Brasil", tamano: "Mid" },
+  // México
+  { ticker: "CX", nombre: "Cemex S.A.B. de C.V.", sector: "Construccion", mercado: "Mexico", pais: "México", tamano: "Large" },
   // Estados Unidos
   { ticker: "AAPL", nombre: "Apple Inc.", sector: "Tecnologia", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
   { ticker: "MSFT", nombre: "Microsoft Corporation", sector: "Tecnologia", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
@@ -317,13 +321,24 @@ const FICHAS_SIN_RESPALDO: Ficha[] = [
   { ticker: "JPM", nombre: "JPMorgan Chase & Co.", sector: "Finanzas", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
   { ticker: "XOM", nombre: "Exxon Mobil Corporation", sector: "Energia", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
   { ticker: "JNJ", nombre: "Johnson & Johnson", sector: "Salud", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "CAT", nombre: "Caterpillar Inc.", sector: "Industria", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "DE", nombre: "Deere & Company", sector: "Industria", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "GE", nombre: "GE Aerospace", sector: "Industria", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "VMC", nombre: "Vulcan Materials Company", sector: "Construccion", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "MLM", nombre: "Martin Marietta Materials, Inc.", sector: "Construccion", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Large" },
+  { ticker: "FLR", nombre: "Fluor Corporation", sector: "Construccion", mercado: "Estados Unidos", pais: "Estados Unidos", tamano: "Mid" },
   // Europa
   { ticker: "SAP", nombre: "SAP SE", sector: "Tecnologia", mercado: "Europa", pais: "Alemania", tamano: "Large" },
   { ticker: "NVO", nombre: "Novo Nordisk A/S", sector: "Salud", mercado: "Europa", pais: "Dinamarca", tamano: "Large" },
   { ticker: "SHEL", nombre: "Shell plc", sector: "Energia", mercado: "Europa", pais: "Reino Unido", tamano: "Large" },
+  { ticker: "ABBNY", nombre: "ABB Ltd", sector: "Industria", mercado: "Europa", pais: "Suiza", tamano: "Large" },
+  { ticker: "SIEGY", nombre: "Siemens AG", sector: "Industria", mercado: "Europa", pais: "Alemania", tamano: "Large" },
+  { ticker: "VCISY", nombre: "Vinci SA", sector: "Construccion", mercado: "Europa", pais: "Francia", tamano: "Large" },
   // Asia
   { ticker: "TSM", nombre: "Taiwan Semiconductor (TSMC)", sector: "Tecnologia", mercado: "Asia", pais: "Taiwán", tamano: "Large" },
   { ticker: "BABA", nombre: "Alibaba Group", sector: "Consumo", mercado: "Asia", pais: "China", tamano: "Large" },
+  { ticker: "KMTUY", nombre: "Komatsu Ltd.", sector: "Industria", mercado: "Asia", pais: "Japón", tamano: "Large" },
+  { ticker: "KAJMY", nombre: "Kajima Corporation", sector: "Construccion", mercado: "Asia", pais: "Japón", tamano: "Mid" },
 ];
 
 export const COMPANIES: Company[] = [...RESPALDO_REAL, ...FICHAS_SIN_RESPALDO.map(sinRespaldo)];

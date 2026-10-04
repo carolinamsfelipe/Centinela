@@ -16,6 +16,9 @@
  * handshake cada vez.
  */
 
+import { complementarDesdeSec, precargarCik } from "./_complemento.js";
+import type { Complemento } from "./_complemento.js";
+
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
@@ -238,10 +241,43 @@ export interface EmpresaEnVivo {
   tipoCambioUsd: number | null;
   ultimo: Record<string, string | number | null>;
   historico: PeriodoFinanciero[];
+  /** Campos que Yahoo no informaba y se completaron con otra fuente (trazabilidad). */
+  complementos: Complemento[];
 }
 
 function numero(v: string | number | null | undefined): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+/** Campos de balance del Altman Z'' que se pueden completar desde la SEC. */
+const CAMPOS_COMPLETABLES = ["gananciasRetenidas", "activosCorrientes", "pasivosCorrientes", "pasivosTotales"];
+
+/**
+ * Si Yahoo dejo en null algun dato del Altman, intenta completarlo con SEC EDGAR
+ * (ver _complemento.ts). Modifica `periodo` solo en los campos que estaban en
+ * null y devuelve la lista de campos completados. Si no hay nada que completar,
+ * si la fuente falla o si el dato no pasa los controles de moneda y ejercicio,
+ * no toca nada y devuelve [].
+ *
+ * Las entidades financieras (balance sin clasificar: sin activos/pasivos
+ * corrientes ni EBIT) quedan afuera: el Altman no les aplica.
+ */
+async function completarConSec(
+  ticker: string,
+  periodo: PeriodoFinanciero,
+  monedaReporte: string | null
+): Promise<Complemento[]> {
+  if (periodo.activosTotales == null) return [];
+  const sinClasificar =
+    periodo.activosCorrientes == null && periodo.pasivosCorrientes == null && periodo.ebit == null;
+  if (sinClasificar) return [];
+  const faltantes = CAMPOS_COMPLETABLES.filter((c) => numero(periodo[c]) === null);
+  if (faltantes.length === 0) return [];
+  const { valores, complementos } = await complementarDesdeSec(ticker, periodo, monedaReporte, faltantes);
+  for (const campo of Object.keys(valores)) {
+    if (numero(periodo[campo]) === null) periodo[campo] = valores[campo];
+  }
+  return complementos.filter((c) => numero(periodo[c.campo]) !== null);
 }
 
 /**
@@ -259,6 +295,7 @@ export async function cargarEmpresa(ticker: string): Promise<EmpresaEnVivo | nul
     fetchChart(ticker).catch(() => ({ precio: null, variacionDiaria: null, moneda: null }) as ChartData),
     fetchQuoteSummary(ticker).catch(() => QUOTE_VACIO),
     fetchTimeseries(ticker).catch(() => ({ moneda: null, periodos: [] }) as SerieFinanciera),
+    precargarCik(), // mapa ticker->CIK de la SEC (cacheado, nunca lanza): no suma latencia
   ]);
 
   if (serie.periodos.length === 0 && chart.precio === null) return null;
@@ -283,6 +320,8 @@ export async function cargarEmpresa(ticker: string): Promise<EmpresaEnVivo | nul
 
   const ultimoPeriodo: PeriodoFinanciero =
     serie.periodos[serie.periodos.length - 1] ?? { periodo: new Date().toISOString().slice(0, 10) };
+
+  const complementos = await completarConSec(ticker, ultimoPeriodo, monedaReporte);
 
   const patrimonio = numero(ultimoPeriodo.patrimonioNeto);
   const deuda = numero(ultimoPeriodo.deudaTotal);
@@ -321,5 +360,6 @@ export async function cargarEmpresa(ticker: string): Promise<EmpresaEnVivo | nul
       quickRatio,
     },
     historico: serie.periodos,
+    complementos,
   };
 }

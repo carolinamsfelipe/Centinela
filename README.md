@@ -31,8 +31,8 @@ demanda para no pesar en la carga inicial.
 
 ## Datos en vivo (sin datos ficticios)
 
-- **29 empresas** que cotizan en Argentina, Brasil, Estados Unidos, Europa y
-  Asia: `/api/companies` (lotes) y `/api/company/:ticker` consultan Yahoo
+- **44 empresas** que cotizan en Argentina, Brasil, México, Estados Unidos,
+  Europa y Asia: `/api/companies` (lotes) y `/api/company/:ticker` consultan Yahoo
   Finance en el momento: balance, resultados, EBITDA, flujo de caja, precio y
   capitalización. Cacheado 15 min en el borde de Vercel.
 - **Monedas**: cada empresa reporta en su moneda; la capitalización de mercado
@@ -53,6 +53,39 @@ demanda para no pesar en la carga inicial.
 
 Se descartaron a propósito **riesgo país**, **actividad económica (EMAE)** y
 **desempleo**: no hay una fuente pública, gratuita y realmente actualizada.
+
+## Análisis contextual con IA (opcional)
+
+La ficha tiene una tarjeta "Análisis contextual con IA" (botón "Generar
+análisis", nunca automático). `/api/analisis` recibe solo resultados ya
+calculados (cifras, ratios, semáforo, Altman, moneda de reporte, tipo de
+cambio, contexto macro y medianas del sector por mercado; nunca el balance
+crudo) y un modelo de lenguaje redacta hipótesis generales (no calcula ni
+inventa). Proveedor por defecto: **Groq** (tier gratuito, API compatible con
+OpenAI), aislado en una sola función de `api/analisis.ts` para poder cambiarlo.
+
+Cómo activarlo:
+
+1. Crear una clave gratuita en https://console.groq.com/keys.
+2. En Vercel: Project → Settings → Environment Variables → agregar
+   `GROQ_API_KEY` con esa clave (Production y Preview) y volver a desplegar.
+3. Opcionales: `GROQ_MODEL` (por defecto `openai/gpt-oss-20b`; también existe
+   `llama-3.3-70b-versatile`) y `AI_MAX_DIARIO` (tope diario de llamadas por
+   instancia, por defecto 60).
+
+La clave vive solo como variable de entorno del servidor: nunca va al cliente
+ni al repositorio. Sin clave, la tarjeta muestra el texto determinístico de
+respaldo. Con `npm run dev` (sin funciones serverless) tampoco está disponible.
+
+Límites del tier gratuito de Groq (verificar en https://console.groq.com/docs/rate-limits,
+pueden cambiar): para `openai/gpt-oss-20b` unos 30 pedidos por minuto, 1.000
+por día, 8.000 tokens por minuto y 200.000 por día; un análisis consume
+alrededor de 3.000 a 4.000 tokens, o sea unos 50 análisis por día. Centinela se
+protege con: validación y recorte del input, límite de 10 análisis por hora por
+IP, tope diario global, caché de 30 minutos por contenido y timeout de 20 s. Los
+contadores están en memoria de cada instancia serverless (barrera razonable,
+no un límite global estricto). Para empresas propias se envían solo cifras
+agregadas, y únicamente al pulsar el botón.
 
 ## Mi empresa, informes y comparación entre mercados
 

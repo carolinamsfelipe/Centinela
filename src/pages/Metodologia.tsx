@@ -164,6 +164,23 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
       </Card>
 
       <Card className="mt-6">
+        <h2 className="font-semibold text-ink">Análisis contextual con IA</h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          El Score, el Altman Z&apos;&apos;, el semáforo, las señales y el análisis ejecutivo se calculan con reglas
+          fijas y no usan ningún modelo de lenguaje. La tarjeta opcional &quot;Análisis contextual con IA&quot; es lo
+          único redactado por un modelo: recibe esos resultados ya calculados (cifras, ratios, semáforo, moneda de
+          reporte, tipo de cambio, contexto macro y medianas del sector por mercado) y los explica en forma de hipótesis
+          generales (&quot;podría&quot;, &quot;suele&quot;).
+        </p>
+        <ul className="mt-3 space-y-1.5 text-sm text-ink-muted">
+          <li>• La IA no calcula: se le indica usar solo las cifras recibidas y no inventar números, noticias ni hechos de la empresa.</li>
+          <li>• Las causas que menciona son hipótesis generales del sector, no hechos verificados sobre la empresa.</li>
+          <li>• Puede equivocarse o simplificar de más: debe leerse como orientación, no como recomendación de inversión ni de crédito.</li>
+          <li>• Se genera solo cuando el usuario lo pide; si el servicio no está activado se muestra el texto determinístico de respaldo.</li>
+        </ul>
+      </Card>
+
+      <Card className="mt-6">
         <h2 className="font-semibold text-ink">Datos y actualización</h2>
         <p className="mt-2 text-sm text-ink-muted">
           Ver la sección <a href="/fuentes" className="underline">Fuentes</a> para el detalle de qué
