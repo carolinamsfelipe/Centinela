@@ -57,6 +57,18 @@ export interface FinancialMetrics {
   gananciasRetenidas: number | null;
   deudaTotal: number | null;
   ebit: number | null;
+  cuentasPorCobrar?: number | null;
+  inventarios?: number | null;
+  cuentasPorPagar?: number | null;
+  costoVentas?: number | null;
+  gastosIntereses?: number | null;
+  deudaArsPct?: number | null;
+  deudaUsdPct?: number | null;
+  dso?: number | null;
+  dio?: number | null;
+  dpo?: number | null;
+  ccc?: number | null;
+  icr?: number | null;
 }
 
 export interface AltmanResult {

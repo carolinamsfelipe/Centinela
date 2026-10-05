@@ -2,7 +2,12 @@ import type { FinancialMetrics, HistoricalPoint } from "@/types";
 import { calcularAltman } from "./altman";
 import { calcularCentinelaScore } from "./scores";
 import {
+  calcularCcc,
   calcularDeudaSobrePatrimonio,
+  calcularDio,
+  calcularDpo,
+  calcularDso,
+  calcularIcr,
   calcularLiquidez,
   calcularMargenNeto,
   calcularRoa,
@@ -29,6 +34,12 @@ export interface PeriodoDatos {
   netIncome?: number | null;
   efectivo?: number | null;
   inventario?: number | null;
+  inventarios?: number | null;
+  cuentasPorCobrar?: number | null;
+  cuentasPorPagar?: number | null;
+  costoVentas?: number | null;
+  gastosIntereses?: number | null;
+  deudaUsdPct?: number | null;
   freeCashFlow?: number | null;
   precio?: number | null;
   variacionDiaria?: number | null;
@@ -76,6 +87,13 @@ export function metricsDesdePeriodo(p: PeriodoDatos): FinancialMetrics {
     gananciasRetenidas: n(p.gananciasRetenidas),
     deudaTotal: n(p.deudaTotal),
     ebit: n(p.ebit),
+    cuentasPorCobrar: n(p.cuentasPorCobrar),
+    inventarios: n(p.inventarios ?? p.inventario),
+    cuentasPorPagar: n(p.cuentasPorPagar),
+    costoVentas: n(p.costoVentas),
+    gastosIntereses: n(p.gastosIntereses),
+    deudaUsdPct: n(p.deudaUsdPct),
+    deudaArsPct: n(p.deudaUsdPct) !== null ? Math.max(0, 1 - (n(p.deudaUsdPct) as number)) : null,
   };
 
   base.roe = calcularRoe(base);
@@ -85,7 +103,16 @@ export function metricsDesdePeriodo(p: PeriodoDatos): FinancialMetrics {
   base.currentRatio = calcularLiquidez(base);
   base.ebitMargin = safeDiv(base.ebit, base.revenue);
 
-  const inventario = n(p.inventario);
+  // Capital de trabajo operativo y ciclo de caja
+  base.dso = calcularDso(base.cuentasPorCobrar ?? null, base.revenue);
+  base.dio = calcularDio(base.inventarios ?? null, base.costoVentas ?? null);
+  base.dpo = calcularDpo(base.cuentasPorPagar ?? null, base.costoVentas ?? null);
+  base.ccc = calcularCcc(base.dso ?? null, base.dio ?? null, base.dpo ?? null);
+
+  // Cobertura de intereses financieros
+  base.icr = calcularIcr(base.ebitda, base.gastosIntereses ?? null);
+
+  const inventario = n(p.inventario ?? p.inventarios);
   if (base.quickRatio === null && inventario !== null && base.activosCorrientes !== null) {
     base.quickRatio = safeDiv(base.activosCorrientes - inventario, base.pasivosCorrientes);
   }

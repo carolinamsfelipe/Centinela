@@ -1,4 +1,4 @@
-import { COMPANIES, nombreMercado, nombreSector } from "@/data/companies";
+import { COMPANIES, EMPRESA_DEMO_PEDRO, nombreMercado, nombreSector } from "@/data/companies";
 import { NOTA_ENTIDAD_FINANCIERA, analizarEmpresa, esEntidadFinanciera } from "@/lib/financial/analysis";
 import { historicoDesdePeriodos, metricsDesdePeriodo } from "@/lib/financial/metrics";
 import type { PeriodoDatos } from "@/lib/financial/metrics";
@@ -175,10 +175,13 @@ export async function getMarketCompanies(): Promise<Company[]> {
 export async function getCompanies(): Promise<Company[]> {
   const cotizantes = await getMarketCompanies();
   const propias = await empresasPropias();
-  return [...cotizantes, ...propias];
+  return [...cotizantes, ...propias, EMPRESA_DEMO_PEDRO];
 }
 
 export async function getCompanyByTicker(ticker: string): Promise<Company | undefined> {
+  if (ticker === EMPRESA_DEMO_PEDRO.ticker) {
+    return EMPRESA_DEMO_PEDRO;
+  }
   if (esEmpresaPropia(ticker)) {
     return (await empresasPropias()).find((e) => e.ticker === ticker);
   }
@@ -206,7 +209,8 @@ export async function searchCompanies(query: string): Promise<Company[]> {
   const q = normalizar(query.trim());
   if (!q) return [];
   const propias = listarEmpresasPropias().map((g) => empresaPropiaACompany(g, null));
-  return [...propias, ...COMPANIES].filter((c) =>
+  return [...propias, ...COMPANIES, EMPRESA_DEMO_PEDRO].filter((c) =>
     normalizar(`${c.nombre} ${c.ticker} ${nombreSector(c.sector)} ${nombreMercado(c.mercado)}`).includes(q)
   );
 }
+

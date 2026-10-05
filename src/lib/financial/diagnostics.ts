@@ -53,6 +53,35 @@ export function diagnosticarMargenNeto(v: number | null): RiesgoEtiqueta {
   return { estado: "normal", mensaje: "La empresa retiene una proporción relativamente sólida de sus ventas como ganancia." };
 }
 
+export function diagnosticarCcc(v: number | null): RiesgoEtiqueta {
+  if (v === null) return sinDatos("No hay datos suficientes para calcular el ciclo de conversión de efectivo (CCC).");
+  if (v > 90) return { estado: "alerta", mensaje: "Ciclo de caja excesivo (>90 días): la empresa financia más de 3 meses de operación con deuda o capital propio." };
+  if (v > 60) return { estado: "atencion", mensaje: "Ciclo de caja prolongado (60-90 días): requiere seguimiento para evitar tensiones de liquidez operativa." };
+  return { estado: "normal", mensaje: "Ciclo de caja ágil (<=60 días): rápida recuperación del efectivo inmovilizado en la operación." };
+}
+
+export function diagnosticarIcr(v: number | null, sinIntereses = false): RiesgoEtiqueta {
+  if (sinIntereses) return { estado: "normal", mensaje: "La empresa no registra carga de intereses financieros relevantes." };
+  if (v === null) return sinDatos("No hay datos suficientes para calcular la cobertura de intereses (ICR).");
+  if (v < 1.0) return { estado: "alerta", mensaje: "Alerta crítica: la generación operativa (EBITDA) no alcanza para pagar los intereses de la deuda." };
+  if (v < 2.0) return { estado: "atencion", mensaje: "Cobertura de intereses ajustada (1x-2x): vulnerable ante subas de tasa o caídas en ventas." };
+  return { estado: "normal", mensaje: "Cobertura de intereses sólida (>2x): la generación operativa cubre holgadamente el servicio financiero." };
+}
+
+export function diagnosticarDso(v: number | null): RiesgoEtiqueta {
+  if (v === null) return sinDatos("No hay datos suficientes para calcular los días de cobro (DSO).");
+  if (v > 75) return { estado: "alerta", mensaje: "Plazo de cobro muy extendido (>75 días): alto volumen de caja inmovilizado en clientes." };
+  if (v > 50) return { estado: "atencion", mensaje: "Plazo de cobro moderado (50-75 días): evaluar acuerdos de pronto pago para descomprimir caja." };
+  return { estado: "normal", mensaje: "Cobranzas ágiles (<=50 días): rotación saludable de cuentas a cobrar." };
+}
+
+export function diagnosticarDpo(v: number | null): RiesgoEtiqueta {
+  if (v === null) return sinDatos("No hay datos suficientes para calcular los días de pago (DPO).");
+  if (v < 30) return { estado: "atencion", mensaje: "Plazo de pago corto (<30 días): la empresa cancela rápido a proveedores antes de cobrar." };
+  return { estado: "normal", mensaje: "Plazo de pago a proveedores equilibrado." };
+}
+
+
 export const ESTADO_LABEL: Record<Estado, string> = {
   alerta: "Riesgo",
   atencion: "Atención",

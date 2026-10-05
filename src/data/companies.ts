@@ -395,3 +395,111 @@ export function nombreSector(id: string): string {
 export function nombreMercado(id: string): string {
   return MERCADOS.find((m) => m.id === id)?.nombre ?? id;
 }
+
+/**
+ * Caso insignia de demostración — Semana del Inversor (Pitch de 3 minutos).
+ * Empresa PyME metalúrgica del conurbano bonaerense (Quilmes).
+ * Paradoja central:
+ *   - Balance patrimonial sano (Altman Z'' = 2,8 en zona verde, patrimonio $120M, Current Ratio 2,07x).
+ *   - Asfixia inminente de caja: CCC de 85 días (DSO 74d vs DPO 35d = 39 días de descubierto bancario),
+ *     ICR ajustado de 1,4x y 30% de deuda en dólares sujeta a riesgo cambiario.
+ */
+export const EMPRESA_DEMO_PEDRO: Company = {
+  ticker: "DEMO-PEDRO",
+  nombre: "Metalúrgica Don Pedro S.A. (Demo PyME)",
+  sector: "Industria",
+  mercado: "Argentina",
+  tamano: "Small",
+  pais: "Argentina",
+  fuente: "propia",
+  companyType: "demo",
+  monedaReporte: "ARS",
+  tipoCambioUsd: 1485.5,
+  monedaPrecio: "ARS",
+  envivo: false,
+  actualizado: null,
+  notas: [
+    "Caso insignia de demostración: PyME industrial con balance contable sano pero severo estrangulamiento de capital de trabajo y deuda en dólares.",
+    "El componente X4 del Altman Z'' utiliza el valor libro del patrimonio neto ($120M) como ajuste metodológico para empresas privadas.",
+  ],
+  metrics: {
+    periodo: "2025-12-31",
+    precio: null,
+    variacionDiaria: null,
+    marketCap: 120_000_000,
+    revenue: 365_000_000, // $1M/día: facilita la lectura instantánea en la demo
+    costoVentas: 240_000_000,
+    cuentasPorCobrar: 74_000_000, // DSO = 74 días
+    inventarios: 30_000_000, // DIO = 45.6 días
+    cuentasPorPagar: 23_000_000, // DPO = 35 días
+    activosCorrientes: 155_000_000,
+    activosTotales: 260_000_000,
+    pasivosCorrientes: 75_000_000,
+    pasivosTotales: 140_000_000,
+    deudaTotal: 70_000_000,
+    deudaUsdPct: 0.3, // 30% en USD
+    deudaArsPct: 0.7, // 70% en ARS
+    gastosIntereses: 34_000_000,
+    patrimonioNeto: 120_000_000,
+    gananciasRetenidas: 45_000_000,
+    ebit: 42_000_000,
+    ebitda: 48_000_000,
+    netIncome: 8_000_000,
+    roe: 8_000_000 / 120_000_000,
+    roa: 8_000_000 / 260_000_000,
+    margenNeto: 8_000_000 / 365_000_000,
+    ebitMargin: 42_000_000 / 365_000_000,
+    debtToEquity: 70_000_000 / 120_000_000,
+    currentRatio: 155_000_000 / 75_000_000,
+    quickRatio: (155_000_000 - 30_000_000) / 75_000_000,
+    freeCashFlow: -12_000_000,
+    eps: null,
+    pe: null,
+    pb: 1.0,
+    evEbitda: (120_000_000 + 70_000_000 - 51_000_000) / 48_000_000,
+    dso: 74,
+    dio: Math.round(((30_000_000 / 240_000_000) * 365) * 10) / 10,
+    dpo: 35,
+    ccc: Math.round((74 + (30_000_000 / 240_000_000) * 365 - 35) * 10) / 10,
+    icr: Math.round((48_000_000 / 34_000_000) * 100) / 100,
+  },
+  historico: [
+    {
+      periodo: "2023-12-31",
+      revenue: 280_000_000,
+      ebitda: 38_000_000,
+      netIncome: 12_000_000,
+      roe: 0.12,
+      roa: 0.05,
+      debtToEquity: 0.45,
+      freeCashFlow: 5_000_000,
+      altmanZ: 3.1,
+      centinelaScore: 78,
+    },
+    {
+      periodo: "2024-12-31",
+      revenue: 320_000_000,
+      ebitda: 44_000_000,
+      netIncome: 10_000_000,
+      roe: 0.09,
+      roa: 0.04,
+      debtToEquity: 0.52,
+      freeCashFlow: -2_000_000,
+      altmanZ: 2.9,
+      centinelaScore: 72,
+    },
+    {
+      periodo: "2025-12-31",
+      revenue: 365_000_000,
+      ebitda: 48_000_000,
+      netIncome: 8_000_000,
+      roe: 0.067,
+      roa: 0.031,
+      debtToEquity: 0.58,
+      freeCashFlow: -12_000_000,
+      altmanZ: 2.8,
+      centinelaScore: 66,
+    },
+  ],
+};
+

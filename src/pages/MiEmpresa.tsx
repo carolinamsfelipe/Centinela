@@ -37,7 +37,13 @@ const CAMPOS_MANUALES: CampoManual[] = [
   { clave: "ganancias_retenidas", label: "Ganancias retenidas", obligatorio: true, ayuda: "Resultados acumulados no distribuidos (puede ser negativo)." },
   { clave: "deuda_total", label: "Deuda financiera total", obligatorio: true, ayuda: "Préstamos bancarios, obligaciones negociables y similares." },
   { clave: "ebit", label: "EBIT (resultado operativo)", obligatorio: true, ayuda: "Resultado antes de intereses e impuestos." },
-  { clave: "ventas", label: "Ventas del ejercicio", obligatorio: false, ayuda: "Opcional: habilita margen neto y mejora el Score." },
+  { clave: "ventas", label: "Ventas del ejercicio", obligatorio: false, ayuda: "Opcional: habilita margen neto, DSO y mejora el Score." },
+  { clave: "costo_ventas", label: "Costo de ventas (COGS)", obligatorio: false, ayuda: "Opcional: insumos y costo de producción. Habilita DIO, DPO y Ciclo de Caja (CCC)." },
+  { clave: "cuentas_por_cobrar", label: "Cuentas por cobrar (clientes)", obligatorio: false, ayuda: "Opcional: dinero en la calle pendiente de cobro. Habilita días de cobro (DSO)." },
+  { clave: "inventarios", label: "Inventarios / Stock", obligatorio: false, ayuda: "Opcional: materias primas y productos terminados. Habilita días de inventario (DIO)." },
+  { clave: "cuentas_por_pagar", label: "Cuentas por pagar (proveedores)", obligatorio: false, ayuda: "Opcional: deudas comerciales con proveedores. Habilita días de pago (DPO)." },
+  { clave: "gastos_intereses", label: "Intereses financieros anuales", obligatorio: false, ayuda: "Opcional: costo del descubierto y préstamos. Habilita cobertura de intereses (ICR)." },
+  { clave: "deuda_usd_pct", label: "% Deuda en USD (0 a 100%)", obligatorio: false, ayuda: "Opcional: ej. 30 para 30% en moneda extranjera. Habilita estrés cambiario." },
   { clave: "resultado_neto", label: "Resultado neto", obligatorio: false, ayuda: "Opcional: habilita ROE, ROA y margen neto." },
   { clave: "valor_mercado_patrimonio", label: "Valor de mercado del patrimonio", obligatorio: false, ayuda: "Opcional. Si no cotiza y lo dejás vacío se usa el valor libro (patrimonio neto)." },
 ];
@@ -148,6 +154,17 @@ export function MiEmpresa() {
       deudaTotal: valores["deuda_total"] as number,
       ebit: valores["ebit"] as number,
       revenue: valores["ventas"],
+      costoVentas: valores["costo_ventas"],
+      cuentasPorCobrar: valores["cuentas_por_cobrar"],
+      inventarios: valores["inventarios"],
+      cuentasPorPagar: valores["cuentas_por_pagar"],
+      gastosIntereses: valores["gastos_intereses"],
+      deudaUsdPct:
+        valores["deuda_usd_pct"] !== null
+          ? (valores["deuda_usd_pct"] as number) > 1
+            ? (valores["deuda_usd_pct"] as number) / 100
+            : (valores["deuda_usd_pct"] as number)
+          : null,
       netIncome: valores["resultado_neto"],
       valorMercado: valores["valor_mercado_patrimonio"],
     };
@@ -206,6 +223,38 @@ export function MiEmpresa() {
         Tus datos se guardan solo en este navegador: no se envían a ningún servidor. Si borrás los datos del navegador se
         pierden, por eso conviene descargar el informe en PDF o Excel de cada empresa que cargues.
       </p>
+
+      {/* Caso insignia demo Semana del Inversor */}
+      <div className="mt-6 rounded-xl border border-accent/30 bg-accent-soft/30 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="rounded bg-accent px-2 py-0.5 font-mono text-[11px] font-bold uppercase text-white">
+                Caso Demo
+              </span>
+              <h3 className="font-semibold text-ink">Metalúrgica Don Pedro S.A.</h3>
+            </div>
+            <p className="mt-1 text-xs text-ink-muted">
+              PyME industrial insignia (Semana del Inversor): balance patrimonial sano ($120M PN, Altman 2,8), pero ciclo
+              de caja de 85 días, ICR 1,4x y 30% de deuda en USD.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/empresas/DEMO-PEDRO"
+              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:text-accent focus-ring"
+            >
+              Ver ficha
+            </Link>
+            <Link
+              to="/simulador?ticker=DEMO-PEDRO"
+              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 focus-ring"
+            >
+              Simular decisiones de caja ➔
+            </Link>
+          </div>
+        </div>
+      </div>
 
       {guardadas.length > 0 && (
         <Card className="mt-6">

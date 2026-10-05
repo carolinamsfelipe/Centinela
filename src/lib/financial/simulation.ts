@@ -1,17 +1,23 @@
 import type { AltmanResult, CentinelaScore, FinancialMetrics } from "@/types";
 import { calcularAltman } from "./altman";
+import {
+  calcularCcc,
+  calcularImpactoCajaDpo,
+  calcularImpactoCajaDso,
+  calcularImpactoDevaluacionDeuda,
+} from "./ratios";
 import { calcularCentinelaScore } from "./scores";
 
 /**
- * Simulador de escenarios hipotéticos — Fase 5.
+ * Simulador de escenarios hipotéticos y palancas de decisión — Centinela PyME.
  *
- * IMPORTANTE: esto NO es un modelo financiero ni una predicción. Es una
- * proyección lineal simple de un solo período, construida exclusivamente a
- * partir de los supuestos que ingresa el usuario (crecimiento, margen,
- * variación de deuda, tasa de interés). Sirve para explorar "¿qué pasaría
- * si...?", no para anticipar el futuro de la empresa. Todas las pantallas que
- * consumen estas funciones deben rotular los resultados como "Escenario
- * hipotético" y nunca como predicción o pronóstico.
+ * IMPORTANTE: esto NO es un modelo financiero contable ni una predicción. Es una
+ * proyección de sensibilidad operativa y financiera de un solo período, construida a
+ * partir de los supuestos ingresados por el usuario (crecimiento, margen, deuda, tasa,
+ * días de cobro DSO, días de pago DPO y estrés cambiario de deuda en USD).
+ *
+ * Su función principal en el diagnóstico temprano es responder:
+ * "¿Dónde puede romperse la caja y qué decisión concreta puede evitarlo?"
  */
 
 export type NombreEscenario = "base" | "optimista" | "adverso";
@@ -25,6 +31,14 @@ export interface SupuestosSimulacion {
   variacionDeuda: number;
   /** Tasa de interés anual aplicada sobre la deuda proyectada, ej. 0.4 = 40%. */
   tasaInteres: number;
+  /** Días de cobro a clientes (DSO) objetivo, ej. 60 días. */
+  dsoObjetivo?: number | null;
+  /** Días de pago a proveedores (DPO) objetivo, ej. 50 días. */
+  dpoObjetivo?: number | null;
+  /** Proporción de la deuda total denominada en moneda extranjera (USD), ej. 0.3 = 30%. */
+  deudaUsdPct?: number;
+  /** Salto cambiario / devaluación proyectada de la moneda local respecto al USD, ej. 0.2 = +20%. */
+  devaluacionUsdPct?: number;
 }
 
 export interface MetricasProyectadas {
@@ -34,6 +48,17 @@ export interface MetricasProyectadas {
   debtToEquity: number | null;
   deudaTotal: number | null;
   gastoFinanciero: number | null;
+  // Métricas de capital de trabajo y caja
+  dso: number | null;
+  dio: number | null;
+  dpo: number | null;
+  ccc: number | null;
+  icr: number | null;
+  impactoCajaDso: number | null;
+  impactoCajaDpo: number | null;
+  impactoCajaTotal: number | null;
+  impactoDevaluacionDeuda: number | null;
+  patrimonioNetoAjustado: number | null;
 }
 
 export interface EscenarioSimulado {
@@ -52,52 +77,70 @@ export interface ResultadoSimulacion {
   adverso: EscenarioSimulado;
 }
 
-/**
- * Multiplicadores que definen cómo se ajustan los supuestos ingresados por el
- * usuario para construir los escenarios "optimista" y "adverso" a partir del
- * escenario "base". Son coeficientes arbitrarios y documentados, elegidos
- * para representar una desviación razonable (±30/40%) respecto del supuesto
- * base, no una estimación estadística ni un intervalo de confianza real.
- */
 export const MULTIPLICADORES_ESCENARIO = {
   optimista: {
     crecimiento: 1.3, // +30% sobre el crecimiento asumido
     margen: 1.2, // +20% sobre el margen asumido
-    deuda: 0.7, // la variación de deuda se atenúa un 30% (menos deuda que en el caso base)
+    deuda: 0.7, // variación de deuda se atenúa 30%
     tasa: 0.85, // tasa de interés 15% más baja
+    dsoDelta: -10, // cobra 10 días antes
+    dpoDelta: +5, // negocia 5 días más con proveedores
+    devaluacionMult: 0.5,
   },
   adverso: {
-    crecimiento: 0.6, // el crecimiento se reduce a 60% del supuesto base
-    margen: 0.7, // el margen se reduce a 70% del supuesto base
-    deuda: 1.4, // la deuda crece un 40% más que en el caso base
-    tasa: 1.3, // tasa de interés 30% más alta
+    crecimiento: 0.6, // el crecimiento cae al 60%
+    margen: 0.7, // margen cae al 70%
+    deuda: 1.4, // deuda crece 40% más
+    tasa: 1.3, // tasa 30% más alta
+    dsoDelta: +15, // clientes demoran 15 días más en pagar
+    dpoDelta: -5, // proveedores exigen cobrar antes
+    devaluacionMult: 1.5,
   },
 } as const;
 
 function ajustarSupuestos(
   base: SupuestosSimulacion,
-  mult: { crecimiento: number; margen: number; deuda: number; tasa: number }
+  mult: {
+    crecimiento: number;
+    margen: number;
+    deuda: number;
+    tasa: number;
+    dsoDelta?: number;
+    dpoDelta?: number;
+    devaluacionMult?: number;
+  }
 ): SupuestosSimulacion {
+  const dsoObjetivo =
+    base.dsoObjetivo !== undefined && base.dsoObjetivo !== null
+      ? Math.max(15, base.dsoObjetivo + (mult.dsoDelta ?? 0))
+      : undefined;
+
+  const dpoObjetivo =
+    base.dpoObjetivo !== undefined && base.dpoObjetivo !== null
+      ? Math.max(10, base.dpoObjetivo + (mult.dpoDelta ?? 0))
+      : undefined;
+
+  const devaluacionUsdPct =
+    base.devaluacionUsdPct !== undefined
+      ? Math.min(1.0, base.devaluacionUsdPct * (mult.devaluacionMult ?? 1))
+      : undefined;
+
   return {
     crecimientoRevenue: base.crecimientoRevenue * mult.crecimiento,
     margenNeto: base.margenNeto * mult.margen,
     variacionDeuda: base.variacionDeuda * mult.deuda,
     tasaInteres: Math.max(0, base.tasaInteres * mult.tasa),
+    dsoObjetivo,
+    dpoObjetivo,
+    deudaUsdPct: base.deudaUsdPct,
+    devaluacionUsdPct,
   };
 }
 
 /**
- * Proyecta las métricas financieras de un único período hacia adelante,
- * usando únicamente los supuestos recibidos y las métricas actuales de la
- * empresa. Fórmulas (lineales, intencionalmente simples):
- *
- *   revenueProyectado = revenueActual * (1 + crecimientoRevenue)
- *   netIncomeProyectado = revenueProyectado * margenNeto
- *   deudaProyectada = deudaActual * (1 + variacionDeuda)
- *   gastoFinanciero = deudaProyectada * tasaInteres  (informativo, no se
- *     resta del netIncome porque el margenNeto ingresado ya se asume neto)
- *   debtToEquity = deudaProyectada / patrimonioNeto (patrimonio se asume
- *     constante dentro del período simulado)
+ * Proyecta las métricas financieras de un período hacia adelante, integrando
+ * ingresos, resultado, deuda con estrés cambiario (ARS/USD), capital de trabajo
+ * (DSO/DPO) y liquidez liberada en tesorería.
  */
 export function proyectarMetricas(
   actual: FinancialMetrics,
@@ -105,17 +148,96 @@ export function proyectarMetricas(
 ): MetricasProyectadas {
   const revenueBase = actual.revenue;
   const revenue = revenueBase !== null ? revenueBase * (1 + supuestos.crecimientoRevenue) : null;
-
   const netIncome = revenue !== null ? revenue * supuestos.margenNeto : null;
 
+  // 1. Deuda base y estrés cambiario de deuda denominada en USD
   const deudaBase = actual.deudaTotal;
-  const deudaTotal = deudaBase !== null ? deudaBase * (1 + supuestos.variacionDeuda) : null;
+  const deudaProyectadaSinFx = deudaBase !== null ? deudaBase * (1 + supuestos.variacionDeuda) : null;
 
+  const deudaUsdPct = supuestos.deudaUsdPct ?? actual.deudaUsdPct ?? 0;
+  const devaluacionUsdPct = supuestos.devaluacionUsdPct ?? 0;
+
+  const impactoDevaluacionDeuda =
+    deudaProyectadaSinFx !== null && deudaUsdPct > 0 && devaluacionUsdPct > 0
+      ? calcularImpactoDevaluacionDeuda(deudaProyectadaSinFx, deudaUsdPct, devaluacionUsdPct)
+      : 0;
+
+  const deudaTotal = deudaProyectadaSinFx !== null ? deudaProyectadaSinFx + impactoDevaluacionDeuda : null;
   const gastoFinanciero = deudaTotal !== null ? deudaTotal * supuestos.tasaInteres : null;
 
+  // 2. Impacto de la devaluación sobre el patrimonio neto (absorbe la pérdida cambiaria de pasivos)
+  const patrimonioBase = actual.patrimonioNeto;
+  const patrimonioNetoAjustado =
+    patrimonioBase !== null ? patrimonioBase - impactoDevaluacionDeuda : null;
+
   const debtToEquity =
-    deudaTotal !== null && actual.patrimonioNeto !== null && actual.patrimonioNeto !== 0
-      ? deudaTotal / actual.patrimonioNeto
+    deudaTotal !== null && patrimonioNetoAjustado !== null && patrimonioNetoAjustado > 0
+      ? deudaTotal / patrimonioNetoAjustado
+      : (patrimonioNetoAjustado !== null && patrimonioNetoAjustado <= 0 ? -1 : null);
+
+  // 3. Capital de trabajo, ciclo de conversión de efectivo y caja liberada
+  const dsoActual =
+    actual.dso ??
+    (actual.cuentasPorCobrar && actual.revenue && actual.revenue > 0
+      ? (actual.cuentasPorCobrar / actual.revenue) * 365
+      : null);
+  const dsoProyectado =
+    supuestos.dsoObjetivo !== undefined && supuestos.dsoObjetivo !== null
+      ? supuestos.dsoObjetivo
+      : dsoActual;
+
+  const costoVentasActual =
+    actual.costoVentas ??
+    (actual.revenue !== null && actual.revenue > 0
+      ? actual.revenue * (1 - (actual.margenNeto ?? 0.2))
+      : null);
+  const costoVentasProyectado =
+    revenue !== null ? revenue * (1 - supuestos.margenNeto) : costoVentasActual;
+
+  const dpoActual =
+    actual.dpo ??
+    (actual.cuentasPorPagar && costoVentasActual && costoVentasActual > 0
+      ? (actual.cuentasPorPagar / costoVentasActual) * 365
+      : null);
+  const dpoProyectado =
+    supuestos.dpoObjetivo !== undefined && supuestos.dpoObjetivo !== null
+      ? supuestos.dpoObjetivo
+      : dpoActual;
+
+  const dioActual =
+    actual.dio ??
+    (actual.inventarios && costoVentasActual && costoVentasActual > 0
+      ? (actual.inventarios / costoVentasActual) * 365
+      : null);
+  const dioProyectado = dioActual;
+
+  const cccProyectado = calcularCcc(dsoProyectado, dioProyectado, dpoProyectado);
+
+  // 4. Dinero efectivamente liberado (+) o atrapado (-) en la caja operativa
+  const impactoCajaDso =
+    dsoActual !== null && dsoProyectado !== null && revenue !== null && revenue > 0
+      ? calcularImpactoCajaDso(dsoActual, dsoProyectado, revenue)
+      : null;
+
+  const impactoCajaDpo =
+    dpoActual !== null && dpoProyectado !== null && costoVentasProyectado !== null && costoVentasProyectado > 0
+      ? calcularImpactoCajaDpo(dpoActual, dpoProyectado, costoVentasProyectado)
+      : null;
+
+  const impactoCajaTotal =
+    impactoCajaDso !== null || impactoCajaDpo !== null
+      ? (impactoCajaDso ?? 0) + (impactoCajaDpo ?? 0)
+      : null;
+
+  // 5. Cobertura de intereses (ICR) proyectada
+  const ebitdaProyectado =
+    actual.ebitda !== null && actual.revenue !== null && actual.revenue > 0 && revenue !== null
+      ? (actual.ebitda / actual.revenue) * revenue
+      : (netIncome !== null ? netIncome * 1.5 : null);
+
+  const icr =
+    ebitdaProyectado !== null && gastoFinanciero !== null && gastoFinanciero > 0
+      ? ebitdaProyectado / gastoFinanciero
       : null;
 
   return {
@@ -125,8 +247,19 @@ export function proyectarMetricas(
     debtToEquity,
     deudaTotal,
     gastoFinanciero,
+    dso: dsoProyectado,
+    dio: dioProyectado,
+    dpo: dpoProyectado,
+    ccc: cccProyectado,
+    icr,
+    impactoCajaDso,
+    impactoCajaDpo,
+    impactoCajaTotal,
+    impactoDevaluacionDeuda,
+    patrimonioNetoAjustado,
   };
 }
+
 
 /**
  * Construye las métricas financieras proyectadas (con la misma forma que
@@ -173,9 +306,15 @@ function construirMetricasProyectadas(
     activosTotales,
     activosCorrientes,
     gananciasRetenidas,
+    patrimonioNeto: proyeccion.patrimonioNetoAjustado ?? actual.patrimonioNeto,
+    dso: proyeccion.dso,
+    dio: proyeccion.dio,
+    dpo: proyeccion.dpo,
+    ccc: proyeccion.ccc,
+    icr: proyeccion.icr,
     roe:
-      proyeccion.netIncome !== null && actual.patrimonioNeto !== null && actual.patrimonioNeto !== 0
-        ? proyeccion.netIncome / actual.patrimonioNeto
+      proyeccion.netIncome !== null && (proyeccion.patrimonioNetoAjustado ?? actual.patrimonioNeto) !== null && (proyeccion.patrimonioNetoAjustado ?? actual.patrimonioNeto) !== 0
+        ? proyeccion.netIncome / (proyeccion.patrimonioNetoAjustado ?? actual.patrimonioNeto)!
         : null,
     roa:
       proyeccion.netIncome !== null && activosTotales !== null && activosTotales !== 0

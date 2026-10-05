@@ -9,6 +9,10 @@ export interface BenchmarkGrupo {
   currentRatio: number | null;
   score: number | null;
   altman: number | null;
+  dso: number | null;
+  dpo: number | null;
+  ccc: number | null;
+  icr: number | null;
   cantidadEmpresas: number;
 }
 
@@ -31,6 +35,10 @@ export function calcularBenchmark(empresas: Company[]): BenchmarkGrupo {
     currentRatio: mediana(deMercado.map((e) => e.metrics.currentRatio)),
     score: mediana(analisis.map((a) => a.score.total)),
     altman: mediana(analisis.map((a) => a.altman.zScore)),
+    dso: mediana(deMercado.map((e) => e.metrics.dso ?? null)),
+    dpo: mediana(deMercado.map((e) => e.metrics.dpo ?? null)),
+    ccc: mediana(deMercado.map((e) => e.metrics.ccc ?? null)),
+    icr: mediana(deMercado.map((e) => e.metrics.icr ?? null)),
     cantidadEmpresas: deMercado.length,
   };
 }

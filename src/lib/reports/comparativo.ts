@@ -65,6 +65,34 @@ export const FILAS_COMPARATIVAS: FilaComparativa[] = [
   { label: "ROA", valor: (a) => fmtPct(a.company.metrics.roa) },
   { label: "Debt/Equity", valor: (a) => fmtX(a.company.metrics.debtToEquity) },
   { label: "Current Ratio", valor: (a) => fmtNum(a.company.metrics.currentRatio) },
+  {
+    label: "Ciclo de caja (CCC)",
+    valor: (a) =>
+      a.company.metrics.ccc !== null && a.company.metrics.ccc !== undefined
+        ? `${Math.round(a.company.metrics.ccc)} días`
+        : "N/D",
+  },
+  {
+    label: "Días de cobro (DSO)",
+    valor: (a) =>
+      a.company.metrics.dso !== null && a.company.metrics.dso !== undefined
+        ? `${Math.round(a.company.metrics.dso)} días`
+        : "N/D",
+  },
+  {
+    label: "Días proveedores (DPO)",
+    valor: (a) =>
+      a.company.metrics.dpo !== null && a.company.metrics.dpo !== undefined
+        ? `${Math.round(a.company.metrics.dpo)} días`
+        : "N/D",
+  },
+  {
+    label: "Cobertura intereses (ICR)",
+    valor: (a) =>
+      a.company.metrics.icr !== null && a.company.metrics.icr !== undefined
+        ? `${fmtNum(a.company.metrics.icr)}x`
+        : "N/D",
+  },
   { label: "P/E", valor: (a) => fmtNum(a.company.metrics.pe) },
   { label: "P/B", valor: (a) => fmtNum(a.company.metrics.pb) },
   { label: "EV/EBITDA", valor: (a) => fmtNum(a.company.metrics.evEbitda) },
@@ -364,6 +392,10 @@ function filaDatos(a: AnalisisComparable): Celda[] {
     m.margenNeto,
     m.debtToEquity,
     m.currentRatio,
+    m.ccc !== null && m.ccc !== undefined ? Math.round(m.ccc) : null,
+    m.dso !== null && m.dso !== undefined ? Math.round(m.dso) : null,
+    m.dpo !== null && m.dpo !== undefined ? Math.round(m.dpo) : null,
+    m.icr !== null && m.icr !== undefined ? Math.round(m.icr * 100) / 100 : null,
     m.pe,
     m.pb,
     m.evEbitda,
@@ -389,6 +421,10 @@ const ENCABEZADO_DATOS: Celda[] = [
   "Margen neto",
   "Debt/Equity",
   "Current Ratio",
+  "CCC (días)",
+  "DSO (días)",
+  "DPO (días)",
+  "ICR Cobertura",
   "P/E",
   "P/B",
   "EV/EBITDA",

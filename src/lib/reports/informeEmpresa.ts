@@ -390,6 +390,8 @@ export async function descargarInformeEmpresa(d: DatosInformeEmpresa): Promise<v
       ["Patrimonio neto", mon(m.patrimonioNeto), "Precio / Ganancias (P/E)", fmtNum(m.pe)],
       ["Deuda total", mon(m.deudaTotal), "Precio / Valor libro (P/B)", fmtNum(m.pb)],
       ["Precio de la acción", m.precio !== null ? `${company.monedaPrecio ?? "USD"} ${fmtNum(m.precio)}` : "N/D", "EV / EBITDA", fmtNum(m.evEbitda)],
+      ["Ciclo de caja (CCC)", m.ccc !== null && m.ccc !== undefined ? `${Math.round(m.ccc)} d` : "N/D", "Días de cobro (DSO)", m.dso !== null && m.dso !== undefined ? `${Math.round(m.dso)} d` : "N/D"],
+      ["Días proveedores (DPO)", m.dpo !== null && m.dpo !== undefined ? `${Math.round(m.dpo)} d` : "N/D", "Cobertura intereses (ICR)", m.icr !== null && m.icr !== undefined ? `${fmtNum(m.icr)}x` : "N/D"],
     ],
     { anchos: [34, 28, 40, 24], derecha: [1, 3] }
   );

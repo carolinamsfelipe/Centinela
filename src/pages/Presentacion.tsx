@@ -350,6 +350,74 @@ export function Presentacion() {
         </div>
       </section>
 
+      {/* 7.5. El Copiloto de Decisiones & Simulador de Caja (Core Pitch) */}
+      <section className="border-b border-border bg-gradient-to-b from-accent-soft/30 to-transparent py-16 sm:py-24">
+        <div className="mx-auto max-w-4xl px-4 lg:px-8">
+          <Eyebrow>07 · El Copiloto de Decisión</Eyebrow>
+          <h2 className="text-3xl font-bold text-ink">
+            Detectar dónde se rompe la caja y qué decisión la salva.
+          </h2>
+          <p className="mt-4 text-lg text-ink-muted leading-relaxed">
+            Una PyME puede tener un patrimonio neto sólido y un Altman Z'' verde, pero quedarse sin efectivo para
+            pagar sueldos si sus clientes demoran en pagar y sus proveedores cobran al contado. Centinela traduce
+            ese estrangulamiento a dinero líquido y pone al empresario frente a palancas de decisión inmediatas.
+          </p>
+
+          <div className="mt-8 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-4">
+              <div>
+                <span className="rounded bg-accent/20 px-2.5 py-1 font-mono text-xs font-bold uppercase text-accent">
+                  Caso Insignia · Semana del Inversor
+                </span>
+                <h3 className="mt-1 text-xl font-bold text-ink">Metalúrgica Don Pedro S.A.</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase text-ink-muted">Altman Z'':</span>
+                <span className="font-mono text-sm font-bold text-ok">2,8 (Zona Segura)</span>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-bad/30 bg-bad-soft/30 p-4">
+                <span className="text-xs text-ink-muted block">Alerta 1 · Ciclo de Caja</span>
+                <div className="mt-1 font-mono text-2xl font-bold text-bad">85 días (CCC)</div>
+                <p className="mt-1 text-xs text-ink-muted">
+                  Cobra a 74 días (DSO) pero paga a 35 días (DPO). Financia 39 días con descubierto bancario carísimo.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-warn/30 bg-warn-soft/30 p-4">
+                <span className="text-xs text-ink-muted block">Alerta 2 · Cobertura Deuda</span>
+                <div className="mt-1 font-mono text-2xl font-bold text-warn">1,4x (ICR)</div>
+                <p className="mt-1 text-xs text-ink-muted">
+                  El EBITDA cubre con lo justo los intereses. El 30% de la deuda está en dólares: vulnerable a salto cambiario.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-ok/40 bg-ok-soft/30 p-4">
+                <span className="text-xs text-ink-muted block">La Decisión · Simulación</span>
+                <div className="mt-1 font-mono text-2xl font-bold text-ok">+$23.863.014</div>
+                <p className="mt-1 text-xs text-ink-muted">
+                  Reducir DSO a 60d (+ $14M) y extender DPO a 50d (+ $9.8M) libera casi $24M propios sin deuda bancaria.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
+              <p className="text-xs text-ink-muted italic">
+                “Apoya la decisión, no la reemplaza.” El simulador recalcula liquidez, deuda e impacto patrimonial en tiempo real.
+              </p>
+              <Link
+                to="/simulador?ticker=DEMO-PEDRO"
+                className="rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 focus-ring"
+              >
+                Abrir Simulador con este caso ➔
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 8. Comparador */}
       <section className="border-b border-border bg-surface/40 py-16 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 lg:px-8">

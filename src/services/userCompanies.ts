@@ -25,6 +25,12 @@ export interface PeriodoBalance extends PeriodoDatos {
   ebit: number;
   /** Valor de mercado del patrimonio, si se conoce. Si no, se usa el valor libro. */
   valorMercado?: number | null;
+  cuentasPorCobrar?: number | null;
+  inventarios?: number | null;
+  cuentasPorPagar?: number | null;
+  costoVentas?: number | null;
+  gastosIntereses?: number | null;
+  deudaUsdPct?: number | null;
 }
 
 export interface DatosEmpresaPropia {
@@ -163,12 +169,25 @@ export const COLUMNAS_OBLIGATORIAS = [
   "ebit",
 ] as const;
 
-export const COLUMNAS_OPCIONALES = ["periodo", "ventas", "resultado_neto", "ebitda", "efectivo", "valor_mercado_patrimonio"] as const;
+export const COLUMNAS_OPCIONALES = [
+  "periodo",
+  "ventas",
+  "costo_ventas",
+  "cuentas_por_cobrar",
+  "inventarios",
+  "cuentas_por_pagar",
+  "gastos_intereses",
+  "deuda_usd_pct",
+  "resultado_neto",
+  "ebitda",
+  "efectivo",
+  "valor_mercado_patrimonio",
+] as const;
 
 export const PLANTILLA_CSV =
-  "periodo,activos_corrientes,activos_totales,pasivos_corrientes,pasivos_totales,patrimonio_neto,ganancias_retenidas,deuda_total,ebit,ventas,resultado_neto,valor_mercado_patrimonio\n" +
-  "2024-12-31,13000000,38000000,8000000,20000000,18000000,3500000,11000000,3000000,30000000,1800000,\n" +
-  "2025-12-31,15000000,42000000,9000000,22000000,20000000,4000000,12000000,3500000,34000000,2200000,\n";
+  "periodo,activos_corrientes,activos_totales,pasivos_corrientes,pasivos_totales,patrimonio_neto,ganancias_retenidas,deuda_total,ebit,ventas,costo_ventas,cuentas_por_cobrar,inventarios,cuentas_por_pagar,gastos_intereses,deuda_usd_pct,resultado_neto,valor_mercado_patrimonio\n" +
+  "2024-12-31,13000000,38000000,8000000,20000000,18000000,3500000,11000000,3000000,30000000,20000000,5000000,3000000,2500000,2500000,0.25,1800000,\n" +
+  "2025-12-31,15000000,42000000,9000000,22000000,20000000,4000000,12000000,3500000,34000000,22000000,6000000,3500000,2800000,2800000,0.30,2200000,\n";
 
 const SINONIMOS: Record<string, string> = {
   activo_corriente: "activos_corrientes",
@@ -190,6 +209,28 @@ const SINONIMOS: Record<string, string> = {
   ventas: "ventas",
   ingresos: "ventas",
   revenue: "ventas",
+  costo_ventas: "costo_ventas",
+  costo_de_ventas: "costo_ventas",
+  costo: "costo_ventas",
+  cogs: "costo_ventas",
+  cuentas_por_cobrar: "cuentas_por_cobrar",
+  cuentas_a_cobrar: "cuentas_por_cobrar",
+  creditos_por_ventas: "cuentas_por_cobrar",
+  deudores_por_ventas: "cuentas_por_cobrar",
+  clientes: "cuentas_por_cobrar",
+  inventarios: "inventarios",
+  inventario: "inventarios",
+  bienes_de_cambio: "inventarios",
+  stock: "inventarios",
+  cuentas_por_pagar: "cuentas_por_pagar",
+  cuentas_a_pagar: "cuentas_por_pagar",
+  proveedores: "cuentas_por_pagar",
+  deudas_comerciales: "cuentas_por_pagar",
+  gastos_intereses: "gastos_intereses",
+  intereses: "gastos_intereses",
+  intereses_financieros: "gastos_intereses",
+  deuda_usd_pct: "deuda_usd_pct",
+  porcentaje_deuda_usd: "deuda_usd_pct",
   resultado_neto: "resultado_neto",
   ganancia_neta: "resultado_neto",
   utilidad_neta: "resultado_neto",
@@ -340,6 +381,12 @@ export function periodosDesdeFilas(filas: Array<Record<string, unknown>>): Resul
       deudaTotal: num("deuda_total") as number,
       ebit: num("ebit") as number,
       revenue: num("ventas"),
+      costoVentas: num("costo_ventas"),
+      cuentasPorCobrar: num("cuentas_por_cobrar"),
+      inventarios: num("inventarios"),
+      cuentasPorPagar: num("cuentas_por_pagar"),
+      gastosIntereses: num("gastos_intereses"),
+      deudaUsdPct: num("deuda_usd_pct"),
       netIncome: num("resultado_neto"),
       ebitda: num("ebitda"),
       efectivo: num("efectivo"),

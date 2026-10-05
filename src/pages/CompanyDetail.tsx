@@ -15,7 +15,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import { NOTA_ENTIDAD_FINANCIERA } from "@/lib/financial/analysis";
 import { benchmarkPorMercado } from "@/lib/financial/benchmarks";
-import { ESTADO_LABEL } from "@/lib/financial/diagnostics";
+import { ESTADO_LABEL, diagnosticarCcc, diagnosticarIcr } from "@/lib/financial/diagnostics";
 import { generarAnalisisEjecutivo } from "@/lib/financial/narrative";
 import { fmtFecha, fmtMonto, fmtNum, fmtPct, fmtScore, fmtX, nombreTamano } from "@/lib/format";
 import { descargarExcelEmpresa } from "@/lib/reports/comparativo";
@@ -385,6 +385,94 @@ export function CompanyDetail() {
           )}
         </Card>
       </div>
+
+      {/* Pulso de Caja & Liquidez Operativa */}
+      {aplicaModeloCorporativo && (
+        <Card className="mt-6 border-accent/30">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                  Pulso de Caja
+                </span>
+                <h2 className="text-base font-bold text-ink">Ciclo Operativo & Cobertura de Intereses</h2>
+              </div>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                Diagnóstico de liquidez dinámica: cómo fluye el efectivo entre cobros a clientes y pagos a proveedores.
+              </p>
+            </div>
+            <Link
+              to={`/simulador?ticker=${encodeURIComponent(company.ticker)}`}
+              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 focus-ring"
+            >
+              Simular decisiones de caja ➔
+            </Link>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+            {/* CCC */}
+            <div className="rounded-lg border border-border bg-bg/50 p-3">
+              <div className="flex items-center justify-between text-xs text-ink-muted">
+                <span>Ciclo de Caja (CCC)</span>
+                <span>{m.ccc !== null && m.ccc !== undefined ? (m.ccc > 90 ? "🔴" : m.ccc > 60 ? "🟡" : "🟢") : "⚪"}</span>
+              </div>
+              <div className="mt-1 font-mono text-xl font-bold text-ink">
+                {m.ccc !== null && m.ccc !== undefined ? `${Math.round(m.ccc)} d` : "N/D"}
+              </div>
+              <span className="text-[11px] text-ink-muted leading-tight block mt-1">
+                {diagnosticarCcc(m.ccc ?? null).mensaje}
+              </span>
+            </div>
+
+            {/* DSO */}
+            <div className="rounded-lg border border-border bg-bg/50 p-3">
+              <span className="text-xs text-ink-muted block">Días de Cobro (DSO)</span>
+              <div className="mt-1 font-mono text-xl font-bold text-ink">
+                {m.dso !== null && m.dso !== undefined ? `${Math.round(m.dso)} d` : "N/D"}
+              </div>
+              <span className="text-[11px] text-ink-muted leading-tight block mt-1">
+                Tiempo promedio para cobrar ventas a crédito.
+              </span>
+            </div>
+
+            {/* DIO */}
+            <div className="rounded-lg border border-border bg-bg/50 p-3">
+              <span className="text-xs text-ink-muted block">Días de Stock (DIO)</span>
+              <div className="mt-1 font-mono text-xl font-bold text-ink">
+                {m.dio !== null && m.dio !== undefined ? `${Math.round(m.dio)} d` : "N/D"}
+              </div>
+              <span className="text-[11px] text-ink-muted leading-tight block mt-1">
+                Días de inventario inmovilizado.
+              </span>
+            </div>
+
+            {/* DPO */}
+            <div className="rounded-lg border border-border bg-bg/50 p-3">
+              <span className="text-xs text-ink-muted block">Días Proveedores (DPO)</span>
+              <div className="mt-1 font-mono text-xl font-bold text-ink">
+                {m.dpo !== null && m.dpo !== undefined ? `${Math.round(m.dpo)} d` : "N/D"}
+              </div>
+              <span className="text-[11px] text-ink-muted leading-tight block mt-1">
+                Financiación obtenida de proveedores.
+              </span>
+            </div>
+
+            {/* ICR */}
+            <div className="rounded-lg border border-border bg-bg/50 p-3 col-span-2 sm:col-span-1">
+              <div className="flex items-center justify-between text-xs text-ink-muted">
+                <span>Cobertura ICR</span>
+                <span>{m.icr !== null && m.icr !== undefined ? (m.icr < 1.5 ? "🔴" : m.icr < 2.5 ? "🟡" : "🟢") : "⚪"}</span>
+              </div>
+              <div className="mt-1 font-mono text-xl font-bold text-ink">
+                {m.icr !== null && m.icr !== undefined ? `${fmtNum(m.icr)}x` : "N/D"}
+              </div>
+              <span className="text-[11px] text-ink-muted leading-tight block mt-1">
+                {diagnosticarIcr(m.icr ?? null).mensaje}
+              </span>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card className="mt-6">
         <h2 className="font-semibold text-ink">Estado financiero</h2>
