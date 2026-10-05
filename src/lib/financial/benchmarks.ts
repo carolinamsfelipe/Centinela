@@ -21,21 +21,22 @@ function mediana(valores: Array<number | null>): number | null {
 }
 
 export function calcularBenchmark(empresas: Company[]): BenchmarkGrupo {
-  const analisis = empresas.map((e) => analizarEmpresa(e));
+  const deMercado = empresas.filter((e) => e.companyType === "market");
+  const analisis = deMercado.map((e) => analizarEmpresa(e));
   return {
-    roe: mediana(empresas.map((e) => e.metrics.roe)),
-    roa: mediana(empresas.map((e) => e.metrics.roa)),
-    margenNeto: mediana(empresas.map((e) => e.metrics.margenNeto)),
-    debtToEquity: mediana(empresas.map((e) => e.metrics.debtToEquity)),
-    currentRatio: mediana(empresas.map((e) => e.metrics.currentRatio)),
+    roe: mediana(deMercado.map((e) => e.metrics.roe)),
+    roa: mediana(deMercado.map((e) => e.metrics.roa)),
+    margenNeto: mediana(deMercado.map((e) => e.metrics.margenNeto)),
+    debtToEquity: mediana(deMercado.map((e) => e.metrics.debtToEquity)),
+    currentRatio: mediana(deMercado.map((e) => e.metrics.currentRatio)),
     score: mediana(analisis.map((a) => a.score.total)),
     altman: mediana(analisis.map((a) => a.altman.zScore)),
-    cantidadEmpresas: empresas.length,
+    cantidadEmpresas: deMercado.length,
   };
 }
 
 export function calcularBenchmarkSector(empresas: Company[], sector: Sector): BenchmarkGrupo {
-  return calcularBenchmark(empresas.filter((e) => e.sector === sector));
+  return calcularBenchmark(empresas.filter((e) => e.companyType === "market" && e.sector === sector));
 }
 
 export interface BenchmarkMercado {
@@ -45,12 +46,14 @@ export interface BenchmarkMercado {
 
 /**
  * Mediana del sector de `empresa` en cada mercado que tenga al menos una
- * empresa de ese sector (excluyendo a la propia empresa), ordenado con el
- * mercado de la empresa primero. Es la base de la comparacion "tu empresa
- * vs. el mismo sector en otros mercados".
+ * empresa de ese sector (excluyendo a la propia empresa y considerando
+ * exclusivamente empresas que cotizan en mercado), ordenado con el mercado de
+ * la empresa primero.
  */
 export function benchmarkPorMercado(empresa: Company, universo: Company[]): BenchmarkMercado[] {
-  const mismoSector = universo.filter((e) => e.sector === empresa.sector && e.ticker !== empresa.ticker);
+  const mismoSector = universo.filter(
+    (e) => e.companyType === "market" && e.sector === empresa.sector && e.ticker !== empresa.ticker
+  );
   const mercados = Array.from(new Set(mismoSector.map((e) => e.mercado)));
   const resultado = mercados.map((mercado) => ({
     mercado,

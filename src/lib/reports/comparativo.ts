@@ -2,7 +2,8 @@ import { nombreMercado, nombreSector } from "@/data/companies";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import { ESTADO_LABEL } from "@/lib/financial/diagnostics";
 import { SCORE_ESTADO_THRESHOLDS, SCORE_WEIGHTS } from "@/lib/financial/scoreConfig";
-import { aUsd, fmtFecha, fmtMonto, fmtNum, fmtPct, fmtX } from "@/lib/format";
+import { esEntidadFinanciera } from "@/lib/financial/analysis";
+import { aUsd, fmtFecha, fmtMonto, fmtNum, fmtPct, fmtScore, fmtX } from "@/lib/format";
 import type { AltmanResult, CentinelaScore, Company, Estado } from "@/types";
 import {
   COLOR_ESTADO,
@@ -37,8 +38,24 @@ export const FILAS_COMPARATIVAS: FilaComparativa[] = [
   { label: "Sector", valor: (a) => nombreSector(a.company.sector) },
   { label: "Moneda de reporte", valor: (a) => a.company.monedaReporte },
   { label: "Balance al", valor: (a) => fmtFecha(a.company.metrics.periodo) },
-  { label: "Score Centinela", valor: (a) => (a.score.total !== null ? `${a.score.total} / 100` : "N/A") },
-  { label: "Altman Z''", valor: (a) => (a.altman.zScore !== null ? fmtNum(a.altman.zScore) : "N/A") },
+  {
+    label: "Score Centinela",
+    valor: (a) =>
+      a.score.total !== null
+        ? `${fmtScore(a.score.total)} / 100`
+        : esEntidadFinanciera(a.company)
+        ? "N/A"
+        : "N/D",
+  },
+  {
+    label: "Altman Z''",
+    valor: (a) =>
+      a.altman.zScore !== null
+        ? fmtNum(a.altman.zScore)
+        : a.altman.noAplica || esEntidadFinanciera(a.company)
+        ? "N/A"
+        : "N/D",
+  },
   { label: "Market Cap (US$)", valor: (a) => fmtMonto(a.company.metrics.marketCap, a.company) },
   { label: "Revenue (US$)", valor: (a) => fmtMonto(a.company.metrics.revenue, a.company) },
   { label: "EBITDA (US$)", valor: (a) => fmtMonto(a.company.metrics.ebitda, a.company) },
@@ -54,7 +71,7 @@ export const FILAS_COMPARATIVAS: FilaComparativa[] = [
 ];
 
 export const NOTA_COMPARACION =
-  "Los importes se expresan en US$ al tipo de cambio actual para que sean comparables entre mercados; los ratios (ROE, ROA, márgenes, Debt/Equity, liquidez) no dependen de la moneda. El Altman Z'' y el Score Centinela no se calculan para bancos y entidades financieras (N/A). Las empresas que reportan en pesos argentinos tienen cifras nominales sin ajuste por inflación.";
+  "Los importes se expresan en US$ al tipo de cambio actual para que sean comparables entre mercados; los ratios (ROE, ROA, márgenes, Debt/Equity, liquidez) no dependen de la moneda. El Altman Z'' y el Score Centinela no se calculan para bancos y entidades financieras (N/A) y se indican como N/D cuando la información contable disponible es insuficiente. Las empresas que reportan en pesos argentinos tienen cifras nominales sin ajuste por inflación.";
 
 function ordenarPorScore(analisis: AnalisisComparable[]): AnalisisComparable[] {
   return [...analisis].sort((a, b) => {

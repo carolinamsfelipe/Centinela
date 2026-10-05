@@ -35,16 +35,28 @@ export function Gauge({
   const a1 = angleFor(zonas[0]);
   const a2 = angleFor(zonas[1]);
   const a3 = 0;
-  const needleAngle = value !== null ? angleFor(value) : 90;
+  const hasValue = value !== null && !Number.isNaN(value);
+  const needleAngle = hasValue ? angleFor(value!) : 90;
   const tip = polar(cx, cy, r - 16, needleAngle);
 
   return (
     <svg width="100%" height="120" viewBox="0 0 220 118" role="img" aria-label="Medidor de riesgo">
-      <path d={arcPath(cx, cy, r, a0, a1)} stroke="rgb(var(--bad))" strokeWidth={14} fill="none" strokeLinecap="round" />
-      <path d={arcPath(cx, cy, r, a1, a2)} stroke="rgb(var(--warn))" strokeWidth={14} fill="none" strokeLinecap="round" />
-      <path d={arcPath(cx, cy, r, a2, a3)} stroke="rgb(var(--ok))" strokeWidth={14} fill="none" strokeLinecap="round" />
-      <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="rgb(var(--ink))" strokeWidth={3} strokeLinecap="round" />
-      <circle cx={cx} cy={cy} r={5.5} fill="rgb(var(--ink))" />
+      <path d={arcPath(cx, cy, r, a0, a1)} stroke="rgb(var(--bad))" strokeWidth={14} fill="none" strokeLinecap="round" opacity={hasValue ? 1 : 0.35} />
+      <path d={arcPath(cx, cy, r, a1, a2)} stroke="rgb(var(--warn))" strokeWidth={14} fill="none" strokeLinecap="round" opacity={hasValue ? 1 : 0.35} />
+      <path d={arcPath(cx, cy, r, a2, a3)} stroke="rgb(var(--ok))" strokeWidth={14} fill="none" strokeLinecap="round" opacity={hasValue ? 1 : 0.35} />
+      {hasValue ? (
+        <>
+          <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="rgb(var(--ink))" strokeWidth={3} strokeLinecap="round" />
+          <circle cx={cx} cy={cy} r={5.5} fill="rgb(var(--ink))" />
+        </>
+      ) : (
+        <>
+          <circle cx={cx} cy={cy} r={4} fill="rgb(var(--ink-muted))" />
+          <text x={cx} y={cy - 16} fontSize={13} fontWeight="600" fill="rgb(var(--ink-muted))" textAnchor="middle">
+            N/D
+          </text>
+        </>
+      )}
       <text x={18} y={116} fontSize={10} fill="rgb(var(--ink-muted))">{min}</text>
       <text x={196} y={116} fontSize={10} fill="rgb(var(--ink-muted))" textAnchor="end">{max}</text>
     </svg>

@@ -24,16 +24,16 @@ export function Home() {
     let activo = true;
     getCompanies().then((cs) => {
       if (!activo) return;
-      const enRiesgo = cs.filter((c) => analizarEmpresa(c).score.estado === "alerta").length;
-      const cotizantes = cs.filter((c) => c.fuente === "real");
+      const cotizantes = cs.filter((c) => c.companyType === "market");
+      const enRiesgo = cotizantes.filter((c) => analizarEmpresa(c).score.estado === "alerta").length;
       const enVivo = cotizantes.filter((c) => c.envivo).length;
-      const instantes = cs.map((c) => c.actualizado).filter((a): a is string => !!a);
+      const instantes = cotizantes.map((c) => c.actualizado).filter((a): a is string => !!a);
       const ultimo = instantes.length > 0 ? instantes.sort()[instantes.length - 1] : null;
       setEmpresas(cs);
       setPanorama({
-        analizadas: cs.length,
+        analizadas: cotizantes.length,
         enRiesgo,
-        mercados: new Set(cs.map((c) => c.mercado)).size,
+        mercados: new Set(cotizantes.map((c) => c.mercado)).size,
         enVivo,
         cotizantes: cotizantes.length,
         actualizado: ultimo,

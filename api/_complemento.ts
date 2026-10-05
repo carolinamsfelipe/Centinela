@@ -45,8 +45,8 @@ export const FUENTE_SEC = "SEC EDGAR";
 const TIMEOUT_MS = 5000;
 const TTL_CIK_MS = 24 * 60 * 60 * 1000;
 const TTL_FACTS_MS = 6 * 60 * 60 * 1000;
-const TOLERANCIA_DIAS = 7;
-const TOLERANCIA_ACTIVOS = 0.005;
+const TOLERANCIA_DIAS = 31;
+const TOLERANCIA_ACTIVOS = 0.01;
 const FORMULARIOS_ANUALES = /^(10-K|20-F|40-F)(\/A)?$/;
 
 function userAgent(): string {
@@ -59,6 +59,7 @@ const CONCEPTOS: Record<string, Array<[string, string]>> = {
   gananciasRetenidas: [
     ["ifrs-full", "RetainedEarnings"],
     ["us-gaap", "RetainedEarningsAccumulatedDeficit"],
+    ["us-gaap", "RetainedEarningsUnappropriated"],
   ],
   activosCorrientes: [
     ["ifrs-full", "CurrentAssets"],

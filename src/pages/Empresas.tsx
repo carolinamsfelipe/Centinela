@@ -6,7 +6,7 @@ import { MERCADOS, SECTORES, nombreMercado, nombreSector } from "@/data/companie
 import { diagnosticarAltman } from "@/lib/financial/altman";
 import { analizarEmpresa } from "@/lib/financial/analysis";
 import type { AnalisisCalculado } from "@/lib/financial/analysis";
-import { aUsd, fmtMonto, fmtNum, fmtPct, fmtX } from "@/lib/format";
+import { aUsd, fmtMonto, fmtNum, fmtPct, fmtScore, fmtX } from "@/lib/format";
 import { descargarExcelComparativo } from "@/lib/reports/comparativo";
 import { getCompanies } from "@/services/companyService";
 import type { Company, Estado, Mercado, Sector } from "@/types";
@@ -161,6 +161,18 @@ export function Empresas() {
     }
   }
 
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+
+  const cantFiltrosActivos =
+    sectoresSel.size + (mercado !== "Todos" ? 1 : 0) + (riesgo !== "Todos" ? 1 : 0);
+
+  const limpiarFiltros = () => {
+    setSectoresSel(new Set());
+    setMercado("Todos");
+    setRiesgo("Todos");
+    setParams({});
+  };
+
   const headerBtn = (label: string, col: ColumnaOrden) => (
     <button
       onClick={() => ordenarPor(col)}
@@ -201,8 +213,68 @@ export function Empresas() {
         </div>
       </div>
 
+      {/* Controles mobile de filtros */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setFiltrosAbiertos(!filtrosAbiertos)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink focus-ring"
+        >
+          <span>Filtros</span>
+          {cantFiltrosActivos > 0 && (
+            <span className="rounded-full bg-accent px-1.5 py-0.5 text-xs text-white">
+              {cantFiltrosActivos}
+            </span>
+          )}
+          <span className="text-xs text-ink-muted">{filtrosAbiertos ? "▲" : "▼"}</span>
+        </button>
+
+        {cantFiltrosActivos > 0 && (
+          <button
+            type="button"
+            onClick={limpiarFiltros}
+            className="text-xs text-accent hover:underline"
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
+      {/* Chips activos en mobile */}
+      {cantFiltrosActivos > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5 lg:hidden">
+          {Array.from(sectoresSel).map((s) => (
+            <span
+              key={s}
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-bg px-2.5 py-0.5 text-xs text-ink"
+            >
+              {nombreSector(s)}
+              <button type="button" onClick={() => toggleSector(s)} className="text-ink-muted hover:text-ink">
+                ×
+              </button>
+            </span>
+          ))}
+          {mercado !== "Todos" && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-bg px-2.5 py-0.5 text-xs text-ink">
+              {nombreMercado(mercado)}
+              <button type="button" onClick={() => setMercado("Todos")} className="text-ink-muted hover:text-ink">
+                ×
+              </button>
+            </span>
+          )}
+          {riesgo !== "Todos" && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-bg px-2.5 py-0.5 text-xs text-ink">
+              {riesgo === "normal" ? "Saludable" : riesgo === "atencion" ? "Atención" : "Riesgo"}
+              <button type="button" onClick={() => setRiesgo("Todos")} className="text-ink-muted hover:text-ink">
+                ×
+              </button>
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr]">
-        <aside className="space-y-6">
+        <aside className={`space-y-6 ${filtrosAbiertos ? "block" : "hidden"} lg:block`}>
           <div>
             <h2 className="mb-2 text-sm font-semibold text-ink">Sector</h2>
             <div className="space-y-1.5">
@@ -286,7 +358,7 @@ export function Empresas() {
                   <td className="px-4 py-3 font-mono">{fmtPct(f.company.metrics.roa)}</td>
                   <td className="px-4 py-3 font-mono">{fmtX(f.company.metrics.debtToEquity)}</td>
                   <td className="px-4 py-3 font-mono">{f.analisis.aplicaModeloCorporativo ? fmtNum(f.altman) : "N/A"}</td>
-                  <td className="px-4 py-3 font-mono">{f.score ?? (f.analisis.aplicaModeloCorporativo ? "N/D" : "N/A")}</td>
+                  <td className="px-4 py-3 font-mono">{f.score !== null ? fmtScore(f.score) : (f.analisis.aplicaModeloCorporativo ? "N/D" : "N/A")}</td>
                   <td className="px-4 py-3">
                     <Badge estado={f.scoreEstado} />
                   </td>

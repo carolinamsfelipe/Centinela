@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { NORMALIZATION, SCORE_WEIGHTS } from "@/lib/financial/scoreConfig";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
@@ -15,7 +16,7 @@ export function Metodologia() {
       <Card className="mt-6">
         <h2 className="font-semibold text-ink">Altman Z'' Score</h2>
         <p className="mt-2 text-sm text-ink-muted">
-          Modelo de riesgo de insolvencia para mercados emergentes (Altman, Hartzell &amp; Peck, 1995):
+          Modelo de riesgo de insolvencia para mercados emergentes y empresas no manufactureras (Altman, Hartzell &amp; Peck, 1995):
         </p>
         <pre className="mt-2 overflow-x-auto rounded-lg bg-bg p-3 font-mono text-xs text-ink">
 {`Z'' = 6.56·X1 + 3.26·X2 + 6.72·X3 + 1.05·X4
@@ -26,21 +27,19 @@ X3 = EBIT / Activo total
 X4 = Valor de mercado del patrimonio / Pasivo total`}
         </pre>
         <p className="mt-2 text-sm text-ink-muted">
-          Zonas: distress &lt; {ALTMAN_THRESHOLDS.distress} · zona gris {ALTMAN_THRESHOLDS.distress}–{ALTMAN_THRESHOLDS.safe} ·
-          segura &gt; {ALTMAN_THRESHOLDS.safe}. Es el modelo original (sin la constante +3.25 que
-          publican algunas fuentes), con estos cortes — una convención internamente consistente.
+          Zonas de clasificación: distress &lt; {ALTMAN_THRESHOLDS.distress} · zona gris {ALTMAN_THRESHOLDS.distress}–{ALTMAN_THRESHOLDS.safe} ·
+          segura &gt; {ALTMAN_THRESHOLDS.safe}. Se utiliza la formulación estándar de cuatro variables para mercados emergentes, con cortes documentados y una convención internamente consistente.
         </p>
         <p className="mt-2 text-xs text-ink-muted">
-          Limitación: calibrado con datos de EE.UU. y mercados emergentes en general, no
-          específicamente para empresas medianas o chicas ni para cada sector.
+          Limitación: Calibrado originalmente con datos de empresas estadounidenses y de mercados emergentes generales, no
+          específicamente para micro-empresas ni para modelos concesionales de infraestructura intensivos en activos intangibles.
         </p>
       </Card>
 
       <Card className="mt-6">
         <h2 className="font-semibold text-ink">Score Centinela</h2>
         <p className="mt-2 text-sm text-ink-muted">
-          Combina cinco categorías normalizadas a una escala 0–100, cada una ponderada según{" "}
-          <code className="font-mono text-xs">scoreConfig.ts</code>:
+          Combina cinco dimensiones financieras normalizadas a una escala continua de 0 a 100, ponderadas según los parámetros del sistema:
         </p>
         <table className="mt-3 w-full text-sm">
           <thead>
@@ -59,8 +58,7 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
           </tbody>
         </table>
         <p className="mt-3 text-sm text-ink-muted">
-          Cada categoría se normaliza de forma lineal a una escala 0–100 contra un tope fijo
-          definido en <code className="font-mono text-xs">scoreConfig.ts</code>: Altman Z'' hasta{" "}
+          Cada categoría se normaliza de forma lineal a una escala 0–100 contra un umbral de saturación predefinido: Altman Z'' hasta{" "}
           {NORMALIZATION.altmanZMax}, liquidez corriente hasta {NORMALIZATION.liquidezMax}x, ROE
           hasta {NORMALIZATION.roeMax * 100}%, ROA hasta {NORMALIZATION.roaMax * 100}%, margen neto
           hasta {NORMALIZATION.margenNetoMax * 100}%, margen EBIT hasta{" "}
@@ -72,9 +70,8 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
         <p className="mt-3 text-xs text-ink-muted">
           Si una categoría no tiene datos suficientes, se excluye del promedio y se redistribuye el
           peso entre las categorías disponibles — nunca se completa con un valor inventado. El
-          cálculo (<code className="font-mono">scores.ts</code>), la visualización y la
-          interpretación están separados a propósito, para poder ajustar la fórmula sin tocar la UI.
-          El score es orientativo, no una verdad absoluta.
+          motor de cálculo evalúa los umbrales de riesgo sobre el puntaje continuo antes del redondeo
+          para evitar distorsiones de borde. El score es una herramienta de diagnóstico orientativa, no una calificación crediticia vinculante.
         </p>
       </Card>
 
@@ -82,8 +79,7 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
         <h2 className="font-semibold text-ink">Semáforo financiero</h2>
         <p className="mt-2 text-sm text-ink-muted">
           Además del Score Centinela (una única lectura agregada), cada indicador se clasifica
-          también de forma individual con reglas fijas en{" "}
-          <code className="font-mono text-xs">diagnostics.ts</code> — es el detalle que se ve en la
+          también de forma individual mediante la matriz de diagnóstico financiero — es el detalle visible en la
           sección &quot;Estado financiero&quot; de cada ficha de empresa:
         </p>
         <table className="mt-3 w-full text-sm">
@@ -116,7 +112,7 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
       <Card className="mt-6">
         <h2 className="font-semibold text-ink">Señales Centinela</h2>
         <p className="mt-2 text-sm text-ink-muted">
-          Surgen de reglas explícitas en <code className="font-mono text-xs">signalRules.ts</code> que
+          Surgen de reglas cuantitativas del motor de alertas tempranas que
           comparan el último período disponible contra el anterior. No hay señales inferidas por un
           modelo de lenguaje ni generadas sin una regla documentada que las respalde:
         </p>
@@ -134,31 +130,22 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
         <ul className="mt-2 space-y-2 text-sm text-ink-muted">
           <li>
             <strong className="text-ink">Bancos y entidades financieras:</strong> el Altman Z&apos;&apos; y los umbrales de
-            liquidez, endeudamiento y capital de trabajo están pensados para empresas no financieras. En un banco el
-            pasivo es el negocio (depósitos), no existe activo corriente ni EBIT comparables y un endeudamiento de 90% es
-            normal; aplicarles el modelo daría números sin sentido. Para ellos se muestran ROE, ROA y capitalización, y el
-            Score figura como N/A.
+            liquidez, endeudamiento y capital de trabajo están pensados para empresas corporativas no financieras. En un banco el
+            pasivo es el negocio principal (depósitos de clientes), no existen activo corriente ni EBIT comparables y un endeudamiento superior al 85% es
+            habitual; aplicarles el modelo corporativo arrojaría distorsiones severas. Para ellos se muestran indicadores de rentabilidad y tamaño (ROE, ROA, Market Cap) y el
+            Score se etiqueta estrictamente como N/A (no aplica metodológicamente).
           </li>
           <li>
-            <strong className="text-ink">Valores sin dato:</strong> si una fuente no informa una cifra (por ejemplo la
-            capitalización de mercado de un ticker en un momento dado), el indicador que la necesita queda en N/D. No se
-            estima ni se completa con un valor inventado.
+            <strong className="text-ink">Concesiones de infraestructura y servicios públicos (IFRIC 12):</strong> Empresas con contratos de concesión de largo plazo (como aeropuertos o autopistas, por ejemplo Vinci) operan con capital de trabajo estructuralmente negativo y financiamiento de proyectos a gran escala. Esta estructura contable penaliza fuertemente las variables X1 y X4 del Altman Z'', pudiendo generar falsos positivos de riesgo en empresas que cuentan con flujos operativos altamente predecibles.
           </li>
           <li>
-            <strong className="text-ink">Cifras en pesos argentinos:</strong> las empresas que reportan en ARS (moneda de
-            alta inflación) muestran cifras nominales sin ajuste por inflación. Sus ratios son comparables; la variación
-            nominal de ingresos entre ejercicios no, y por eso no entran al ranking de crecimiento.
+            <strong className="text-ink">Diferenciación estricta entre N/A y N/D:</strong> Se utiliza N/A únicamente cuando un indicador no corresponde metodológicamente al modelo de negocio (ej. bancos). Se utiliza N/D cuando el indicador corresponde conceptualmente pero no pudo calcularse por falta de estados contables completos o incompatibilidad temporal en las fuentes.
           </li>
           <li>
-            <strong className="text-ink">Mezcla de monedas:</strong> el balance se expresa en la moneda de reporte de cada
-            empresa y la capitalización de mercado se convierte a esa misma moneda antes de calcular el Altman Z&apos;&apos;.
-            Cuando una empresa cambió de moneda de reporte entre ejercicios se descartan los ejercicios en la otra moneda
-            en vez de convertirlos con un tipo de cambio de hoy.
+            <strong className="text-ink">Cifras en pesos argentinos (ARS):</strong> Las empresas que reportan en ARS presentan estados contables en moneda local. Cuando se convierten a US$ se utiliza el tipo de cambio oficial interbancario de la fecha de cierre; sus cifras nominales en pesos no reflejan ajuste integral por inflación y deben analizarse considerando el contexto macroeconómico.
           </li>
           <li>
-            <strong className="text-ink">Empresas que no cotizan:</strong> en un balance cargado por el usuario, si no se
-            informa el valor de mercado del patrimonio se usa el valor libro (ajuste que el propio modelo recomienda para
-            empresas privadas) y se aclara en la ficha y en el informe.
+            <strong className="text-ink">Empresas privadas o balances manuales:</strong> En empresas cargadas manualmente por el usuario donde no existe cotización pública, el componente de patrimonio de mercado (X4) se calcula utilizando el valor libro contable, tal como autoriza la formulación Z'' de Altman para firmas no cotizantes.
           </li>
         </ul>
       </Card>
@@ -167,24 +154,24 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
         <h2 className="font-semibold text-ink">Análisis contextual con IA</h2>
         <p className="mt-2 text-sm text-ink-muted">
           El Score, el Altman Z&apos;&apos;, el semáforo, las señales y el análisis ejecutivo se calculan con reglas
-          fijas y no usan ningún modelo de lenguaje. La tarjeta opcional &quot;Análisis contextual con IA&quot; es lo
-          único redactado por un modelo: recibe esos resultados ya calculados (cifras, ratios, semáforo, moneda de
-          reporte, tipo de cambio, contexto macro y medianas del sector por mercado) y los explica en forma de hipótesis
-          generales (&quot;podría&quot;, &quot;suele&quot;).
+          cuantitativas fijas y no usan ningún modelo de lenguaje. La herramienta opcional &quot;Análisis contextual con IA&quot; es lo
+          único redactado por un modelo: recibe exclusivamente los resultados ya calculados y estructurados (cifras, ratios, semáforo, moneda de
+          reporte, tipo de cambio, contexto macro y benchmarks sectoriales) y los explica en forma de hipótesis
+          generales (&quot;podría&quot;, &quot;suele&quot;), sin inventar causas no comprobadas.
         </p>
         <ul className="mt-3 space-y-1.5 text-sm text-ink-muted">
-          <li>• La IA no calcula: se le indica usar solo las cifras recibidas y no inventar números, noticias ni hechos de la empresa.</li>
-          <li>• Las causas que menciona son hipótesis generales del sector, no hechos verificados sobre la empresa.</li>
-          <li>• Puede equivocarse o simplificar de más: debe leerse como orientación, no como recomendación de inversión ni de crédito.</li>
-          <li>• Se genera solo cuando el usuario lo pide; si el servicio no está activado se muestra el texto determinístico de respaldo.</li>
+          <li>• La IA no calcula: se le instruye usar únicamente las cifras provistas y respetar la moneda reportada por la empresa.</li>
+          <li>• Distingue efectos cambiarios sin atribuir causalidad categórica si los datos contables no lo evidencian.</li>
+          <li>• Mantiene una convención homogénea de magnitudes y respeta la restricción de tamaño muestral (n &ge; 2) para promedios sectoriales.</li>
+          <li>• Su contenido es orientativo y no constituye una recomendación de inversión ni una decisión crediticia.</li>
         </ul>
       </Card>
 
       <Card className="mt-6">
         <h2 className="font-semibold text-ink">Datos y actualización</h2>
         <p className="mt-2 text-sm text-ink-muted">
-          Ver la sección <a href="/fuentes" className="underline">Fuentes</a> para el detalle de qué
-          dato viene de qué fuente, con qué frecuencia y desde cuándo.
+          Ver la sección <Link to="/fuentes" className="underline">Fuentes</Link> para el detalle de qué
+          dato proviene de qué fuente, con qué frecuencia de refresco y con qué criterios de respaldo.
         </p>
       </Card>
     </div>

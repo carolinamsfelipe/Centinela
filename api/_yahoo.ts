@@ -321,7 +321,10 @@ export async function cargarEmpresa(ticker: string): Promise<EmpresaEnVivo | nul
   const ultimoPeriodo: PeriodoFinanciero =
     serie.periodos[serie.periodos.length - 1] ?? { periodo: new Date().toISOString().slice(0, 10) };
 
-  const complementos = await completarConSec(ticker, ultimoPeriodo, monedaReporte);
+  const complementosPorPeriodo = await Promise.all(
+    serie.periodos.map((p) => completarConSec(ticker, p, monedaReporte))
+  );
+  const complementos = complementosPorPeriodo[complementosPorPeriodo.length - 1] ?? [];
 
   const patrimonio = numero(ultimoPeriodo.patrimonioNeto);
   const deuda = numero(ultimoPeriodo.deudaTotal);

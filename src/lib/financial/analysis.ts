@@ -31,6 +31,8 @@ const ALTMAN_NO_APLICA: AltmanResult = {
   x3: null,
   x4: null,
   estado: "sin_datos",
+  noAplica: true,
+  motivoNoDisponible: "No aplica metodológicamente a entidades financieras.",
 };
 
 export interface AnalisisCalculado {

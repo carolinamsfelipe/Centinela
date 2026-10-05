@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/Card";
+import { COMPANIES } from "@/data/companies";
 
 interface Fuente {
   fuente: string;
@@ -9,6 +10,8 @@ interface Fuente {
   descripcion: string;
 }
 
+const CANTIDAD_COTIZANTES = COMPANIES.filter((c) => c.companyType === "market").length;
+
 const FUENTES: Fuente[] = [
   {
     fuente: "Yahoo Finance",
@@ -17,7 +20,7 @@ const FUENTES: Fuente[] = [
     actualizacion: "En vivo: se consulta al abrir cada pantalla (caché de 15 minutos)",
     url: "https://finance.yahoo.com",
     descripcion:
-      "44 empresas que cotizan en Argentina, Brasil, México, Estados Unidos, Europa y Asia (ADR en dólares). Cada ficha indica a qué hora se consultó la fuente y en qué moneda reporta la empresa.",
+      `${CANTIDAD_COTIZANTES} empresas que cotizan en Argentina, Brasil, México, Estados Unidos, Europa y Asia (ADR en dólares). Cada ficha indica a qué hora se consultó la fuente y en qué moneda reporta la empresa.`,
   },
   {
     fuente: "SEC EDGAR (complemento de Yahoo Finance)",

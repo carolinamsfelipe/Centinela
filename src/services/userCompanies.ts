@@ -135,6 +135,7 @@ export function empresaPropiaACompany(g: EmpresaPropiaGuardada, tipoCambioUsd: n
     tamano: tamanoDesdeActivosUsd(activosUsd),
     pais: g.pais,
     fuente: "propia",
+    companyType: "user",
     metrics,
     historico,
     envivo: false,

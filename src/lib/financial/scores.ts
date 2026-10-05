@@ -29,8 +29,8 @@ function promedio(valores: Array<number | null>): number | null {
   return validos.reduce((a, b) => a + b, 0) / validos.length;
 }
 
-function estadoDesdeScore(score: number | null): Estado {
-  if (score === null) return "sin_datos";
+export function getRiskLevel(score: number | null): Estado {
+  if (score === null || Number.isNaN(score)) return "sin_datos";
   if (score >= SCORE_ESTADO_THRESHOLDS.normal) return "normal";
   if (score >= SCORE_ESTADO_THRESHOLDS.atencion) return "atencion";
   return "alerta";
@@ -62,14 +62,17 @@ export function calcularCentinelaScore(m: FinancialMetrics, marketCap: number | 
 
   const disponibles = Object.values(categorias).filter((c) => c.valor !== null);
   const pesoTotalDisponible = disponibles.reduce((acc, c) => acc + c.peso, 0);
-  const total =
+  const rawTotal =
     disponibles.length === 0
       ? null
       : disponibles.reduce((acc, c) => acc + (c.valor as number) * c.peso, 0) / pesoTotalDisponible;
 
+  // Clasificacion rigurosa sobre el valor continuo real, nunca sobre el redondeo.
+  const estado = getRiskLevel(rawTotal);
+
   return {
-    total: total === null ? null : Math.round(total),
-    estado: estadoDesdeScore(total),
+    total: rawTotal === null ? null : Math.round(rawTotal * 10) / 10,
+    estado,
     categorias,
   };
 }

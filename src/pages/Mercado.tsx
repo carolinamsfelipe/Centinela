@@ -5,7 +5,7 @@ import { MERCADOS, SECTORES } from "@/data/companies";
 import { analizarEmpresa } from "@/lib/financial/analysis";
 import { SCORE_ESTADO_THRESHOLDS } from "@/lib/financial/scoreConfig";
 import { fmtNum, fmtPct } from "@/lib/format";
-import { getCompanies } from "@/services/companyService";
+import { getMarketCompanies } from "@/services/companyService";
 import type { Company, Estado } from "@/types";
 
 const ESTADO_TILE_CLASSES: Record<Estado, string> = {
@@ -35,7 +35,7 @@ export function Mercado() {
   const [empresas, setEmpresas] = useState<Company[] | null>(null);
 
   useEffect(() => {
-    getCompanies().then(setEmpresas);
+    getMarketCompanies().then(setEmpresas);
   }, []);
 
   const lista = useMemo(() => empresas ?? [], [empresas]);

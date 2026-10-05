@@ -24,6 +24,8 @@ export type Mercado =
 
 export type TamanoEmpresa = "Small" | "Mid" | "Large";
 
+export type CompanyType = "market" | "user" | "demo";
+
 /** "real": cotiza y se consulta en vivo a Yahoo Finance. "propia": balance cargado por el usuario. */
 export type FuenteDato = "real" | "propia";
 
@@ -64,6 +66,8 @@ export interface AltmanResult {
   x3: number | null;
   x4: number | null;
   estado: Estado;
+  motivoNoDisponible?: string;
+  noAplica?: boolean;
 }
 
 export interface CategoriaScore {
@@ -112,6 +116,7 @@ export interface Company {
   tamano: TamanoEmpresa;
   pais: string;
   fuente: FuenteDato;
+  companyType: CompanyType;
   metrics: FinancialMetrics;
   historico: HistoricalPoint[];
   /** true si metrics vino de Yahoo Finance recien, false/undefined si es el respaldo estatico. */

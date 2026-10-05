@@ -15,6 +15,7 @@ import type { AltmanResult, CentinelaScore, Company } from "@/types";
 
 export interface PayloadAnalisis {
   nombre: string;
+  ticker?: string;
   sector: string;
   mercado: string;
   pais: string;
@@ -22,6 +23,7 @@ export interface PayloadAnalisis {
   propia: boolean;
   periodo: string;
   monedaReporte: string;
+  monedaEtiqueta: string;
   tipoCambio: string;
   score: string;
   altman: string;
@@ -33,6 +35,7 @@ export interface PayloadAnalisis {
   benchmarks: Array<{
     mercado: string;
     empresas: number;
+    avisoMuestra?: string;
     roe: string;
     margenNeto: string;
     deudaPatrimonio: string;
@@ -69,6 +72,25 @@ interface EntradaPayload {
   lineasMacro: string[];
 }
 
+function obtenerEtiquetaMoneda(moneda: string): string {
+  switch (moneda) {
+    case "ARS":
+      return "ARS / pesos argentinos (cifras contables en pesos, nominales sin ajuste por inflación)";
+    case "USD":
+      return "USD / dólares estadounidenses";
+    case "BRL":
+      return "BRL / reales brasileños";
+    case "CLP":
+      return "CLP / pesos chilenos";
+    case "MXN":
+      return "MXN / pesos mexicanos";
+    case "EUR":
+      return "EUR / euros";
+    default:
+      return `${moneda} / moneda local`;
+  }
+}
+
 /** Arma el payload con lo que la plataforma ya calculo y mostro en pantalla. */
 export function construirPayloadAnalisis({ company, altman, score, analisis, benchmark, lineasMacro }: EntradaPayload): PayloadAnalisis {
   const m = company.metrics;
@@ -98,15 +120,16 @@ export function construirPayloadAnalisis({ company, altman, score, analisis, ben
 
   let tipoCambio: string;
   if (company.monedaReporte === "USD") {
-    tipoCambio = "La empresa reporta en USD: no requiere conversión.";
+    tipoCambio = "La empresa reporta en USD: no requiere conversión contable.";
   } else if (company.tipoCambioUsd !== null && company.tipoCambioUsd > 0) {
-    tipoCambio = `${fmtNum(company.tipoCambioUsd)} ${company.monedaReporte} por 1 USD (tipo de cambio actual usado para expresar los importes en US$).`;
+    tipoCambio = `${fmtNum(company.tipoCambioUsd)} ${company.monedaReporte} por 1 USD (tipo de cambio de referencia usado para expresar los importes en US$).`;
   } else {
-    tipoCambio = `Sin cotización disponible para convertir ${company.monedaReporte} a USD: los importes figuran en ${company.monedaReporte}.`;
+    tipoCambio = `Sin cotización disponible para convertir ${company.monedaReporte} a USD: los importes figuran exclusivamente en ${company.monedaReporte}.`;
   }
 
   return {
     nombre: company.nombre,
+    ticker: company.ticker,
     sector: nombreSector(company.sector),
     mercado: nombreMercado(company.mercado),
     pais: company.pais,
@@ -114,23 +137,31 @@ export function construirPayloadAnalisis({ company, altman, score, analisis, ben
     propia: company.fuente === "propia",
     periodo: fmtFecha(m.periodo),
     monedaReporte: company.monedaReporte,
+    monedaEtiqueta: obtenerEtiquetaMoneda(company.monedaReporte),
     tipoCambio,
-    score: score.total !== null ? `${score.total}/100 (${ESTADO_LABEL[score.estado]})` : "N/A",
+    score: score.total !== null ? `${score.total}/100 (${ESTADO_LABEL[score.estado]})` : "N/D",
     altman: `${analisis.altman.texto} Estado: ${ESTADO_LABEL[analisis.altman.estado]}.`,
     resumen: analisis.resumen,
     cifras,
     semaforo: analisis.situacion.map((s) => ({ nombre: s.nombre, valor: s.valorTexto, estado: ESTADO_LABEL[s.estado] })),
     puntosDeSeguimiento: analisis.puntosDeSeguimiento,
     macro: lineasMacro,
-    benchmarks: (benchmark ?? []).map((b) => ({
-      mercado: nombreMercado(b.mercado),
-      empresas: b.grupo.cantidadEmpresas,
-      roe: fmtPct(b.grupo.roe),
-      margenNeto: fmtPct(b.grupo.margenNeto),
-      deudaPatrimonio: fmtX(b.grupo.debtToEquity),
-      liquidez: fmtNum(b.grupo.currentRatio),
-      score: b.grupo.score !== null ? String(Math.round(b.grupo.score)) : "N/D",
-    })),
+    benchmarks: (benchmark ?? []).map((b) => {
+      const n = b.grupo.cantidadEmpresas;
+      return {
+        mercado: nombreMercado(b.mercado),
+        empresas: n,
+        avisoMuestra:
+          n < 2
+            ? "Muestra insuficiente (1 sola empresa): NO constituye promedio sectorial."
+            : `Muestra de n = ${n} empresas del mercado`,
+        roe: fmtPct(b.grupo.roe),
+        margenNeto: fmtPct(b.grupo.margenNeto),
+        deudaPatrimonio: fmtX(b.grupo.debtToEquity),
+        liquidez: fmtNum(b.grupo.currentRatio),
+        score: b.grupo.score !== null ? String(Math.round(b.grupo.score)) : "N/D",
+      };
+    }),
     notas: company.notas ?? [],
   };
 }

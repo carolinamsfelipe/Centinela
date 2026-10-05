@@ -17,7 +17,7 @@ import { NOTA_ENTIDAD_FINANCIERA } from "@/lib/financial/analysis";
 import { benchmarkPorMercado } from "@/lib/financial/benchmarks";
 import { ESTADO_LABEL } from "@/lib/financial/diagnostics";
 import { generarAnalisisEjecutivo } from "@/lib/financial/narrative";
-import { fmtFecha, fmtMonto, fmtNum, fmtPct, fmtX } from "@/lib/format";
+import { fmtFecha, fmtMonto, fmtNum, fmtPct, fmtScore, fmtX, nombreTamano } from "@/lib/format";
 import { descargarExcelEmpresa } from "@/lib/reports/comparativo";
 import { descargarInformeEmpresa, textoFuente } from "@/lib/reports/informeEmpresa";
 import { construirPayloadAnalisis, generarAnalisisIA } from "@/services/aiService";
@@ -244,7 +244,7 @@ export function CompanyDetail() {
           </div>
           <p className="mt-1 text-sm text-ink-muted">
             {nombreSector(company.sector)} · {nombreMercado(company.mercado)}
-            {company.pais !== nombreMercado(company.mercado) ? ` (${company.pais})` : ""} · {company.tamano} · Balance al{" "}
+            {company.pais && company.pais !== nombreMercado(company.mercado) ? ` (${company.pais})` : ""} · {nombreTamano(company.tamano)} · Balance al{" "}
             {fmtFecha(m.periodo)} · Reporta en {company.monedaReporte}
           </p>
           <p className="mt-1 text-xs text-ink-muted">{textoFuente(company)}</p>
@@ -318,7 +318,8 @@ export function CompanyDetail() {
             <Badge estado={score.estado} />
           </div>
           <div className="mt-3 font-mono text-4xl font-bold text-ink">
-            {score.total ?? "N/A"} <span className="text-base font-normal text-ink-muted">/ 100</span>
+            {score.total !== null ? fmtScore(score.total) : (aplicaModeloCorporativo ? "N/D" : "N/A")}{" "}
+            <span className="text-base font-normal text-ink-muted">/ 100</span>
           </div>
           {aplicaModeloCorporativo ? (
             <>
@@ -354,11 +355,22 @@ export function CompanyDetail() {
           {aplicaModeloCorporativo ? (
             <>
               <Gauge value={altman.zScore} min={0} max={5} zonas={[ALTMAN_THRESHOLDS.distress, ALTMAN_THRESHOLDS.safe]} />
-              <div className="text-center font-mono text-2xl font-bold text-ink">{fmtNum(altman.zScore)}</div>
+              <div className="text-center font-mono text-2xl font-bold text-ink">
+                {altman.zScore !== null ? fmtNum(altman.zScore) : "N/D"}
+              </div>
               <p className="mt-2 text-center text-sm text-ink-muted">
                 Distress &lt; {ALTMAN_THRESHOLDS.distress} · Zona gris · Segura &gt; {ALTMAN_THRESHOLDS.safe}
               </p>
-              <p className="mt-2 text-center text-sm text-ink-muted">{analisis.altman.texto}</p>
+              <p className="mt-2 text-center text-sm text-ink-muted">
+                {altman.zScore !== null
+                  ? analisis.altman.texto
+                  : (altman.motivoNoDisponible || "Altman no disponible con los estados financieros disponibles para este período.")}
+              </p>
+              {company.ticker === "VCISY" && (
+                <div className="mt-3 rounded-lg border border-accent/30 bg-accent-soft p-2.5 text-xs text-ink leading-relaxed text-left">
+                  <strong>Aviso metodológico para concesiones (IFRIC 12):</strong> Las empresas concesionarias de infraestructura operan con capital de trabajo negativo recurrente y deuda estructurada por proyectos de largo plazo. Este modelo penaliza las variables X1 y X4 del Altman Z'', pudiendo generar un falso positivo de riesgo que no implica insolvencia operativa.
+                </div>
+              )}
               <p className="mt-3 text-xs text-ink-muted">
                 El Altman Z&apos;&apos; Score es un modelo de riesgo financiero basado en determinados indicadores contables
                 (Altman, Hartzell &amp; Peck, 1995). No constituye una predicción individual ni una recomendación de
@@ -366,7 +378,10 @@ export function CompanyDetail() {
               </p>
             </>
           ) : (
-            <p className="mt-4 text-sm text-ink-muted">{analisis.altman.texto}</p>
+            <div className="mt-4 text-center">
+              <div className="font-mono text-2xl font-bold text-ink-muted">N/A</div>
+              <p className="mt-2 text-sm text-ink-muted">{NOTA_ENTIDAD_FINANCIERA}</p>
+            </div>
           )}
         </Card>
       </div>
@@ -409,10 +424,10 @@ export function CompanyDetail() {
         </div>
       </Card>
 
-      {company.historico.length > 1 && (
-        <Card className="mt-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-semibold text-ink">Evolución histórica — {metricaInfo.label}</h2>
+      <Card className="mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-semibold text-ink">Evolución histórica — {metricaInfo.label}</h2>
+          {company.historico.length > 1 && (
             <select
               value={metricaHist}
               onChange={(e) => setMetricaHist(e.target.value as MetricaHistorica)}
@@ -425,37 +440,52 @@ export function CompanyDetail() {
                 </option>
               ))}
             </select>
-          </div>
-          {metricaInfo.tipo === "money" && (
-            <p className="mt-1 text-xs text-ink-muted">Importes en {company.monedaReporte} (moneda de reporte).</p>
           )}
-          <div className="mt-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={company.historico}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" />
-                <XAxis dataKey="periodo" stroke="rgb(var(--ink-muted))" fontSize={12} />
-                <YAxis
-                  stroke="rgb(var(--ink-muted))"
-                  fontSize={12}
-                  width={70}
-                  tickFormatter={(v: number) => formatearHistorico(v, metricaInfo.tipo, company)}
-                />
-                <RechartsTooltip
-                  contentStyle={TOOLTIP_CONTENT_STYLE}
-                  labelStyle={TOOLTIP_LABEL_STYLE}
-                  formatter={(v: number) => [formatearHistorico(v, metricaInfo.tipo, company), metricaInfo.label]}
-                />
-                <Line type="monotone" dataKey={metricaHist} stroke="rgb(var(--accent))" strokeWidth={2} dot connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          {company.historico.every((h) => h[metricaHist] === null) && (
-            <p className="mt-2 text-xs text-ink-muted">
-              Esta métrica no está disponible para los ejercicios de esta empresa (sin dato, no se estima).
+        </div>
+        {company.historico.length > 1 ? (
+          <>
+            {metricaInfo.tipo === "money" && (
+              <p className="mt-1 text-xs text-ink-muted">Importes en {company.monedaReporte} (moneda de reporte).</p>
+            )}
+            {company.historico.every((h) => h[metricaHist] === null) ? (
+              <div className="mt-4 flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-bg/40 p-4 text-center">
+                <p className="text-sm font-medium text-ink">Indicador no disponible en la serie histórica</p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  Este indicador está disponible únicamente para el período actual reportado ({fmtFecha(m.periodo)}) o no cuenta con información suficiente en los ejercicios anteriores.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={company.historico}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" />
+                    <XAxis dataKey="periodo" stroke="rgb(var(--ink-muted))" fontSize={12} />
+                    <YAxis
+                      stroke="rgb(var(--ink-muted))"
+                      fontSize={12}
+                      width={70}
+                      tickFormatter={(v: number) => formatearHistorico(v, metricaInfo.tipo, company)}
+                    />
+                    <RechartsTooltip
+                      contentStyle={TOOLTIP_CONTENT_STYLE}
+                      labelStyle={TOOLTIP_LABEL_STYLE}
+                      formatter={(v: number) => [formatearHistorico(v, metricaInfo.tipo, company), metricaInfo.label]}
+                    />
+                    <Line type="monotone" dataKey={metricaHist} stroke="rgb(var(--accent))" strokeWidth={2} dot connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="mt-4 flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-bg/40 p-4 text-center">
+            <p className="text-sm font-medium text-ink">Sin serie histórica</p>
+            <p className="mt-1 text-xs text-ink-muted">
+              Se dispone únicamente del ejercicio actual cerrado al {fmtFecha(m.periodo)}.
             </p>
-          )}
-        </Card>
-      )}
+          </div>
+        )}
+      </Card>
 
       <Card className="mt-6">
         <h2 className="font-semibold text-ink">Señales Centinela</h2>

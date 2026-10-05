@@ -21,7 +21,7 @@ import { BotonDescarga } from "@/components/ui/BotonDescarga";
 import { Card } from "@/components/ui/Card";
 import { MERCADOS, nombreMercado, nombreSector } from "@/data/companies";
 import { ESTADO_LABEL } from "@/lib/financial/diagnostics";
-import { aUsd, fmtMonto, fmtNum, fmtPct, fmtX } from "@/lib/format";
+import { aUsd, fmtMonto, fmtNum, fmtPct, fmtScore, fmtX } from "@/lib/format";
 import {
   FILAS_COMPARATIVAS,
   NOTA_COMPARACION,
@@ -152,9 +152,9 @@ export function Comparador() {
 
   const radarData = useMemo(() => {
     return CATEGORIAS.map(({ key, label }) => {
-      const fila: Record<string, string | number> = { categoria: label };
+      const fila: Record<string, string | number | null> = { categoria: label };
       analisis.forEach((a) => {
-        fila[a.company.ticker] = a.score.categorias[key].valor ?? 0;
+        fila[a.company.ticker] = a.score.categorias[key].valor;
       });
       return fila;
     });
@@ -386,18 +386,28 @@ export function Comparador() {
                       fillOpacity={0.15}
                     />
                   ))}
-                  <Legend />
                   <RechartsTooltip
                     contentStyle={TOOLTIP_CONTENT_STYLE}
                     labelStyle={TOOLTIP_LABEL_STYLE}
-                    formatter={(v: number) => `${Math.round(v)} / 100`}
+                    formatter={(v: any, name: string) => {
+                      if (v === null || v === undefined || Number.isNaN(v)) {
+                        const target = analisis.find(
+                          (a) =>
+                            a.company.ticker === name ||
+                            (a.company.fuente === "propia"
+                              ? `${a.company.nombre} (mi empresa)`
+                              : `${a.company.nombre} (${a.company.ticker})`) === name
+                        );
+                        return [target?.aplicaModeloCorporativo ? "N/D" : "N/A", name];
+                      }
+                      return [`${Math.round(Number(v))} / 100`, name];
+                    }}
                   />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
             <p className="mt-2 text-xs text-ink-muted">
-              Las categorías sin dato (por ejemplo los bancos, que no tienen Score) se dibujan en 0 y se informan como
-              N/A en la tabla.
+              Las categorías sin información contable suficiente se informan como N/D; para entidades financieras donde el modelo no aplica se informan como N/A.
             </p>
           </Card>
 
@@ -476,7 +486,13 @@ export function Comparador() {
                     <span className="text-xs text-ink-muted">{nombreMercado(a.company.mercado)}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm text-ink">{a.score.total ?? "N/A"} / 100</span>
+                    <span className="font-mono text-sm text-ink">
+                      {a.score.total !== null
+                        ? `${fmtScore(a.score.total)} / 100`
+                        : a.aplicaModeloCorporativo
+                        ? "N/D"
+                        : "N/A"}
+                    </span>
                     <Badge estado={a.score.estado} texto={ESTADO_LABEL[a.score.estado]} />
                   </div>
                 </li>

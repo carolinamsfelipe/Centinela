@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { MERCADOS, nombreMercado, nombreSector } from "@/data/companies";
 import { analizarEmpresa, esEntidadFinanciera } from "@/lib/financial/analysis";
 import { aUsd, fmtMonto, fmtPct, fmtX } from "@/lib/format";
-import { getCompanies } from "@/services/companyService";
+import { getMarketCompanies } from "@/services/companyService";
 import type { Company, Estado, Mercado } from "@/types";
 
 type RankingId = "score" | "roe" | "margenNeto" | "endeudamiento" | "marketCap" | "crecimiento";
@@ -105,7 +105,7 @@ export function Rankings() {
   const [mercado, setMercado] = useState<Mercado | "Todos">("Todos");
 
   useEffect(() => {
-    getCompanies().then(setEmpresas);
+    getMarketCompanies().then(setEmpresas);
   }, []);
 
   const filas: Fila[] = useMemo(() => {

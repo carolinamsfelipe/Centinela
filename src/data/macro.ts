@@ -118,9 +118,13 @@ export function formatMacroValor(indicador: MacroIndicator): string {
   return `${fmtNum(indicador.valor, decimales)} ${indicador.unidad}`;
 }
 
-export function formatMacroVariacion(variacion: number | null): { texto: string; clase: string } {
+export function formatMacroVariacion(variacion: number | null, unidad?: string): { texto: string; clase: string } {
   if (variacion === null) return { texto: "N/D", clase: "text-ink-muted" };
-  if (variacion === 0) return { texto: "0.0%", clase: "text-ink-muted" };
+  if (variacion === 0) return { texto: "0,0%", clase: "text-ink-muted" };
+  if (unidad === "%") {
+    const sign = variacion > 0 ? "+" : "";
+    return { texto: `${sign}${fmtNum(variacion, 1)} p.p.`, clase: variacion > 0 ? "text-ok" : "text-bad" };
+  }
   const texto = `${variacion > 0 ? "+" : ""}${fmtPct(variacion, 1)}`;
   return { texto, clase: variacion > 0 ? "text-ok" : "text-bad" };
 }

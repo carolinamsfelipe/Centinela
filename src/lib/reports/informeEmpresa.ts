@@ -3,8 +3,9 @@ import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import { ESTADO_LABEL } from "@/lib/financial/diagnostics";
 import type { BenchmarkMercado } from "@/lib/financial/benchmarks";
 import type { AnalisisEjecutivo } from "@/lib/financial/narrative";
+import { esEntidadFinanciera } from "@/lib/financial/analysis";
 import { SCORE_ESTADO_THRESHOLDS } from "@/lib/financial/scoreConfig";
-import { abreviar, aUsd, fmtFecha, fmtMonto, fmtNum, fmtPct, fmtX } from "@/lib/format";
+import { abreviar, aUsd, fmtFecha, fmtMonto, fmtNum, fmtPct, fmtScore, fmtX } from "@/lib/format";
 import type { AltmanResult, CentinelaScore, Company, Estado, Signal } from "@/types";
 import {
   COLOR_ESTADO,
@@ -49,7 +50,7 @@ export function textoFuente(company: Company): string {
     return "Balance cargado por el usuario en Centinela. Los datos no fueron verificados por Centinela.";
   }
   if (company.envivo && company.actualizado) {
-    const hora = new Date(company.actualizado).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    const hora = new Date(company.actualizado).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }).trim().replace(/\.+$/, "");
     return `Yahoo Finance, consultado en vivo el ${fmtFecha(company.actualizado)} a las ${hora}.`;
   }
   return "Datos de respaldo (captura anterior de Yahoo Finance): no se pudo consultar la fuente en vivo al generar el informe.";
@@ -256,10 +257,15 @@ export async function descargarInformeEmpresa(d: DatosInformeEmpresa): Promise<v
   const esPropia = company.fuente === "propia";
   const cifra = (v: number | null): number | null => (enDolares(company) ? aUsd(v, company) : v);
 
+  const ubicacion =
+    company.pais && company.pais !== nombreMercado(company.mercado)
+      ? `${nombreMercado(company.mercado)} (${company.pais})`
+      : nombreMercado(company.mercado);
+
   const ctx = await crearInforme({
     tipo: "Informe de diagnóstico financiero",
     titulo: company.nombre,
-    subtitulo: `${nombreSector(company.sector)} - ${nombreMercado(company.mercado)} (${company.pais})`,
+    subtitulo: `${nombreSector(company.sector)} - ${ubicacion}`,
     meta: [
       ["Emisión", new Date().toLocaleDateString("es-AR")],
       ["Balance al", fmtFecha(m.periodo)],
@@ -279,7 +285,7 @@ export async function descargarInformeEmpresa(d: DatosInformeEmpresa): Promise<v
   tarjetasVeredicto(ctx, [
     {
       titulo: "Score Centinela",
-      valor: score.total !== null ? String(score.total) : "N/D",
+      valor: score.total !== null ? fmtScore(score.total) : (!esEntidadFinanciera(company) ? "N/D" : "N/A"),
       unidad: score.total !== null ? "/ 100" : undefined,
       estado: score.estado,
       etiquetaEstado: ESTADO_LABEL[score.estado],
@@ -287,7 +293,7 @@ export async function descargarInformeEmpresa(d: DatosInformeEmpresa): Promise<v
     },
     {
       titulo: "Altman Z''",
-      valor: altman.zScore !== null ? fmtNum(altman.zScore) : "N/D",
+      valor: altman.zScore !== null ? fmtNum(altman.zScore) : (!esEntidadFinanciera(company) ? "N/D" : "N/A"),
       estado: analisis.altman.estado,
       etiquetaEstado: ESTADO_LABEL[analisis.altman.estado],
       detalle: ZONA_ALTMAN[analisis.altman.estado],
@@ -500,14 +506,14 @@ export async function descargarInformeEmpresa(d: DatosInformeEmpresa): Promise<v
   seccion(ctx, "Aspectos para revisar");
   lista(ctx, analisis.aspectosParaRevisar, { numerada: true });
 
-  /* ---------------- 11. Metodologia y fuentes ---------------- */
-  seccion(ctx, "Metodología y fuentes");
+  /* ---------------- 11. Metodología, fuentes y limitaciones ---------------- */
+  seccion(ctx, "Metodología, fuentes y limitaciones");
   const metodologia: string[] = [
     `Fuente de los datos: ${textoFuente(company)}`,
     `Score Centinela (0-100): promedio ponderado de cinco categorías (${Object.values(score.categorias)
       .map((c) => `${c.nombre.toLowerCase()} ${Math.round(c.peso * 100)}%`)
       .join(", ")}). Se clasifica como Saludable desde ${SCORE_ESTADO_THRESHOLDS.normal} puntos, Atención desde ${SCORE_ESTADO_THRESHOLDS.atencion} y Riesgo por debajo.`,
-    `Altman Z'' (Altman, 1995; empresas no manufactureras y mercados emergentes): Z'' = 6.56 X1 + 3.26 X2 + 6.72 X3 + 1.05 X4. Zona segura por encima de ${ALTMAN_THRESHOLDS.safe}, zona gris entre ${ALTMAN_THRESHOLDS.distress} y ${ALTMAN_THRESHOLDS.safe}, distress por debajo de ${ALTMAN_THRESHOLDS.distress}. No se calcula para bancos y entidades financieras.`,
+    `Altman Z'' (Altman, 1995; empresas no manufactureras y mercados emergentes): Z'' = 6.56 X1 + 3.26 X2 + 6.72 X3 + 1.05 X4. Zona segura por encima de ${ALTMAN_THRESHOLDS.safe}, zona gris entre ${ALTMAN_THRESHOLDS.distress} y ${ALTMAN_THRESHOLDS.safe}, distress por debajo de ${ALTMAN_THRESHOLDS.distress}. No se calcula para bancos y entidades financieras (N/A) y se informa como N/D si faltan datos contables.`,
     "Semáforo: cada ratio se compara contra umbrales heurísticos definidos por Centinela (ver criterio en la sección 3); no son estándares regulatorios.",
     nm ? nm : "Los importes se presentan en US$ tal como los reporta la fuente.",
   ];
@@ -519,8 +525,6 @@ export async function descargarInformeEmpresa(d: DatosInformeEmpresa): Promise<v
   }
   lista(ctx, metodologia, { suave: true, tamano: 8.6 });
 
-  /* ---------------- 12. Notas y limitaciones ---------------- */
-  seccion(ctx, "Notas y limitaciones");
   recuadro(ctx, {
     color: COLOR_ESTADO.sin_datos,
     items: [...(company.notas ?? []), analisis.nota],

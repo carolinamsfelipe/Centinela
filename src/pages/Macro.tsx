@@ -8,7 +8,7 @@ import { getMacroIndicators } from "@/services/macroService";
 import type { MacroIndicator } from "@/types";
 
 function IndicadorCard({ indicador }: { indicador: MacroIndicator }) {
-  const variacion = formatMacroVariacion(indicador.variacion);
+  const variacion = formatMacroVariacion(indicador.variacion, indicador.unidad);
   const historico = indicador.historico ?? [];
 
   return (
@@ -91,7 +91,7 @@ export function Macro() {
           🟢 En vivo — conectado a dolarapi.com, BCRA y Yahoo Finance.
           {actualizado && (
             <span className="ml-1 text-ink-muted">
-              Última consulta: {new Date(actualizado).toLocaleTimeString("es-AR")}.
+              Última consulta: {new Date(actualizado).toLocaleTimeString("es-AR").trim().replace(/\.+$/, "")}.
             </span>
           )}
         </div>

@@ -162,9 +162,18 @@ async function empresasPropias(): Promise<Company[]> {
   return guardadas.map((g) => empresaPropiaACompany(g, porMoneda.get(g.moneda) ?? null));
 }
 
-export async function getCompanies(): Promise<Company[]> {
+export function isMarketCompany(company: Company): boolean {
+  return company.companyType === "market";
+}
+
+/** Devuelve EXCLUSIVAMENTE las empresas que cotizan en mercado (excluye empresas de usuario o demo). */
+export async function getMarketCompanies(): Promise<Company[]> {
   await asegurarCargados(COMPANIES.map((c) => c.ticker));
-  const cotizantes = COMPANIES.map((c) => cache.get(c.ticker)?.empresa ?? respaldo(c));
+  return COMPANIES.map((c) => cache.get(c.ticker)?.empresa ?? respaldo(c));
+}
+
+export async function getCompanies(): Promise<Company[]> {
+  const cotizantes = await getMarketCompanies();
   const propias = await empresasPropias();
   return [...cotizantes, ...propias];
 }

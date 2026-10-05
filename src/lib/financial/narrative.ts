@@ -107,7 +107,7 @@ export function generarAnalisisEjecutivo(
   if (esEntidadFinanciera(company)) {
     textoAltman = "El modelo Altman Z'' no se aplica a entidades financieras.";
   } else if (altman.zScore === null) {
-    textoAltman = "No fue posible calcular el indicador debido a la falta de información necesaria.";
+    textoAltman = altman.motivoNoDisponible || "Altman no disponible con los estados financieros disponibles para este período.";
   } else {
     textoAltman = `El resultado obtenido fue ${fmtNum(altman.zScore)} (${
       diagnosticarAltman(altman.zScore) === "normal" ? "zona segura" : diagnosticarAltman(altman.zScore) === "atencion" ? "zona gris" : "zona de distress"

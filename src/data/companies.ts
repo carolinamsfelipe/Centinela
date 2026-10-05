@@ -25,6 +25,7 @@ const RESPALDO_REAL: Company[] = [
     tamano: "Large",
     pais: "Argentina",
     fuente: "real",
+    companyType: "market",
     monedaReporte: "USD",
     tipoCambioUsd: 1,
     metrics: {
@@ -70,6 +71,7 @@ const RESPALDO_REAL: Company[] = [
     tamano: "Large",
     pais: "Argentina",
     fuente: "real",
+    companyType: "market",
     monedaReporte: "USD",
     tipoCambioUsd: 1,
     metrics: {
@@ -115,6 +117,7 @@ const RESPALDO_REAL: Company[] = [
     tamano: "Large",
     pais: "Argentina",
     fuente: "real",
+    companyType: "market",
     monedaReporte: "ARS",
     tipoCambioUsd: null,
     metrics: {
@@ -160,6 +163,7 @@ const RESPALDO_REAL: Company[] = [
     tamano: "Mid",
     pais: "Argentina",
     fuente: "real",
+    companyType: "market",
     monedaReporte: "ARS",
     tipoCambioUsd: null,
     metrics: {
@@ -205,6 +209,7 @@ const RESPALDO_REAL: Company[] = [
     tamano: "Mid",
     pais: "Argentina",
     fuente: "real",
+    companyType: "market",
     monedaReporte: "ARS",
     tipoCambioUsd: null,
     metrics: {
@@ -287,6 +292,7 @@ function sinRespaldo(f: Ficha): Company {
   return {
     ...f,
     fuente: "real",
+    companyType: "market",
     monedaReporte: "USD",
     tipoCambioUsd: null,
     metrics: { ...METRICAS_VACIAS },
