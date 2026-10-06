@@ -175,9 +175,16 @@ function ScenarioCard({
         <div className="mt-4 border-t border-border pt-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Score Centinela</span>
-            <span className="font-mono text-lg font-bold text-ink">
-              {score.total !== null ? `${fmtScore(score.total)} / 100` : "N/D"}
-            </span>
+            <div className="flex items-center gap-2">
+              {score.grado && (
+                <span className="rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-accent">
+                  Grado {score.grado}
+                </span>
+              )}
+              <span className="font-mono text-lg font-bold text-ink">
+                {score.total !== null ? `${fmtScore(score.total)} / 100` : "N/D"}
+              </span>
+            </div>
           </div>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Altman Z''</span>
@@ -717,6 +724,27 @@ export function Simulador() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Banner Asesores post-simulación */}
+        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-accent/40 bg-gradient-to-r from-accent/10 via-surface to-accent/5 p-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] font-bold text-accent">
+              <span>●</span> SOPORTE DE EJECUCIÓN B2B
+            </div>
+            <p className="mt-1 text-xs font-bold text-ink">
+              ¿Querés ejecutar estas palancas de caja y renegociación en tu PyME?
+            </p>
+            <p className="text-[11px] text-ink-muted">
+              Conectá con un CFO externo o asesor matriculado para estructurar el flujo semanal y negociar con bancos y proveedores.
+            </p>
+          </div>
+          <Link
+            to="/asesores"
+            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 font-mono text-xs font-bold text-white hover:opacity-90 focus-ring"
+          >
+            Ver Asesores Disponibles →
+          </Link>
         </div>
       </div>
 

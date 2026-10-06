@@ -73,6 +73,45 @@ X4 = Valor de mercado del patrimonio / Pasivo total`}
           motor de cálculo evalúa los umbrales de riesgo sobre el puntaje continuo antes del redondeo
           para evitar distorsiones de borde. El score es una herramienta de diagnóstico orientativa, no una calificación crediticia vinculante.
         </p>
+
+        <div className="mt-4 border-t border-border pt-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
+            Escala de Grados de Resiliencia
+          </h3>
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg border border-ok/30 bg-ok/5 p-2.5">
+              <span className="font-bold text-ok">Grado A (80 – 100):</span> Resiliencia Alta. Baja probabilidad de tensión de liquidez o quiebra.
+            </div>
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-2.5">
+              <span className="font-bold text-accent">Grado B (65 – 79):</span> Resiliencia Aceptable. Estructura financiera sostenible con necesidad de monitoreo regular.
+            </div>
+            <div className="rounded-lg border border-warn/30 bg-warn/5 p-2.5">
+              <span className="font-bold text-warn">Grado C (45 – 64):</span> Vulnerabilidad Moderada. Fugas en capital de trabajo o carga de intereses exigente.
+            </div>
+            <div className="rounded-lg border border-bad/30 bg-bad/5 p-2.5">
+              <span className="font-bold text-bad">Grado D (&lt; 45):</span> Alerta Crítica. Severa asfixia de caja o sobreendeudamiento crítico.
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="mt-6">
+        <h2 className="font-semibold text-ink">Ciclo de Conversión de Efectivo (CCC) e ICR</h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          Complementa la solvencia patrimonial con la dinámica operativa de la caja en el día a día:
+        </p>
+        <pre className="mt-2 overflow-x-auto rounded-lg bg-bg p-3 font-mono text-xs text-ink">
+{`CCC = DSO + DIO - DPO
+
+DSO (Días de Cobro)      = (Cuentas por Cobrar / Ventas Anuales) × 365
+DIO (Días de Inventario) = (Inventarios / Costo de Ventas) × 365
+DPO (Días Proveedores)   = (Cuentas por Pagar / Costo de Ventas) × 365
+
+ICR (Cobertura de Intereses) = EBITDA / Gastos por Intereses`}
+        </pre>
+        <p className="mt-2 text-sm text-ink-muted">
+          <strong>Interpretación de caja:</strong> Un CCC elevado (ej. &gt; 90 días) indica que la empresa financia casi un trimestre de operaciones con capital propio o pasivo oneroso. Reducir 1 día de DSO libera directamente: <code className="font-mono text-xs">Caja Liberada = Ventas Anuales / 365</code>.
+        </p>
       </Card>
 
       <Card className="mt-6">

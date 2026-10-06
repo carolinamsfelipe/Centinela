@@ -8,6 +8,7 @@ import { BotonDescarga } from "@/components/ui/BotonDescarga";
 import { Card, Tooltip } from "@/components/ui/Card";
 import { Gauge } from "@/components/ui/Gauge";
 import { MacroTicker } from "@/components/ui/MacroTicker";
+import { ScoreExplicacionModal } from "@/components/ui/ScoreExplicacionModal";
 import { nombreMercado, nombreSector } from "@/data/companies";
 import { formatMacroValor, formatMacroVariacion, getContextoMercado, lineasContextoMacro } from "@/data/macro";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -109,6 +110,7 @@ export function CompanyDetail() {
   const [universo, setUniverso] = useState<Company[] | null>(null);
   const [metricaHist, setMetricaHist] = useState<MetricaHistorica>("roe");
   const [ia, setIa] = useState<EstadoIA>({ fase: "inactivo" });
+  const [modalScoreAbierto, setModalScoreAbierto] = useState(false);
   const pedidoIa = useRef(0);
 
   useDocumentTitle(data ? `Centinela — ${data.company.nombre}` : "Centinela");
@@ -314,12 +316,34 @@ export function CompanyDetail() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-ink">Score Centinela</h2>
-            <Badge estado={score.estado} />
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold text-ink">Score Centinela</h2>
+              <button
+                type="button"
+                onClick={() => setModalScoreAbierto(true)}
+                className="text-xs font-mono text-accent hover:underline focus-ring rounded"
+                title="Ver metodología y desglose del Score"
+              >
+                [?] ¿Cómo se calcula?
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              {score.grado && (
+                <span className="rounded-lg border border-accent/40 bg-accent/10 px-2.5 py-0.5 font-mono text-xs font-bold text-accent">
+                  Grado {score.grado}
+                </span>
+              )}
+              <Badge estado={score.estado} />
+            </div>
           </div>
-          <div className="mt-3 font-mono text-4xl font-bold text-ink">
-            {score.total !== null ? fmtScore(score.total) : (aplicaModeloCorporativo ? "N/D" : "N/A")}{" "}
+          <div className="mt-3 flex items-baseline gap-2 font-mono text-4xl font-bold text-ink">
+            <span>{score.total !== null ? fmtScore(score.total) : (aplicaModeloCorporativo ? "N/D" : "N/A")}</span>
             <span className="text-base font-normal text-ink-muted">/ 100</span>
+            {score.gradoLabel && (
+              <span className="ml-auto font-sans text-xs font-semibold text-ink-muted">
+                {score.gradoLabel}
+              </span>
+            )}
           </div>
           {aplicaModeloCorporativo ? (
             <>
@@ -346,6 +370,13 @@ export function CompanyDetail() {
             <p className="mt-3 text-sm text-ink-muted">{NOTA_ENTIDAD_FINANCIERA}</p>
           )}
         </Card>
+
+        <ScoreExplicacionModal
+          abierto={modalScoreAbierto}
+          onCerrar={() => setModalScoreAbierto(false)}
+          scoreActual={score.total}
+          gradoActual={score.grado ? `Grado ${score.grado} · ${score.gradoLabel ?? ""}` : undefined}
+        />
 
         <Card>
           <div className="flex items-center justify-between">
@@ -472,6 +503,31 @@ export function CompanyDetail() {
             </div>
           </div>
         </Card>
+      )}
+
+      {/* Banner de Conversión B2B / Red de Asesores */}
+      {((score.total !== null && (score.total < 75 || score.estado === "alerta" || score.estado === "atencion")) || esPropia || company.ticker === "DEMO-PEDRO") && (
+        <div className="mt-6 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/10 via-surface to-accent/5 p-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 px-2.5 py-0.5 font-mono text-[11px] font-bold text-accent">
+                <span>●</span> RED CERTIFICADA DE ASESORES Y CFOs
+              </div>
+              <h3 className="mt-1.5 text-base font-bold text-ink">
+                ¿Querés un plan de acción para optimizar el capital de trabajo o reestructurar pasivos?
+              </h3>
+              <p className="mt-0.5 text-xs text-ink-muted max-w-2xl">
+                Conectá con directores financieros matriculados (CNV, CPCE, CFA) para negociar plazos con proveedores, estructurar cobranzas o mitigar riesgos de devaluación en {company.nombre}.
+              </p>
+            </div>
+            <Link
+              to="/asesores"
+              className="shrink-0 rounded-xl bg-accent px-4 py-2.5 font-mono text-xs font-bold text-white shadow-sm hover:opacity-90 transition-opacity focus-ring"
+            >
+              Consultar Asesores →
+            </Link>
+          </div>
+        </div>
       )}
 
       <Card className="mt-6">

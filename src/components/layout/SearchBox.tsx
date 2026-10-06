@@ -5,7 +5,15 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { searchCompanies } from "@/services/companyService";
 import type { Company } from "@/types";
 
-export function SearchBox({ grande = false }: { grande?: boolean }) {
+export function SearchBox({
+  grande = false,
+  placeholder = "Buscar empresa, ticker, sector o mercado...",
+  className = "",
+}: {
+  grande?: boolean;
+  placeholder?: string;
+  className?: string;
+}) {
   const [query, setQuery] = useState("");
   const [resultados, setResultados] = useState<Company[]>([]);
   const [abierto, setAbierto] = useState(false);
@@ -33,7 +41,7 @@ export function SearchBox({ grande = false }: { grande?: boolean }) {
   }
 
   return (
-    <div className="relative w-full">
+    <div className={`relative w-full ${className}`}>
       <input
         type="search"
         value={query}
@@ -43,10 +51,10 @@ export function SearchBox({ grande = false }: { grande?: boolean }) {
         }}
         onFocus={() => setAbierto(true)}
         onBlur={() => setTimeout(() => setAbierto(false), 150)}
-        placeholder="Buscar empresa, ticker, sector o mercado..."
-        aria-label="Buscar empresa, ticker, sector o mercado"
+        placeholder={placeholder}
+        aria-label={placeholder}
         className={`w-full rounded-xl border border-border bg-surface text-ink placeholder:text-ink-muted focus-ring ${
-          grande ? "px-5 py-4 text-lg" : "px-4 py-2 text-sm"
+          grande ? "px-5 py-4 text-base sm:text-lg" : "px-4 py-2 text-sm"
         }`}
       />
       {abierto && resultados.length > 0 && (

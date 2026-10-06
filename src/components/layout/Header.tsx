@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: "/macro", label: "Macro" },
   { to: "/simulador", label: "Simulador" },
   { to: "/mi-empresa", label: "Mi empresa" },
+  { to: "/asesores", label: "Asesores" },
   { to: "/favoritos", label: "Favoritos" },
   { to: "/metodologia", label: "Metodología" },
 ];
@@ -27,8 +28,11 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 lg:px-8">
-        <NavLink to="/" className="flex items-center gap-2 font-mono text-lg font-bold text-ink">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:px-8">
+        <NavLink
+          to="/"
+          className="mr-3 flex items-center gap-2.5 border-r border-border/80 pr-4 font-mono text-lg font-bold tracking-tight text-ink transition-opacity hover:opacity-90 sm:mr-5 sm:pr-6"
+        >
           <img src="/shield.svg" alt="" className="h-7 w-7" aria-hidden="true" />
           CENTINELA
         </NavLink>

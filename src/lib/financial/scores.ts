@@ -36,6 +36,54 @@ export function getRiskLevel(score: number | null): Estado {
   return "alerta";
 }
 
+export interface ScoreGradeInfo {
+  grado: "A" | "B" | "C" | "D" | "N/D";
+  label: string;
+  badgeClass: string;
+  descripcion: string;
+}
+
+export function getScoreGrade(score: number | null): ScoreGradeInfo {
+  if (score === null || Number.isNaN(score)) {
+    return {
+      grado: "N/D",
+      label: "Sin datos suficientes",
+      badgeClass: "border-border text-ink-muted bg-surface",
+      descripcion: "Información financiera insuficiente para computar el índice completo.",
+    };
+  }
+  if (score >= 80) {
+    return {
+      grado: "A",
+      label: "Resiliencia Alta",
+      badgeClass: "border-ok/30 bg-ok/10 text-ok",
+      descripcion: "Salud patrimonial y operativa robusta; baja probabilidad de tensión de liquidez o quiebra.",
+    };
+  }
+  if (score >= 65) {
+    return {
+      grado: "B",
+      label: "Resiliencia Aceptable",
+      badgeClass: "border-accent/30 bg-accent/10 text-accent",
+      descripcion: "Estructura financiera sostenible con necesidad de monitoreo en capital de trabajo o endeudamiento.",
+    };
+  }
+  if (score >= 45) {
+    return {
+      grado: "C",
+      label: "Vulnerabilidad Moderada",
+      badgeClass: "border-warn/30 bg-warn/10 text-warn",
+      descripcion: "Presión en plazos de cobro/inventario o cobertura de pasivos; riesgo latente ante shocks macro.",
+    };
+  }
+  return {
+    grado: "D",
+    label: "Alerta Crítica",
+    badgeClass: "border-bad/30 bg-bad/10 text-bad",
+    descripcion: "Severa asfixia de caja, desequilibrio en capital de trabajo o sobreendeudamiento crítico.",
+  };
+}
+
 export function calcularCentinelaScore(m: FinancialMetrics, marketCap: number | null): CentinelaScore {
   const altman = calcularAltman(m, marketCap);
   const solvencia = normalizar(altman.zScore, NORMALIZATION.altmanZMax);
@@ -69,10 +117,13 @@ export function calcularCentinelaScore(m: FinancialMetrics, marketCap: number | 
 
   // Clasificacion rigurosa sobre el valor continuo real, nunca sobre el redondeo.
   const estado = getRiskLevel(rawTotal);
+  const gradeInfo = getScoreGrade(rawTotal);
 
   return {
     total: rawTotal === null ? null : Math.round(rawTotal * 10) / 10,
     estado,
+    grado: gradeInfo.grado,
+    gradoLabel: gradeInfo.label,
     categorias,
   };
 }

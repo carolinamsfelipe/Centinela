@@ -91,6 +91,8 @@ export interface CategoriaScore {
 export interface CentinelaScore {
   total: number | null;
   estado: Estado;
+  grado?: "A" | "B" | "C" | "D" | "N/D";
+  gradoLabel?: string;
   categorias: {
     solvencia: CategoriaScore;
     liquidez: CategoriaScore;

@@ -14,6 +14,7 @@ import { MiEmpresa } from "@/pages/MiEmpresa";
 import { Presentacion } from "@/pages/Presentacion";
 import { Metodologia } from "@/pages/Metodologia";
 import { Fuentes } from "@/pages/Fuentes";
+import { Asesores } from "@/pages/Asesores";
 import { ComingSoon } from "@/pages/ComingSoon";
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/macro" element={<Macro />} />
           <Route path="/simulador" element={<Simulador />} />
           <Route path="/mi-empresa" element={<MiEmpresa />} />
+          <Route path="/asesores" element={<Asesores />} />
           <Route path="/favoritos" element={<Favoritos />} />
           <Route path="/presentacion" element={<Presentacion />} />
           <Route path="/metodologia" element={<Metodologia />} />
