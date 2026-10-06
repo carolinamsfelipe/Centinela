@@ -9,6 +9,7 @@ import { Card, Tooltip } from "@/components/ui/Card";
 import { Gauge } from "@/components/ui/Gauge";
 import { MacroTicker } from "@/components/ui/MacroTicker";
 import { ScoreExplicacionModal } from "@/components/ui/ScoreExplicacionModal";
+import { CashBreakdownWaterfall } from "@/components/charts/CashBreakdownWaterfall";
 import { nombreMercado, nombreSector } from "@/data/companies";
 import { formatMacroValor, formatMacroVariacion, getContextoMercado, lineasContextoMacro } from "@/data/macro";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -523,6 +524,21 @@ export function CompanyDetail() {
                   : diagnosticarIcr(cajaInferida.icr).mensaje}
               </span>
             </div>
+          </div>
+
+          {/* Motor de Desglose de Caja: Dónde se rompe la caja */}
+          <div className="mt-5 border-t border-border pt-5">
+            <CashBreakdownWaterfall
+              ebitda={m.ebitda}
+              freeCashFlow={m.freeCashFlow}
+              revenue={m.revenue}
+              deudaTotal={m.deudaTotal}
+              activosCorrientes={m.activosCorrientes}
+              pasivosCorrientes={m.pasivosCorrientes}
+              gastosIntereses={m.gastosIntereses}
+              monedaReporte={company.monedaReporte}
+              nombreEmpresa={company.nombre}
+            />
           </div>
         </Card>
       )}
