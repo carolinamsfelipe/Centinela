@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Home } from "@/pages/Home";
@@ -9,7 +9,6 @@ import { Rankings } from "@/pages/Rankings";
 import { Macro } from "@/pages/Macro";
 import { Mercado } from "@/pages/Mercado";
 import { Simulador } from "@/pages/Simulador";
-import { Favoritos } from "@/pages/Favoritos";
 import { MiEmpresa } from "@/pages/MiEmpresa";
 import { Presentacion } from "@/pages/Presentacion";
 import { Metodologia } from "@/pages/Metodologia";
@@ -33,7 +32,7 @@ export default function App() {
           <Route path="/simulador" element={<Simulador />} />
           <Route path="/mi-empresa" element={<MiEmpresa />} />
           <Route path="/asesores" element={<Asesores />} />
-          <Route path="/favoritos" element={<Favoritos />} />
+          <Route path="/favoritos" element={<Navigate to="/comparador" replace />} />
           <Route path="/presentacion" element={<Presentacion />} />
           <Route path="/metodologia" element={<Metodologia />} />
           <Route path="/fuentes" element={<Fuentes />} />

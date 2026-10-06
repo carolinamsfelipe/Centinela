@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { EMPRESA_DEMO_PEDRO } from "@/data/companies";
+import { EMPRESA_DEMO_PEDRO, nombreSector } from "@/data/companies";
 import { ALTMAN_THRESHOLDS, calcularAltman } from "@/lib/financial/altman";
 import { esEntidadFinanciera } from "@/lib/financial/analysis";
+import { inferirMetricasCaja } from "@/lib/financial/benchmarks";
 import {
   diagnosticarCcc,
   diagnosticarDpo,
@@ -336,11 +337,15 @@ export function Simulador() {
 
   // Diagnósticos de capital de trabajo y caja de la empresa actual
   const m = company?.metrics;
-  const dsoActual = m?.dso ?? (m?.cuentasPorCobrar && m.revenue ? (m.cuentasPorCobrar / m.revenue) * 365 : null);
-  const dioActual = m?.dio ?? (m?.inventarios && m.costoVentas ? (m.inventarios / m.costoVentas) * 365 : null);
-  const dpoActual = m?.dpo ?? (m?.cuentasPorPagar && m.costoVentas ? (m.cuentasPorPagar / m.costoVentas) * 365 : null);
-  const cccActual = m?.ccc ?? null;
-  const icrActual = m?.icr ?? null;
+  const cajaInferida = useMemo(() => {
+    return inferirMetricasCaja(m, company?.sector, company?.mercado);
+  }, [m, company]);
+
+  const dsoActual = cajaInferida.dso;
+  const dioActual = cajaInferida.dio;
+  const dpoActual = cajaInferida.dpo;
+  const cccActual = cajaInferida.ccc;
+  const icrActual = cajaInferida.icr;
 
   const diagCcc = diagnosticarCcc(cccActual);
   const diagIcr = diagnosticarIcr(icrActual);
@@ -457,27 +462,41 @@ export function Simulador() {
                 <span>Ciclo de Caja (CCC)</span>
                 <span>{diagCcc.estado === "alerta" ? "🔴" : diagCcc.estado === "atencion" ? "🟡" : "🟢"}</span>
               </div>
-              <div className="mt-1 font-mono text-2xl font-bold text-ink">
-                {cccActual !== null ? `${Math.round(cccActual)} d` : "N/D"}
+              <div className="mt-1 font-mono text-2xl font-bold text-ink flex items-baseline gap-1.5">
+                <span>{cajaInferida.esCccEstimado ? `~${cccActual} d` : `${cccActual} d`}</span>
+                {cajaInferida.esCccEstimado && (
+                  <span className="font-mono text-[10px] text-accent bg-accent/15 px-1.5 py-0.5 rounded">
+                    Est. Sectorial
+                  </span>
+                )}
               </div>
-              <p className="mt-1 text-[11px] text-ink-muted leading-tight">{diagCcc.mensaje}</p>
+              <p className="mt-1 text-[11px] text-ink-muted leading-tight">
+                {cajaInferida.esCccEstimado
+                  ? `Mediana del sector ${nombreSector(company?.sector ?? "industrial")}. Podés simular metas abajo.`
+                  : diagCcc.mensaje}
+              </p>
             </div>
 
             {/* Tarjeta Descalce Cobro vs Pago */}
             <div className="rounded-xl p-3.5 border border-border bg-bg/50">
-              <span className="text-xs text-ink-muted block">Cobro vs Pago (DSO / DPO)</span>
+              <div className="flex items-center justify-between text-xs text-ink-muted">
+                <span>Cobro vs Pago (DSO / DPO)</span>
+                {(cajaInferida.esDsoEstimado || cajaInferida.esDpoEstimado) && (
+                  <span className="font-mono text-[10px] text-ink-muted bg-surface px-1.5 py-0.2 rounded border border-border">
+                    Mediana
+                  </span>
+                )}
+              </div>
               <div className="mt-1 font-mono text-lg font-bold text-ink">
-                {dsoActual !== null ? `${Math.round(dsoActual)}d` : "N/D"}{" "}
+                <span>{cajaInferida.esDsoEstimado ? `~${dsoActual}d` : `${dsoActual}d`}</span>{" "}
                 <span className="text-ink-muted font-normal text-xs">cobro / </span>
-                {dpoActual !== null ? `${Math.round(dpoActual)}d` : "N/D"}{" "}
+                <span>{cajaInferida.esDpoEstimado ? `~${dpoActual}d` : `${dpoActual}d`}</span>{" "}
                 <span className="text-ink-muted font-normal text-xs">pago</span>
               </div>
               <p className="mt-1 text-[11px] text-ink-muted leading-tight">
-                {dsoActual !== null && dpoActual !== null
-                  ? dsoActual > dpoActual
-                    ? `Financia ${Math.round(dsoActual - dpoActual)} días con capital propio o deuda.`
-                    : "Los proveedores financian la operación."
-                  : "Datos de cuentas por cobrar o pagar no disponibles."}
+                {dsoActual > dpoActual
+                  ? `Financia ${Math.round(dsoActual - dpoActual)} días con capital propio o deuda bancaria.`
+                  : "Los proveedores financian el ciclo operativo."}
               </p>
             </div>
 
@@ -495,10 +514,19 @@ export function Simulador() {
                 <span>Cobertura Intereses (ICR)</span>
                 <span>{diagIcr.estado === "alerta" ? "🔴" : diagIcr.estado === "atencion" ? "🟡" : "🟢"}</span>
               </div>
-              <div className="mt-1 font-mono text-2xl font-bold text-ink">
-                {icrActual !== null ? `${fmtNum(icrActual)}x` : "N/D"}
+              <div className="mt-1 font-mono text-2xl font-bold text-ink flex items-baseline gap-1.5">
+                <span>{cajaInferida.esIcrEstimado ? `~${fmtNum(icrActual)}x` : `${fmtNum(icrActual)}x`}</span>
+                {cajaInferida.esIcrEstimado && (
+                  <span className="font-mono text-[10px] text-accent bg-accent/15 px-1.5 py-0.5 rounded">
+                    Proxy Deuda
+                  </span>
+                )}
               </div>
-              <p className="mt-1 text-[11px] text-ink-muted leading-tight">{diagIcr.mensaje}</p>
+              <p className="mt-1 text-[11px] text-ink-muted leading-tight">
+                {cajaInferida.esIcrEstimado
+                  ? "Estimación sintética según deuda y tasa de mercado. Podés simular variaciones abajo."
+                  : diagIcr.mensaje}
+              </p>
             </div>
 
             {/* Tarjeta Exposición USD */}

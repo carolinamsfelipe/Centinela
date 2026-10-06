@@ -11,11 +11,10 @@ import { MacroTicker } from "@/components/ui/MacroTicker";
 import { ScoreExplicacionModal } from "@/components/ui/ScoreExplicacionModal";
 import { nombreMercado, nombreSector } from "@/data/companies";
 import { formatMacroValor, formatMacroVariacion, getContextoMercado, lineasContextoMacro } from "@/data/macro";
-import { useFavorites } from "@/hooks/useFavorites";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import { NOTA_ENTIDAD_FINANCIERA } from "@/lib/financial/analysis";
-import { benchmarkPorMercado } from "@/lib/financial/benchmarks";
+import { benchmarkPorMercado, inferirMetricasCaja } from "@/lib/financial/benchmarks";
 import { ESTADO_LABEL, diagnosticarCcc, diagnosticarIcr } from "@/lib/financial/diagnostics";
 import { generarAnalisisEjecutivo } from "@/lib/financial/narrative";
 import { fmtFecha, fmtMonto, fmtNum, fmtPct, fmtScore, fmtX, nombreTamano } from "@/lib/format";
@@ -105,7 +104,6 @@ export function CompanyDetail() {
   const { ticker } = useParams<{ ticker: string }>();
   const navigate = useNavigate();
   const [data, setData] = useState<AnalisisEmpresa | null | undefined>(undefined);
-  const { isFavorite, toggleFavorite } = useFavorites();
   const [macro, setMacro] = useState<MacroResultado | null>(null);
   const [universo, setUniverso] = useState<Company[] | null>(null);
   const [metricaHist, setMetricaHist] = useState<MetricaHistorica>("roe");
@@ -170,6 +168,7 @@ export function CompanyDetail() {
   const lineasMacro = lineasContextoMacro(contexto);
   const analisis = generarAnalisisEjecutivo(company, altman, lineasMacro);
   const benchmark = universo ? benchmarkPorMercado(company, universo) : null;
+  const cajaInferida = inferirMetricasCaja(m, company.sector, company.mercado);
   const mon = (v: number | null) => fmtMonto(v, company);
   /** Texto del analisis contextual con IA (null si todavia no se generó). Disponible para el informe PDF. */
   const analisisIA: string | null = ia.fase === "listo" ? textoPlanoIA(ia.resultado.texto) : null;
@@ -261,18 +260,12 @@ export function CompanyDetail() {
           >
             Comparar
           </Link>
-          <button
-            onClick={() => toggleFavorite(company.ticker)}
-            title={isFavorite(company.ticker) ? "Quitar de favoritos" : "Agregar a favoritos"}
-            aria-pressed={isFavorite(company.ticker)}
-            className={`rounded-lg border px-3 py-2 text-sm focus-ring ${
-              isFavorite(company.ticker)
-                ? "border-accent/40 bg-accent-soft text-accent"
-                : "border-border text-ink-muted hover:text-ink"
-            }`}
+          <Link
+            to={`/simulador?ticker=${encodeURIComponent(company.ticker)}`}
+            className="rounded-lg border border-accent/40 bg-accent-soft/30 px-3 py-2 text-sm font-semibold text-accent hover:bg-accent-soft focus-ring"
           >
-            {isFavorite(company.ticker) ? "⭐ En favoritos" : "⭐ Favoritos"}
-          </button>
+            Simular Estrés de Caja ➔
+          </Link>
           {esPropia && (
             <button
               onClick={eliminar}
@@ -445,21 +438,33 @@ export function CompanyDetail() {
             <div className="rounded-lg border border-border bg-bg/50 p-3">
               <div className="flex items-center justify-between text-xs text-ink-muted">
                 <span>Ciclo de Caja (CCC)</span>
-                <span>{m.ccc !== null && m.ccc !== undefined ? (m.ccc > 90 ? "🔴" : m.ccc > 60 ? "🟡" : "🟢") : "⚪"}</span>
+                <span>{cajaInferida.ccc > 90 ? "🔴" : cajaInferida.ccc > 60 ? "🟡" : "🟢"}</span>
               </div>
-              <div className="mt-1 font-mono text-xl font-bold text-ink">
-                {m.ccc !== null && m.ccc !== undefined ? `${Math.round(m.ccc)} d` : "N/D"}
+              <div className="mt-1 font-mono text-xl font-bold text-ink flex items-baseline gap-1.5">
+                <span>{cajaInferida.esCccEstimado ? `~${cajaInferida.ccc} d` : `${cajaInferida.ccc} d`}</span>
+                {cajaInferida.esCccEstimado && (
+                  <span className="font-mono text-[10px] text-accent bg-accent/15 px-1.5 py-0.5 rounded">
+                    Est. Sectorial
+                  </span>
+                )}
               </div>
               <span className="text-[11px] text-ink-muted leading-tight block mt-1">
-                {diagnosticarCcc(m.ccc ?? null).mensaje}
+                {cajaInferida.esCccEstimado
+                  ? `Mediana del sector ${nombreSector(company.sector)}.`
+                  : diagnosticarCcc(cajaInferida.ccc).mensaje}
               </span>
             </div>
 
             {/* DSO */}
             <div className="rounded-lg border border-border bg-bg/50 p-3">
               <span className="text-xs text-ink-muted block">Días de Cobro (DSO)</span>
-              <div className="mt-1 font-mono text-xl font-bold text-ink">
-                {m.dso !== null && m.dso !== undefined ? `${Math.round(m.dso)} d` : "N/D"}
+              <div className="mt-1 font-mono text-xl font-bold text-ink flex items-baseline gap-1.5">
+                <span>{cajaInferida.esDsoEstimado ? `~${cajaInferida.dso} d` : `${cajaInferida.dso} d`}</span>
+                {cajaInferida.esDsoEstimado && (
+                  <span className="font-mono text-[10px] text-ink-muted bg-surface px-1 py-0.2 rounded border border-border">
+                    Mediana
+                  </span>
+                )}
               </div>
               <span className="text-[11px] text-ink-muted leading-tight block mt-1">
                 Tiempo promedio para cobrar ventas a crédito.
@@ -469,8 +474,13 @@ export function CompanyDetail() {
             {/* DIO */}
             <div className="rounded-lg border border-border bg-bg/50 p-3">
               <span className="text-xs text-ink-muted block">Días de Stock (DIO)</span>
-              <div className="mt-1 font-mono text-xl font-bold text-ink">
-                {m.dio !== null && m.dio !== undefined ? `${Math.round(m.dio)} d` : "N/D"}
+              <div className="mt-1 font-mono text-xl font-bold text-ink flex items-baseline gap-1.5">
+                <span>{cajaInferida.esDioEstimado ? `~${cajaInferida.dio} d` : `${cajaInferida.dio} d`}</span>
+                {cajaInferida.esDioEstimado && (
+                  <span className="font-mono text-[10px] text-ink-muted bg-surface px-1 py-0.2 rounded border border-border">
+                    Mediana
+                  </span>
+                )}
               </div>
               <span className="text-[11px] text-ink-muted leading-tight block mt-1">
                 Días de inventario inmovilizado.
@@ -480,8 +490,13 @@ export function CompanyDetail() {
             {/* DPO */}
             <div className="rounded-lg border border-border bg-bg/50 p-3">
               <span className="text-xs text-ink-muted block">Días Proveedores (DPO)</span>
-              <div className="mt-1 font-mono text-xl font-bold text-ink">
-                {m.dpo !== null && m.dpo !== undefined ? `${Math.round(m.dpo)} d` : "N/D"}
+              <div className="mt-1 font-mono text-xl font-bold text-ink flex items-baseline gap-1.5">
+                <span>{cajaInferida.esDpoEstimado ? `~${cajaInferida.dpo} d` : `${cajaInferida.dpo} d`}</span>
+                {cajaInferida.esDpoEstimado && (
+                  <span className="font-mono text-[10px] text-ink-muted bg-surface px-1 py-0.2 rounded border border-border">
+                    Mediana
+                  </span>
+                )}
               </div>
               <span className="text-[11px] text-ink-muted leading-tight block mt-1">
                 Financiación obtenida de proveedores.
@@ -492,13 +507,20 @@ export function CompanyDetail() {
             <div className="rounded-lg border border-border bg-bg/50 p-3 col-span-2 sm:col-span-1">
               <div className="flex items-center justify-between text-xs text-ink-muted">
                 <span>Cobertura ICR</span>
-                <span>{m.icr !== null && m.icr !== undefined ? (m.icr < 1.5 ? "🔴" : m.icr < 2.5 ? "🟡" : "🟢") : "⚪"}</span>
+                <span>{cajaInferida.icr < 1.5 ? "🔴" : cajaInferida.icr < 2.5 ? "🟡" : "🟢"}</span>
               </div>
-              <div className="mt-1 font-mono text-xl font-bold text-ink">
-                {m.icr !== null && m.icr !== undefined ? `${fmtNum(m.icr)}x` : "N/D"}
+              <div className="mt-1 font-mono text-xl font-bold text-ink flex items-baseline gap-1.5">
+                <span>{cajaInferida.esIcrEstimado ? `~${fmtNum(cajaInferida.icr)}x` : `${fmtNum(cajaInferida.icr)}x`}</span>
+                {cajaInferida.esIcrEstimado && (
+                  <span className="font-mono text-[10px] text-accent bg-accent/15 px-1.5 py-0.5 rounded">
+                    Proxy
+                  </span>
+                )}
               </div>
               <span className="text-[11px] text-ink-muted leading-tight block mt-1">
-                {diagnosticarIcr(m.icr ?? null).mensaje}
+                {cajaInferida.esIcrEstimado
+                  ? "Estimación sintética según apalancamiento y tasa de mercado."
+                  : diagnosticarIcr(cajaInferida.icr).mensaje}
               </span>
             </div>
           </div>
