@@ -726,24 +726,24 @@ export function Simulador() {
           </div>
         </div>
 
-        {/* Banner Asesores post-simulación */}
+        {/* Banner Plan de Acción 100% Automatizado */}
         <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-accent/40 bg-gradient-to-r from-accent/10 via-surface to-accent/5 p-4">
           <div>
             <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] font-bold text-accent">
-              <span>●</span> SOPORTE DE EJECUCIÓN B2B
+              <span>●</span> PLAN DE ACCIÓN 100% AUTOMATIZADO
             </div>
             <p className="mt-1 text-xs font-bold text-ink">
-              ¿Querés ejecutar estas palancas de caja y renegociación en tu PyME?
+              Hoja de ruta de mitigación de caja generada por el algoritmo de Centinela
             </p>
             <p className="text-[11px] text-ink-muted">
-              Conectá con un CFO externo o asesor matriculado para estructurar el flujo semanal y negociar con bancos y proveedores.
+              Descargá el informe ejecutivo con las metas exactas de DSO, rotación de inventario y amortiguación cambiaria para compartir directamente con tu equipo de finanzas.
             </p>
           </div>
           <Link
-            to="/asesores"
+            to={company ? `/empresas/${company.ticker}` : "/empresas"}
             className="shrink-0 rounded-lg bg-accent px-3 py-1.5 font-mono text-xs font-bold text-white hover:opacity-90 focus-ring"
           >
-            Ver Asesores Disponibles →
+            Ver Ficha y Descargar Informe →
           </Link>
         </div>
       </div>

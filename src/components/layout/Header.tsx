@@ -11,7 +11,6 @@ const NAV_ITEMS = [
   { to: "/macro", label: "Macro" },
   { to: "/simulador", label: "Simulador" },
   { to: "/mi-empresa", label: "Mi empresa" },
-  { to: "/asesores", label: "Asesores" },
   { to: "/favoritos", label: "Favoritos" },
   { to: "/metodologia", label: "Metodología" },
 ];

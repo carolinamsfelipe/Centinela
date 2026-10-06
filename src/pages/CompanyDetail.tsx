@@ -505,26 +505,26 @@ export function CompanyDetail() {
         </Card>
       )}
 
-      {/* Banner de Conversión B2B / Red de Asesores */}
+      {/* Banner de Acción Automatizada de Caja */}
       {((score.total !== null && (score.total < 75 || score.estado === "alerta" || score.estado === "atencion")) || esPropia || company.ticker === "DEMO-PEDRO") && (
         <div className="mt-6 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/10 via-surface to-accent/5 p-5 shadow-sm">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 px-2.5 py-0.5 font-mono text-[11px] font-bold text-accent">
-                <span>●</span> RED CERTIFICADA DE ASESORES Y CFOs
+                <span>●</span> MOTOR PREVENTIVO DE LIQUIDEZ
               </div>
               <h3 className="mt-1.5 text-base font-bold text-ink">
-                ¿Querés un plan de acción para optimizar el capital de trabajo o reestructurar pasivos?
+                Detectamos puntos de tensión en el capital de trabajo de {company.nombre}
               </h3>
               <p className="mt-0.5 text-xs text-ink-muted max-w-2xl">
-                Conectá con directores financieros matriculados (CNV, CPCE, CFA) para negociar plazos con proveedores, estructurar cobranzas o mitigar riesgos de devaluación en {company.nombre}.
+                Simulá en tiempo real cuántos fondos se liberan acortando días de cobro (DSO) o extendiendo crédito con proveedores (DPO) mediante el algoritmo predictivo de Centinela.
               </p>
             </div>
             <Link
-              to="/asesores"
+              to={`/simulador?ticker=${encodeURIComponent(company.ticker)}`}
               className="shrink-0 rounded-xl bg-accent px-4 py-2.5 font-mono text-xs font-bold text-white shadow-sm hover:opacity-90 transition-opacity focus-ring"
             >
-              Consultar Asesores →
+              Simular y Optimizar Caja →
             </Link>
           </div>
         </div>

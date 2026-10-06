@@ -246,9 +246,9 @@ export function Home() {
           </Card>
           <Card className="relative border-l-4 border-l-ink-muted">
             <span className="font-mono text-xs font-bold text-ink">PASO 04</span>
-            <h3 className="mt-1 font-bold text-ink">Asesoría Certificada</h3>
+            <h3 className="mt-1 font-bold text-ink">Plan 100% Automatizado</h3>
             <p className="mt-1 text-xs text-ink-muted">
-              Si el score enciende alertas, conectá con directores financieros y matriculados CNV/CFA para estructurar soluciones.
+              Diagnósticos predictivos, alertas de rotura de caja y hojas de ruta en PDF/Excel generadas al instante por el algoritmo, sin intermediarios.
             </p>
           </Card>
         </div>
