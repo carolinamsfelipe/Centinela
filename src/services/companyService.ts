@@ -178,12 +178,53 @@ export async function getCompanies(): Promise<Company[]> {
   return [...cotizantes, ...propias, EMPRESA_DEMO_PEDRO];
 }
 
-export async function getCompanyByTicker(ticker: string): Promise<Company | undefined> {
-  if (ticker === EMPRESA_DEMO_PEDRO.ticker) {
+export const TICKER_ALIASES: Record<string, string> = {
+  "YPFD.BA": "YPF",
+  "YPFD": "YPF",
+  "YPF.BA": "YPF",
+  "PAMP.BA": "PAM",
+  "PAMP": "PAM",
+  "PAM.BA": "PAM",
+  "ALUA.BA": "ALUA",
+  "ALU.BA": "ALUA",
+  "MELI.BA": "MELI",
+  "TEO.BA": "TEO",
+  "TECO2.BA": "TEO",
+  "TECO.BA": "TEO",
+  "TECO": "TEO",
+  "CRESY.BA": "CRESY",
+  "CRES.BA": "CRESY",
+  "CRES": "CRESY",
+  "LOMA.BA": "LOMA",
+  "CEPU.BA": "CEPU",
+  "EDN.BA": "EDN",
+  "TGS.BA": "TGS",
+  "TGSU2.BA": "TGS",
+  "IRS.BA": "IRS",
+  "IRSA.BA": "IRS",
+  "GGAL.BA": "GGAL",
+  "BMA.BA": "BMA",
+  "BBAR.BA": "BBAR",
+  "TS.BA": "TS",
+  "PBR.BA": "PBR",
+  "PETR4": "PBR",
+  "AAPL.BA": "AAPL",
+};
+
+export function resolverTicker(ticker: string): string {
+  if (!ticker) return "";
+  const t = ticker.trim().toUpperCase();
+  return TICKER_ALIASES[t] ?? t;
+}
+
+export async function getCompanyByTicker(rawTicker: string): Promise<Company | undefined> {
+  const ticker = resolverTicker(rawTicker);
+  if (ticker === EMPRESA_DEMO_PEDRO.ticker || rawTicker === EMPRESA_DEMO_PEDRO.ticker) {
     return EMPRESA_DEMO_PEDRO;
   }
-  if (esEmpresaPropia(ticker)) {
-    return (await empresasPropias()).find((e) => e.ticker === ticker);
+  if (esEmpresaPropia(ticker) || esEmpresaPropia(rawTicker)) {
+    const propias = await empresasPropias();
+    return propias.find((e) => e.ticker === ticker || e.ticker === rawTicker);
   }
   if (!BASE.has(ticker)) return undefined;
   await asegurarCargados([ticker]);
@@ -208,9 +249,12 @@ function normalizar(texto: string): string {
 export async function searchCompanies(query: string): Promise<Company[]> {
   const q = normalizar(query.trim());
   if (!q) return [];
+  const tickerResuelto = resolverTicker(query.trim());
   const propias = listarEmpresasPropias().map((g) => empresaPropiaACompany(g, null));
-  return [...propias, ...COMPANIES, EMPRESA_DEMO_PEDRO].filter((c) =>
-    normalizar(`${c.nombre} ${c.ticker} ${nombreSector(c.sector)} ${nombreMercado(c.mercado)}`).includes(q)
-  );
+  return [...propias, ...COMPANIES, EMPRESA_DEMO_PEDRO].filter((c) => {
+    const matchAlias = c.ticker === tickerResuelto;
+    const matchTexto = normalizar(`${c.nombre} ${c.ticker} ${nombreSector(c.sector)} ${nombreMercado(c.mercado)}`).includes(q);
+    return matchAlias || matchTexto;
+  });
 }
 

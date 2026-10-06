@@ -17,9 +17,9 @@ interface Panorama {
 }
 
 const CHIPS_RAPIDOS = [
-  { ticker: "YPFD.BA", label: "YPF" },
-  { ticker: "PAMP.BA", label: "Pampa Energía" },
-  { ticker: "ALUA.BA", label: "Aluar" },
+  { ticker: "YPF", label: "YPF" },
+  { ticker: "PAM", label: "Pampa Energía" },
+  { ticker: "ALUA", label: "Aluar" },
   { ticker: "AAPL", label: "Apple" },
   { ticker: "MELI", label: "MercadoLibre" },
   { ticker: "PBR", label: "Petrobras" },
@@ -187,13 +187,13 @@ export function Home() {
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {CHIPS_RAPIDOS.map((chip) => (
-                    <button
+                    <Link
                       key={chip.ticker}
-                      onClick={() => navigate(`/empresas/${chip.ticker}`)}
+                      to={`/empresas/${chip.ticker}`}
                       className="rounded-lg border border-border bg-bg/50 px-2.5 py-1 font-mono text-xs font-medium text-ink transition-colors hover:border-accent hover:bg-surface hover:text-accent focus-ring"
                     >
                       {chip.label}
-                    </button>
+                    </Link>
                   ))}
                   <Link
                     to="/comparador"

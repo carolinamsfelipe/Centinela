@@ -302,6 +302,8 @@ function sinRespaldo(f: Ficha): Company {
 
 const FICHAS_SIN_RESPALDO: Ficha[] = [
   // Argentina
+  { ticker: "ALUA", nombre: "Aluar Aluminio Argentino S.A.I.C.", sector: "Materiales", mercado: "Argentina", pais: "Argentina", tamano: "Large" },
+  { ticker: "MELI", nombre: "MercadoLibre, Inc.", sector: "Tecnologia", mercado: "Estados Unidos", pais: "Argentina", tamano: "Large" },
   { ticker: "CEPU", nombre: "Central Puerto S.A.", sector: "Energia", mercado: "Argentina", pais: "Argentina", tamano: "Mid" },
   { ticker: "EDN", nombre: "Edenor S.A.", sector: "Energia", mercado: "Argentina", pais: "Argentina", tamano: "Mid" },
   { ticker: "TGS", nombre: "Transportadora de Gas del Sur S.A.", sector: "Energia", mercado: "Argentina", pais: "Argentina", tamano: "Mid" },
