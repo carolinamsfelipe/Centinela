@@ -36,13 +36,13 @@ type AnalisisEmpresa = NonNullable<Awaited<ReturnType<typeof getCompanyAnalysis>
 const MAX_SELECCION = 5;
 const MIN_SELECCION = 2;
 
-// Colores por posición de selección (mismos tokens que el resto de la UI).
+// Paleta institucional de alto contraste diferenciada (Koyfin / Bloomberg Terminal):
 const COLORES = [
-  "rgb(var(--accent))",
-  "rgb(var(--ok))",
-  "rgb(var(--warn))",
-  "rgb(var(--bad))",
-  "rgb(var(--neutral))",
+  "#06b6d4", // Cyan eléctrico (Empresa 1)
+  "#f59e0b", // Ámbar / Naranja vibrante (Empresa 2)
+  "#10b981", // Verde Esmeralda (Empresa 3)
+  "#a855f7", // Violeta / Púrpura (Empresa 4)
+  "#ec4899", // Rosa / Magenta (Empresa 5)
 ];
 
 const CATEGORIAS: Array<{ key: keyof AnalisisEmpresa["score"]["categorias"]; label: string }> = [
@@ -368,14 +368,47 @@ export function Comparador() {
             <p className="mt-3 text-xs text-ink-muted">{NOTA_COMPARACION}</p>
           </Card>
 
-          <Card className="mt-6">
-            <h2 className="font-semibold text-ink">Score Centinela por categoría</h2>
-            <div className="mt-4 h-80">
+          <Card className="mt-6 border-accent/20">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+              <div>
+                <h2 className="text-base font-bold text-ink">Score Centinela Multidimensional</h2>
+                <p className="mt-0.5 text-xs text-ink-muted">
+                  Comparación radial sobre las 5 dimensiones cuantitativas auditadas (0 a 100 puntos).
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-surface px-2.5 py-1 text-xs font-mono text-ink-muted border border-border">
+                  Escala: 0 a 100 pts
+                </span>
+              </div>
+            </div>
+
+            {/* GRÁFICO RADIAL DE ALTA FIDELIDAD */}
+            <div className="mt-4 h-96 sm:h-[420px]">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData}>
-                  <PolarGrid stroke="rgb(var(--border))" />
-                  <PolarAngleAxis dataKey="categoria" stroke="rgb(var(--ink-muted))" fontSize={12} />
-                  <PolarRadiusAxis domain={[0, 100]} stroke="rgb(var(--ink-muted))" fontSize={10} />
+                <RadarChart data={radarData} outerRadius="75%">
+                  <PolarGrid stroke="rgb(var(--border))" strokeOpacity={0.7} gridType="polygon" />
+                  <PolarAngleAxis
+                    dataKey="categoria"
+                    stroke="rgb(var(--ink))"
+                    tick={{ fill: "currentColor", fontSize: 13, fontWeight: 600 }}
+                  />
+                  <PolarRadiusAxis
+                    angle={90}
+                    domain={[0, 100]}
+                    tick={false}
+                    axisLine={false}
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    align="center"
+                    wrapperStyle={{ paddingBottom: "14px" }}
+                    formatter={(value) => (
+                      <span className="font-semibold text-xs sm:text-sm text-ink ml-1 mr-3 cursor-default">
+                        {value}
+                      </span>
+                    )}
+                  />
                   {analisis.map((a, i) => (
                     <Radar
                       key={a.company.ticker}
@@ -383,7 +416,20 @@ export function Comparador() {
                       dataKey={a.company.ticker}
                       stroke={COLORES[i % COLORES.length]}
                       fill={COLORES[i % COLORES.length]}
-                      fillOpacity={0.15}
+                      fillOpacity={0.18}
+                      strokeWidth={2.5}
+                      dot={{
+                        r: 4.5,
+                        fill: COLORES[i % COLORES.length],
+                        stroke: "rgb(var(--surface))",
+                        strokeWidth: 2,
+                      }}
+                      activeDot={{
+                        r: 7,
+                        fill: COLORES[i % COLORES.length],
+                        stroke: "#ffffff",
+                        strokeWidth: 2,
+                      }}
                     />
                   ))}
                   <RechartsTooltip
@@ -391,14 +437,7 @@ export function Comparador() {
                     labelStyle={TOOLTIP_LABEL_STYLE}
                     formatter={(v: any, name: string) => {
                       if (v === null || v === undefined || Number.isNaN(v)) {
-                        const target = analisis.find(
-                          (a) =>
-                            a.company.ticker === name ||
-                            (a.company.fuente === "propia"
-                              ? `${a.company.nombre} (mi empresa)`
-                              : `${a.company.nombre} (${a.company.ticker})`) === name
-                        );
-                        return [target?.aplicaModeloCorporativo ? "N/D" : "N/A", name];
+                        return ["N/A", name];
                       }
                       return [`${Math.round(Number(v))} / 100`, name];
                     }}
@@ -406,8 +445,79 @@ export function Comparador() {
                 </RadarChart>
               </ResponsiveContainer>
             </div>
-            <p className="mt-2 text-xs text-ink-muted">
-              Las categorías sin información contable suficiente se informan como N/D; para entidades financieras donde el modelo no aplica se informan como N/A.
+
+            {/* MATRIZ DE DESGLOSE COMPARATIVO VISUAL */}
+            <div className="mt-6 border-t border-border pt-5">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-ink-muted">
+                  Desglose cuantitativo por empresa (0 a 100)
+                </span>
+                <span className="text-[11px] font-mono text-ink-muted">5 pilares del Score</span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {analisis.map((a, i) => {
+                  const color = COLORES[i % COLORES.length];
+                  return (
+                    <div
+                      key={a.company.ticker}
+                      className="rounded-xl border border-border bg-bg/50 p-4 transition-all hover:border-accent/40 hover:shadow-sm"
+                      style={{ borderTop: `3px solid ${color}` }}
+                    >
+                      <div className="flex items-center justify-between pb-2.5 border-b border-border/60">
+                        <div className="min-w-0 pr-2">
+                          <div className="font-bold text-ink text-sm truncate flex items-center gap-1.5">
+                            <span className="inline-block w-2.5 h-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                            <span className="truncate">{a.company.nombre}</span>
+                          </div>
+                          <span className="text-[11px] font-mono text-ink-muted block pl-4">
+                            {a.company.fuente === "propia" ? "Empresa propia" : a.company.ticker}
+                          </span>
+                        </div>
+                        <span
+                          className="shrink-0 rounded-md px-2 py-0.5 font-mono text-xs font-bold"
+                          style={{
+                            backgroundColor: `${color}18`,
+                            color: color,
+                          }}
+                        >
+                          {a.score.total !== null ? `${fmtScore(a.score.total)} pts` : "N/A"}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 space-y-2.5">
+                        {CATEGORIAS.map(({ key, label }) => {
+                          const val = a.score.categorias[key].valor;
+                          const pct = Math.min(100, Math.max(0, val ?? 0));
+                          return (
+                            <div key={key} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-ink-muted font-medium">{label}</span>
+                                <span className="font-mono font-bold text-ink">
+                                  {val !== null ? `${Math.round(val)} / 100` : "N/A"}
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/80">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{
+                                    width: `${pct}%`,
+                                    backgroundColor: color,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs text-ink-muted">
+              Valores normalizados de 0 a 100. En entidades financieras donde no aplican ratios operativos o de inventario, se indican como N/A.
             </p>
           </Card>
 
