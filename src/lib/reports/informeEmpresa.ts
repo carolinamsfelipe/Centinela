@@ -1,7 +1,7 @@
 import { nombreMercado, nombreSector } from "@/data/companies";
 import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import { ESTADO_LABEL } from "@/lib/financial/diagnostics";
-import type { BenchmarkMercado } from "@/lib/financial/benchmarks";
+import { inferirMetricasCaja, type BenchmarkMercado } from "@/lib/financial/benchmarks";
 import type { AnalisisEjecutivo } from "@/lib/financial/narrative";
 import { esEntidadFinanciera } from "@/lib/financial/analysis";
 import { SCORE_ESTADO_THRESHOLDS } from "@/lib/financial/scoreConfig";
@@ -371,6 +371,7 @@ export async function descargarInformeEmpresa(d: DatosInformeEmpresa): Promise<v
   /* ---------------- 4. Fundamentales ---------------- */
   seccion(ctx, "Indicadores fundamentales");
   const nm = notaMoneda(company);
+  const cInferida = inferirMetricasCaja(m, company.sector, company.mercado);
   parrafo(
     ctx,
     `${nm ?? "Importes en US$."} K = miles, M = millones, B = miles de millones.`,
@@ -390,8 +391,8 @@ export async function descargarInformeEmpresa(d: DatosInformeEmpresa): Promise<v
       ["Patrimonio neto", mon(m.patrimonioNeto), "Precio / Ganancias (P/E)", fmtNum(m.pe)],
       ["Deuda total", mon(m.deudaTotal), "Precio / Valor libro (P/B)", fmtNum(m.pb)],
       ["Precio de la acción", m.precio !== null ? `${company.monedaPrecio ?? "USD"} ${fmtNum(m.precio)}` : "N/D", "EV / EBITDA", fmtNum(m.evEbitda)],
-      ["Ciclo de caja (CCC)", m.ccc !== null && m.ccc !== undefined ? `${Math.round(m.ccc)} d` : "N/D", "Días de cobro (DSO)", m.dso !== null && m.dso !== undefined ? `${Math.round(m.dso)} d` : "N/D"],
-      ["Días proveedores (DPO)", m.dpo !== null && m.dpo !== undefined ? `${Math.round(m.dpo)} d` : "N/D", "Cobertura intereses (ICR)", m.icr !== null && m.icr !== undefined ? `${fmtNum(m.icr)}x` : "N/D"],
+      ["Ciclo de caja (CCC)", cInferida.esCccEstimado ? `~${cInferida.ccc} d (Est.)` : `${cInferida.ccc} d`, "Días de cobro (DSO)", cInferida.esDsoEstimado ? `~${cInferida.dso} d (Est.)` : `${cInferida.dso} d`],
+      ["Días proveedores (DPO)", cInferida.esDpoEstimado ? `~${cInferida.dpo} d (Est.)` : `${cInferida.dpo} d`, "Cobertura intereses (ICR)", cInferida.esIcrEstimado ? `~${fmtNum(cInferida.icr)}x (Proxy)` : `${fmtNum(cInferida.icr)}x`],
     ],
     { anchos: [34, 28, 40, 24], derecha: [1, 3] }
   );

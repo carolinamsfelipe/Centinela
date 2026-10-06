@@ -3,6 +3,7 @@ import { ALTMAN_THRESHOLDS } from "@/lib/financial/altman";
 import { ESTADO_LABEL } from "@/lib/financial/diagnostics";
 import { SCORE_ESTADO_THRESHOLDS, SCORE_WEIGHTS } from "@/lib/financial/scoreConfig";
 import { esEntidadFinanciera } from "@/lib/financial/analysis";
+import { inferirMetricasCaja } from "@/lib/financial/benchmarks";
 import { aUsd, fmtFecha, fmtMonto, fmtNum, fmtPct, fmtScore, fmtX } from "@/lib/format";
 import type { AltmanResult, CentinelaScore, Company, Estado } from "@/types";
 import {
@@ -67,31 +68,31 @@ export const FILAS_COMPARATIVAS: FilaComparativa[] = [
   { label: "Current Ratio", valor: (a) => fmtNum(a.company.metrics.currentRatio) },
   {
     label: "Ciclo de caja (CCC)",
-    valor: (a) =>
-      a.company.metrics.ccc !== null && a.company.metrics.ccc !== undefined
-        ? `${Math.round(a.company.metrics.ccc)} días`
-        : "N/D",
+    valor: (a) => {
+      const c = inferirMetricasCaja(a.company.metrics, a.company.sector, a.company.mercado);
+      return c.esCccEstimado ? `~${c.ccc} d (Est.)` : `${c.ccc} d`;
+    },
   },
   {
     label: "Días de cobro (DSO)",
-    valor: (a) =>
-      a.company.metrics.dso !== null && a.company.metrics.dso !== undefined
-        ? `${Math.round(a.company.metrics.dso)} días`
-        : "N/D",
+    valor: (a) => {
+      const c = inferirMetricasCaja(a.company.metrics, a.company.sector, a.company.mercado);
+      return c.esDsoEstimado ? `~${c.dso} d (Est.)` : `${c.dso} d`;
+    },
   },
   {
     label: "Días proveedores (DPO)",
-    valor: (a) =>
-      a.company.metrics.dpo !== null && a.company.metrics.dpo !== undefined
-        ? `${Math.round(a.company.metrics.dpo)} días`
-        : "N/D",
+    valor: (a) => {
+      const c = inferirMetricasCaja(a.company.metrics, a.company.sector, a.company.mercado);
+      return c.esDpoEstimado ? `~${c.dpo} d (Est.)` : `${c.dpo} d`;
+    },
   },
   {
     label: "Cobertura intereses (ICR)",
-    valor: (a) =>
-      a.company.metrics.icr !== null && a.company.metrics.icr !== undefined
-        ? `${fmtNum(a.company.metrics.icr)}x`
-        : "N/D",
+    valor: (a) => {
+      const c = inferirMetricasCaja(a.company.metrics, a.company.sector, a.company.mercado);
+      return c.esIcrEstimado ? `~${fmtNum(c.icr)}x (Proxy)` : `${fmtNum(c.icr)}x`;
+    },
   },
   { label: "P/E", valor: (a) => fmtNum(a.company.metrics.pe) },
   { label: "P/B", valor: (a) => fmtNum(a.company.metrics.pb) },
@@ -373,6 +374,7 @@ async function descargarExcel(nombre: string, hojas: Array<{ nombre: string; fil
 function filaDatos(a: AnalisisComparable): Celda[] {
   const c = a.company;
   const m = c.metrics;
+  const caja = inferirMetricasCaja(m, c.sector, c.mercado);
   return [
     c.nombre,
     c.fuente === "propia" ? "(propia)" : c.ticker,
@@ -392,10 +394,10 @@ function filaDatos(a: AnalisisComparable): Celda[] {
     m.margenNeto,
     m.debtToEquity,
     m.currentRatio,
-    m.ccc !== null && m.ccc !== undefined ? Math.round(m.ccc) : null,
-    m.dso !== null && m.dso !== undefined ? Math.round(m.dso) : null,
-    m.dpo !== null && m.dpo !== undefined ? Math.round(m.dpo) : null,
-    m.icr !== null && m.icr !== undefined ? Math.round(m.icr * 100) / 100 : null,
+    caja.ccc,
+    caja.dso,
+    caja.dpo,
+    caja.icr,
     m.pe,
     m.pb,
     m.evEbitda,
