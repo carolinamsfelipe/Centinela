@@ -15,6 +15,7 @@ import {
   listarEmpresasPropias,
   parsearNumero,
   periodosDesdeFilas,
+  validarTamanoArchivo,
 } from "@/services/userCompanies";
 import type { PeriodoBalance, ResultadoLectura } from "@/services/userCompanies";
 import type { Company, Mercado, Sector } from "@/types";
@@ -111,6 +112,7 @@ export function MiEmpresa() {
     setErrores([]);
     setLectura(null);
     try {
+      validarTamanoArchivo(archivo);
       const minuscula = archivo.name.toLowerCase();
       let filas: Array<Record<string, unknown>>;
       if (minuscula.endsWith(".csv")) {

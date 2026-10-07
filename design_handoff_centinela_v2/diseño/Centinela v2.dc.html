@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.460.0/font/lucide.css">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1;
+--bg:#0B0F17;--s1:#111622;--s2:#171D2B;--line:#222A3A;--line2:#2E384B;--ink:#E8ECF3;--ink2:#A3ACBF;--ink3:#8089A0;--acc:#2DD4BF;--acc-bg:rgba(45,212,191,0.12);--acc-ink:#04201C;
+--ok:#34C776;--ok-bg:rgba(52,199,118,0.13);--warn:#EA9E33;--warn-bg:rgba(234,158,51,0.13);--bad:#E85E5E;--bad-bg:rgba(232,94,94,0.13);--d1:#5B6780;--d2:#8E9AB3;--d3:#C4CCDB;
+background:var(--bg);color:var(--ink);color-scheme:dark}
+body.claro{--bg:#F5F6F9;--s1:#FFFFFF;--s2:#EEF1F5;--line:#E1E5EC;--line2:#CBD2DD;--ink:#0F1420;--ink2:#4C556B;--ink3:#626C82;--acc:#0F8F82;--acc-bg:rgba(15,143,130,0.10);--acc-ink:#FFFFFF;
+--ok:#158A4D;--ok-bg:rgba(21,138,77,0.10);--warn:#A15C07;--warn-bg:rgba(161,92,7,0.10);--bad:#B13333;--bad-bg:rgba(177,51,51,0.10);--d1:#B7C0CF;--d2:#7D889D;--d3:#3D4659;color-scheme:light}
+*{box-sizing:border-box}
+a{color:var(--acc);text-decoration:none}a:hover{color:var(--ink)}
+input[type=range]{accent-color:var(--acc);width:100%;margin:0;cursor:pointer}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="display:grid;grid-template-columns:228px minmax(0,1fr);min-height:100vh;background:var(--bg);color:var(--ink);">
+
+  <aside style="position:sticky;top:0;height:100vh;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--s1);">
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line);">
+      <img src="public/shield.svg" alt="" style="width:22px;height:22px;">
+      <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;letter-spacing:0.08em;">CENTINELA</span>
+    </div>
+    <div data-ent-pop="1" style="padding:12px;position:relative;">
+      <button onClick="{{ toggleEnt }}" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid {{ entBorder }};border-radius:8px;padding:10px 12px;background:var(--bg);color:var(--ink);cursor:pointer;" style-hover="border-color:var(--line2);">
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+          <span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);">Entidad</span>
+          <span style="font-size:13px;font-weight:600;line-height:1.3;">{{ ent.nombre }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ ent.meta }}</span>
+        </div>
+        <i class="icon-chevrons-up-down" style="font-size:14px;color:var(--ink3);"></i>
+      </button>
+      <sc-if value="{{ entOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:12px;top:calc(100% - 6px);width:300px;z-index:40;border:1px solid var(--line2);border-radius:8px;background:var(--s1);box-shadow:0 12px 32px rgba(0,0,0,0.35);display:flex;flex-direction:column;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);">
+            <i class="icon-search" style="font-size:14px;color:var(--ink3);"></i>
+            <input value="{{ entQ }}" onChange="{{ onEntQ }}" placeholder="Buscar empresa o ticker…" style="flex:1;border:0;outline:0;background:transparent;color:var(--ink);font-family:inherit;font-size:13px;">
+          </div>
+          <div style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;padding:4px 0;">
+            <sc-for list="{{ entGrupos }}" as="g" hint-placeholder-count="3">
+              <span style="padding:8px 12px 4px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);">{{ g.titulo }}</span>
+              <sc-for list="{{ g.items }}" as="e" hint-placeholder-count="2">
+                <button onClick="{{ e.go }}" style="display:flex;align-items:center;gap:10px;width:100%;border:0;padding:7px 12px;text-align:left;cursor:pointer;background:{{ e.bg }};color:var(--ink);font-size:13px;" style-hover="background:var(--s2);">
+                  <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ e.nombre }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);white-space:nowrap;">{{ e.tag }}</span>
+                </button>
+              </sc-for>
+            </sc-for>
+          </div>
+          <button onClick="{{ abrirCarga }}" style="display:flex;align-items:center;gap:8px;border:0;border-top:1px solid var(--line);padding:11px 12px;background:var(--s1);color:var(--acc);font-size:13px;font-weight:500;cursor:pointer;text-align:left;" style-hover="background:var(--s2);"><i class="icon-upload" style="font-size:14px;"></i>Cargar empresa (CSV / Excel)</button>
+        </div>
+      </sc-if>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:2px;padding:4px 12px;">
+      <span style="padding:8px 8px 6px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);">Diagnóstico</span>
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+        <button onClick="{{ n.go }}" style="display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:6px;padding:8px;text-align:left;cursor:pointer;font-size:13px;font-weight:500;background:{{ n.bg }};color:{{ n.fg }};" style-hover="background:var(--s2);color:var(--ink);">
+          <i class="{{ n.icon }}" style="font-size:16px;width:16px;"></i>
+          <span style="flex:1;">{{ n.label }}</span>
+          <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:1px 6px;border-radius:4px;background:{{ n.pillBg }};color:{{ n.pillFg }};">{{ n.pill }}</span>
+        </button>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:2px;padding:12px;border-top:1px solid var(--line);">
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px;font-size:13px;color:var(--ink2);"><i class="icon-book-open" style="font-size:16px;"></i>Metodología</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:8px;font-size:13px;color:var(--ink2);"><i class="icon-database" style="font-size:16px;"></i>Fuentes</a>
+      <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--bg);">
+        <button onClick="{{ setOscuro }}" style="display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:4px;padding:6px;font-size:12px;cursor:pointer;background:{{ temaO.bg }};color:{{ temaO.fg }};"><i class="icon-moon" style="font-size:13px;"></i>Oscuro</button>
+        <button onClick="{{ setClaro }}" style="display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:4px;padding:6px;font-size:12px;cursor:pointer;background:{{ temaC.bg }};color:{{ temaC.fg }};"><i class="icon-sun" style="font-size:13px;"></i>Claro</button>
+      </div>
+    </div>
+  </aside>
+
+  <div style="display:flex;flex-direction:column;min-width:0;">
+    <header style="position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;padding:12px 24px 10px;border-bottom:1px solid var(--line);background:var(--s1);">
+      <div style="display:flex;flex-direction:column;gap:1px;flex:1 1 100%;min-width:0;">
+        <span style="font-size:11px;color:var(--ink3);">{{ ent.nombre }} / Diagnóstico</span>
+        <h1 style="margin:0;font-size:16px;font-weight:600;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ modTitle }}</h1>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:1;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--ink3);">Período</span>
+          <div style="display:flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--bg);">
+            <sc-for list="{{ periodos }}" as="p" hint-placeholder-count="3">
+              <button onClick="{{ p.go }}" style="border:0;border-radius:4px;padding:4px 9px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;background:{{ p.bg }};color:{{ p.fg }};">{{ p.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--ink3);">Moneda</span>
+          <div style="display:flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--bg);">
+            <sc-for list="{{ monedas }}" as="p" hint-placeholder-count="2">
+              <button onClick="{{ p.go }}" style="border:0;border-radius:4px;padding:4px 9px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;background:{{ p.bg }};color:{{ p.fg }};">{{ p.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <button style="display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:5px 10px;background:var(--bg);color:var(--ink2);font-size:12px;cursor:pointer;"><i class="icon-git-compare" style="font-size:13px;"></i><span style="white-space:nowrap;">vs Mediana Industria · AR</span><i class="icon-chevron-down" style="font-size:12px;"></i></button>
+        <span style="margin-left:auto;"></span>
+        <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);"><span style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:{{ ent.dot }};"></span>{{ ent.estado }}</span>
+        <button onClick="{{ exportar }}" style="display:flex;align-items:center;gap:6px;border:0;border-radius:6px;padding:6px 12px;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;cursor:pointer;" style-hover="opacity:0.85;"><i class="icon-download" style="font-size:13px;"></i>Exportar</button>
+      </div>
+    </header>
+
+    <main style="flex:1;padding:20px 24px 40px;display:flex;flex-direction:column;gap:16px;max-width:1440px;width:100%;">
+
+      <sc-if value="{{ bannerEnt }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--s1);font-size:12px;color:var(--ink2);"><i class="icon-info" style="font-size:14px;color:var(--ink3);"></i><span style="flex:1;">{{ bannerEnt }}</span><button onClick="{{ volverDemo }}" style="border:1px solid var(--line);border-radius:6px;padding:3px 10px;background:transparent;color:var(--ink2);font-size:11px;cursor:pointer;white-space:nowrap;">Ver caso demo</button></div>
+      </sc-if>
+      <!-- 01 PANEL GENERAL -->
+      <sc-if value="{{ isPanel }}" hint-placeholder-val="{{ true }}">
+        <section data-screen-label="01 Panel general" style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;flex-wrap:wrap;align-items:stretch;border:1px solid var(--line);border-radius:8px;background:var(--s1);overflow:hidden;">
+            <div style="display:flex;flex-direction:column;justify-content:center;gap:4px;padding:14px 18px;border-right:1px solid var(--line);min-width:200px;">
+              <span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);">Estado general</span>
+              <div style="display:flex;align-items:baseline;gap:8px;white-space:nowrap;"><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:500;">{{ pg.score }}</span><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink3);">{{ pg.unit }}</span></div>
+              <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:6px;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap;background:{{ pg.bg }};color:{{ pg.fg }};">{{ pg.badge }}</span>
+            </div>
+            <div style="display:flex;gap:20px;align-items:center;padding:14px 18px;border-right:1px solid var(--line);">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:20px;color:var(--bad);">{{ pg.nBad }}</span><span style="font-size:11px;color:var(--ink2);">Críticas</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:20px;color:var(--warn);">{{ pg.nWarn }}</span><span style="font-size:11px;color:var(--ink2);">Precaución</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:20px;color:var(--ok);">{{ pg.nOk }}</span><span style="font-size:11px;color:var(--ink2);">Saludables</span></div>
+            </div>
+            <p style="flex:1;min-width:260px;margin:0;padding:14px 18px;font-size:13px;line-height:1.5;color:var(--ink2);text-wrap:pretty;">{{ pg.resumen }}</p>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+              <button onClick="{{ k.go }}" style="display:flex;flex-direction:column;gap:10px;text-align:left;border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--s1);color:var(--ink);cursor:pointer;" style-hover="border-color:var(--line2);background:var(--s2);">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;">
+                  <span style="font-size:12px;color:var(--ink2);min-width:0;">{{ k.label }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;flex-shrink:0;white-space:nowrap;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;letter-spacing:0.02em;background:{{ k.stBg }};color:{{ k.stFg }};">{{ k.stSh }} {{ k.stLabel }}</span>
+                </div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;width:100%;">
+                  <div style="display:flex;align-items:baseline;gap:6px;"><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:500;letter-spacing:-0.02em;line-height:1;">{{ k.val }}</span><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink3);">{{ k.unit }}</span></div>
+                  <svg width="112" height="32" style="overflow:visible;flex-shrink:0;display:{{ k.svgD }};"><polyline points="{{ k.pts }}" fill="none" stroke="var(--d2)" stroke-width="1.5"></polyline><circle cx="{{ k.lx }}" cy="{{ k.ly }}" r="3" fill="{{ k.stFg }}"></circle></svg>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px 14px;width:100%;padding-top:10px;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11px;">
+                  <span style="white-space:nowrap;color:{{ k.d1c }};">{{ k.d1 }} <span style="color:var(--ink3);">QoQ</span></span>
+                  <span style="white-space:nowrap;color:{{ k.d2c }};">{{ k.d2 }} <span style="color:var(--ink3);">YoY</span></span>
+                  <span style="margin-left:auto;white-space:nowrap;color:var(--ink3);">{{ k.ref }}</span>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px;align-items:start;">
+            <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);">
+                <h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Alertas tempranas</h2>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ pg.nAlertas }}</span>
+              </div>
+              <sc-for list="{{ alertas }}" as="a" hint-placeholder-count="5">
+                <button onClick="{{ a.go }}" style="display:grid;grid-template-columns:3px minmax(0,1fr) auto;gap:12px;width:100%;align-items:center;border:0;border-bottom:1px solid var(--line);padding:12px 16px 12px 0;background:transparent;color:var(--ink);text-align:left;cursor:pointer;" style-hover="background:var(--s2);">
+                  <span style="align-self:stretch;background:{{ a.fg }};"></span>
+                  <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+                    <span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;"><span style="font-size:10px;color:{{ a.fg }};">{{ a.sh }}</span>{{ a.titulo }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink2);">{{ a.detalle }}</span>
+                  </div>
+                  <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--ink3);">{{ a.modulo }}<i class="icon-arrow-up-right" style="font-size:12px;"></i></span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);">
+                <h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Semáforo por indicador</h2>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">criterio a la vista</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                  <thead><tr style="text-align:left;color:var(--ink3);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;">
+                    <th style="padding:8px 16px;font-weight:500;border-bottom:1px solid var(--line);">Indicador</th>
+                    <th style="padding:8px;font-weight:500;text-align:right;border-bottom:1px solid var(--line);">Valor</th>
+                    <th style="padding:8px;font-weight:500;border-bottom:1px solid var(--line);">Estado</th>
+                    <sc-if value="{{ criterios }}" hint-placeholder-val="{{ true }}"><th style="padding:8px 16px 8px 8px;font-weight:500;border-bottom:1px solid var(--line);">Umbrales</th></sc-if>
+                  </tr></thead>
+                  <tbody>
+                    <sc-for list="{{ semaforo }}" as="s" hint-placeholder-count="9">
+                      <tr style-hover="background:var(--s2);">
+                        <td style="padding:8px 16px;border-bottom:1px solid var(--line);">{{ s.nombre }}</td>
+                        <td style="padding:8px;text-align:right;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--line);white-space:nowrap;">{{ s.valor }}</td>
+                        <td style="padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:{{ s.fg }};"><span style="font-size:9px;">{{ s.sh }}</span>{{ s.label }}</span></td>
+                        <sc-if value="{{ criterios }}" hint-placeholder-val="{{ true }}"><td style="padding:8px 16px 8px 8px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);border-bottom:1px solid var(--line);">{{ s.criterio }}</td></sc-if>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+
+      <!-- 02 CAPITAL DE TRABAJO -->
+      <sc-if value="{{ isCcc }}" hint-placeholder-val="{{ false }}">
+        <section data-screen-label="02 Capital de trabajo" style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));border:1px solid var(--line);border-radius:8px;background:var(--s1);">
+            <div style="padding:14px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:12px;color:var(--ink2);">CCC actual</span>
+              <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:26px;">84,6 <span style="font-size:12px;color:var(--ink3);">días</span></span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--warn);">▲ Precaución · a 5,4 d del umbral 90</span>
+            </div>
+            <div style="padding:14px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:12px;color:var(--ink2);">Mediana Industria</span>
+              <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:26px;">79,0 <span style="font-size:12px;color:var(--ink3);">días</span></span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--bad);">+5,6 d sobre el sector</span>
+            </div>
+            <div style="padding:14px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:12px;color:var(--ink2);">Caja inmovilizada en el ciclo</span>
+              <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:26px;">{{ m.wcInvertido }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);">Créditos + inventario − proveedores</span>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:12px;color:var(--ink2);">Liberable alineando a mediana</span>
+              <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:26px;color:var(--ok);">{{ m.oportunidad }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);">DSO −10 d · DPO +10 d</span>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);padding:16px;display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;">
+              <h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Línea de tiempo del ciclo operativo</h2>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">CCC = DIO + DSO − DPO · escala 0–130 días</span>
+            </div>
+            <div style="display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 12px;align-items:center;font-size:11px;">
+              <span style="color:var(--ink2);">Operación</span>
+              <div style="display:flex;height:30px;">
+                <div onClick="{{ selDio }}" style="width:35.1%;display:flex;align-items:center;padding:0 10px;font-family:'IBM Plex Mono',monospace;cursor:pointer;background:var(--d1);color:var(--ink);outline:{{ cccSt.dio }};outline-offset:-2px;">DIO 45,6 d</div>
+                <div onClick="{{ selDso }}" style="width:56.9%;display:flex;align-items:center;padding:0 10px;font-family:'IBM Plex Mono',monospace;cursor:pointer;background:var(--d2);color:var(--bg);outline:{{ cccSt.dso }};outline-offset:-2px;">DSO 74,0 d</div>
+              </div>
+              <span style="color:var(--ink2);">Proveedores</span>
+              <div style="display:flex;height:30px;">
+                <div onClick="{{ selDpo }}" style="width:26.9%;display:flex;align-items:center;padding:0 10px;font-family:'IBM Plex Mono',monospace;cursor:pointer;background:var(--s2);border:1px solid var(--line2);color:var(--ink);outline:{{ cccSt.dpo }};outline-offset:-2px;">DPO 35,0 d</div>
+              </div>
+              <span style="color:var(--ink2);">Brecha a financiar</span>
+              <div style="display:flex;height:30px;">
+                <div style="width:26.9%;"></div>
+                <div style="width:65.1%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px;font-family:'IBM Plex Mono',monospace;background:var(--warn-bg);border:1px dashed var(--warn);color:var(--warn);"><span style="white-space:nowrap;">CCC 84,6 d</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">≈ {{ m.brechaCaja }}</span></div>
+              </div>
+              <span></span>
+              <div style="position:relative;height:14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);">
+                <span style="position:absolute;left:0;">0</span><span style="position:absolute;left:23.1%;">30</span><span style="position:absolute;left:46.2%;">60</span><span style="position:absolute;left:69.2%;">90</span><span style="position:absolute;right:0;">130 d</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+            <sc-for list="{{ componentes }}" as="c" hint-placeholder-count="3">
+              <button onClick="{{ c.go }}" style="display:flex;flex-direction:column;gap:10px;text-align:left;border:1px solid {{ c.border }};border-radius:8px;padding:14px 16px;background:var(--s1);color:var(--ink);cursor:pointer;" style-hover="background:var(--s2);">
+                <div style="display:flex;justify-content:space-between;width:100%;"><span style="font-size:12px;color:var(--ink2);">{{ c.nombre }}</span><span style="font-size:11px;font-weight:600;color:{{ c.fg }};">{{ c.sh }} {{ c.tag }}</span></div>
+                <div style="display:flex;align-items:baseline;gap:6px;"><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:26px;">{{ c.val }}</span><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink3);">días</span></div>
+                <div style="position:relative;height:6px;width:100%;background:var(--s2);border-radius:3px;">
+                  <div style="position:absolute;left:0;top:0;bottom:0;width:{{ c.w }};background:var(--d2);border-radius:3px;"></div>
+                  <div style="position:absolute;top:-4px;bottom:-4px;width:2px;left:{{ c.med }};background:var(--ink);"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;width:100%;font-family:'IBM Plex Mono',monospace;font-size:11px;"><span style="color:var(--ink3);">Mediana {{ c.mediana }} d</span><span style="color:{{ c.fg }};">{{ c.delta }}</span></div>
+                <p style="margin:0;font-size:12px;line-height:1.45;color:var(--ink2);text-wrap:pretty;">{{ c.lectura }}</p>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);">
+              <h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Evolución trimestral</h2>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">días · T1 2024 – T4 2025</span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:12px;">
+                <thead><tr style="color:var(--ink3);font-size:10px;text-align:right;">
+                  <th style="padding:8px 16px;text-align:left;font-weight:500;border-bottom:1px solid var(--line);">Métrica</th>
+                  <sc-for list="{{ trimestres }}" as="t" hint-placeholder-count="8"><th style="padding:8px;font-weight:500;border-bottom:1px solid var(--line);">{{ t }}</th></sc-for>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ evol }}" as="r" hint-placeholder-count="4">
+                    <tr style="font-weight:{{ r.fw }};">
+                      <td style="padding:8px 16px;border-bottom:1px solid var(--line);font-family:'IBM Plex Sans',sans-serif;">{{ r.nombre }}</td>
+                      <sc-for list="{{ r.vals }}" as="v" hint-placeholder-count="8"><td style="padding:8px;text-align:right;border-bottom:1px solid var(--line);">{{ v }}</td></sc-for>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+
+      <!-- 03 DEUDA -->
+      <sc-if value="{{ isDeuda }}" hint-placeholder-val="{{ false }}">
+        <section data-screen-label="03 Deuda y solvencia" style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));border:1px solid var(--line);border-radius:8px;background:var(--s1);">
+            <sc-for list="{{ deudaKpis }}" as="k" hint-placeholder-count="4">
+              <div style="padding:14px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;">
+                <span style="font-size:12px;color:var(--ink2);">{{ k.label }}</span>
+                <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:26px;">{{ k.val }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.35;color:{{ k.c }};">{{ k.sub }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);padding:16px;display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;"><h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Estructura de pasivos</h2><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Total {{ m.pasivos }}</span></div>
+            <div style="display:flex;height:28px;gap:2px;">
+              <sc-for list="{{ pasivos }}" as="p" hint-placeholder-count="4"><div style="width:{{ p.w }};background:{{ p.c }};"></div></sc-for>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px 24px;">
+              <sc-for list="{{ pasivos }}" as="p" hint-placeholder-count="4">
+                <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2);white-space:nowrap;"><span style="width:10px;height:10px;background:{{ p.c }};border:1px solid var(--line2);"></span>{{ p.nombre }}<span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;color:var(--ink);">{{ p.val }}</span><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;color:var(--ink3);">{{ p.pct }}</span></span>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:12px;align-items:start;">
+            <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);padding:16px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;"><h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Calendario de vencimientos vs. EBITDA trimestral</h2><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">próximos 8 trimestres</span></div>
+              <div style="position:relative;display:flex;align-items:flex-end;gap:10px;height:200px;padding-top:18px;border-bottom:1px solid var(--line2);">
+                <div style="position:absolute;left:0;right:0;bottom:{{ m.ebitdaLine }};border-top:1.5px dashed var(--ink);z-index:1;"></div>
+                <span style="position:absolute;right:0;bottom:{{ m.ebitdaLine }};transform:translateY(-100%);padding-bottom:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink);z-index:1;">EBITDA T {{ m.ebitdaQ }}</span>
+                <sc-for list="{{ venc }}" as="v" hint-placeholder-count="8">
+                  <div style="flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:0;position:relative;">
+                    <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:10px;color:{{ v.lc }};padding-bottom:3px;">{{ v.lbl }}</span>
+                    <div style="width:70%;max-width:44px;height:{{ v.hUsd }};background:var(--acc);"></div>
+                    <div style="width:70%;max-width:44px;height:{{ v.hArs }};background:var(--d2);"></div>
+                    <div style="width:70%;max-width:44px;height:{{ v.hInt }};background:var(--d1);"></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <sc-for list="{{ venc }}" as="v" hint-placeholder-count="8"><span style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);">{{ v.q }}</span></sc-for>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px 18px;font-size:11px;color:var(--ink2);">
+                <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;background:var(--d1);"></span>Intereses</span>
+                <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;background:var(--d2);"></span>Capital ARS</span>
+                <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;background:var(--acc);"></span>Capital USD</span>
+                <span style="display:flex;align-items:center;gap:6px;"><span style="color:var(--bad);">◆</span>Servicio &gt; EBITDA (punto de quiebre)</span>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);padding:16px;display:flex;flex-direction:column;gap:16px;">
+              <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;"><h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Distancia al quiebre del ICR</h2><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">ICR = EBITDA / intereses</span></div>
+              <sc-for list="{{ sensICR }}" as="g" hint-placeholder-count="2">
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--ink2);">{{ g.titulo }}</span><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;color:var(--bad);">{{ g.quiebre }}</span></div>
+                  <div style="position:relative;display:flex;align-items:flex-end;gap:6px;height:96px;border-bottom:1px solid var(--line2);">
+                    <div style="position:absolute;left:0;right:0;bottom:50%;border-top:1px dashed var(--bad);"></div>
+                    <span style="position:absolute;left:0;bottom:50%;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--bad);background:var(--s1);padding-right:4px;transform:translateY(50%);">1,0x</span>
+                    <sc-for list="{{ g.cols }}" as="c" hint-placeholder-count="5">
+                      <div style="flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;">
+                        <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:10px;color:{{ c.fg }};padding-bottom:2px;">{{ c.v }}</span>
+                        <div style="width:60%;height:{{ c.h }};background:{{ c.fg }};opacity:0.85;"></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;gap:6px;"><sc-for list="{{ g.cols }}" as="c" hint-placeholder-count="5"><span style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);">{{ c.x }}</span></sc-for></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+
+      <!-- 04 SIMULADOR -->
+      <sc-if value="{{ isSim }}" hint-placeholder-val="{{ false }}">
+        <section data-screen-label="04 Simulador FX y caja" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">
+          <div style="flex:1 1 300px;border:1px solid var(--line);border-radius:8px;background:var(--s1);display:flex;flex-direction:column;">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Escenario</h2><button onClick="{{ reset }}" style="display:flex;align-items:center;gap:4px;border:0;background:transparent;color:var(--ink3);font-size:11px;cursor:pointer;" style-hover="color:var(--ink);"><i class="icon-rotate-ccw" style="font-size:12px;"></i>Restablecer</button></div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--bg);">
+                <sc-for list="{{ escenarios }}" as="e" hint-placeholder-count="3">
+                  <button onClick="{{ e.go }}" style="border:0;border-radius:4px;padding:6px 4px;font-size:12px;font-weight:500;cursor:pointer;background:{{ e.bg }};color:{{ e.fg }};">{{ e.label }}</button>
+                </sc-for>
+              </div>
+              <span style="font-size:11px;line-height:1.4;color:var(--ink3);">{{ escDesc }}</span>
+            </div>
+            <sc-for list="{{ sliders }}" as="s" hint-placeholder-count="5">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span style="font-size:12px;color:var(--ink2);white-space:nowrap;">{{ s.label }}</span><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:{{ s.vc }};">{{ s.txt }}</span></div>
+                <input type="range" min="{{ s.min }}" max="{{ s.max }}" step="{{ s.step }}" value="{{ s.v }}" onChange="{{ s.on }}">
+                <div style="display:flex;justify-content:space-between;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);"><span style="min-width:0;">{{ s.minT }}</span><span style="white-space:nowrap;">actual {{ s.base }}</span><span style="min-width:0;text-align:right;">{{ s.maxT }}</span></div>
+              </div>
+            </sc-for>
+            <p style="margin:0;padding:12px 16px;font-size:11px;line-height:1.45;color:var(--ink3);">Proyección de sensibilidad de un período a partir de los supuestos. No es una predicción.</p>
+          </div>
+
+          <div style="flex:2.6 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));border:1px solid var(--line);border-radius:8px;background:var(--s1);">
+              <sc-for list="{{ simKpis }}" as="k" hint-placeholder-count="4">
+                <div style="padding:14px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;">
+                  <span style="font-size:12px;color:var(--ink2);">{{ k.label }}</span>
+                  <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;"><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink3);text-decoration:line-through;">{{ k.antes }}</span><span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:22px;color:{{ k.c }};">{{ k.despues }}</span></div>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:{{ k.c }};">{{ k.delta }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);padding:16px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:baseline;">
+                <h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Saldo de caja proyectado · antes vs. después</h2>
+                <div style="display:flex;gap:14px;font-size:11px;color:var(--ink2);">
+                  <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border:1px dashed var(--d2);"></span>Antes (base)</span>
+                  <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;background:var(--acc);"></span>Después</span>
+                  <span style="display:flex;align-items:center;gap:6px;"><span style="width:12px;border-top:1.5px dashed var(--bad);"></span>Caja mínima operativa</span>
+                </div>
+              </div>
+              <sc-if value="{{ sim.alerta }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;background:var(--bad-bg);color:var(--bad);font-size:12px;"><span>◆</span><span>{{ sim.alerta }}</span></div>
+              </sc-if>
+              <div style="position:relative;display:flex;align-items:flex-end;gap:6px;height:220px;border-bottom:1px solid var(--line2);">
+                <div style="position:absolute;left:0;right:0;bottom:{{ sim.floor }};border-top:1.5px dashed var(--bad);z-index:1;transition:bottom 200ms ease;"></div>
+                <span style="position:absolute;left:0;bottom:{{ sim.floor }};padding:0 4px 2px 0;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bad);z-index:1;">{{ sim.floorTxt }}</span>
+                <sc-for list="{{ sim.cols }}" as="c" hint-placeholder-count="12">
+                  <div title="{{ c.tip }}" style="flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px;">
+                    <div style="width:40%;height:{{ c.hb }};border:1px dashed var(--d2);border-bottom:0;transition:height 200ms ease;"></div>
+                    <div style="width:40%;height:{{ c.ha }};background:{{ c.ca }};transition:height 200ms ease,background 200ms ease;"></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:6px;"><sc-for list="{{ sim.cols }}" as="c" hint-placeholder-count="12"><span style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);">{{ c.m }}</span></sc-for></div>
+            </div>
+
+            <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);"><h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Puente de flujo neto anual</h2><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ moneda }} · 12 meses</span></div>
+              <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <tbody>
+                  <sc-for list="{{ sim.puente }}" as="r" hint-placeholder-count="6">
+                    <tr style="font-weight:{{ r.fw }};">
+                      <td style="padding:8px 16px;border-bottom:1px solid var(--line);">{{ r.nombre }}</td>
+                      <td style="padding:8px 16px;text-align:right;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--line);color:{{ r.c }};white-space:nowrap;">{{ r.val }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+
+      <!-- 05 BENCHMARK -->
+      <sc-if value="{{ isBench }}" hint-placeholder-val="{{ false }}">
+        <section data-screen-label="05 Benchmark" style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:12px;align-items:start;">
+            <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);"><h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Posición percentil vs. Industria</h2><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">banda P25–P75 · │ mediana</span></div>
+              <div style="display:flex;flex-direction:column;padding:6px 16px 12px;">
+                <sc-for list="{{ strips }}" as="s" hint-placeholder-count="9">
+                  <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 64px 40px;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);">
+                    <span style="font-size:12px;color:var(--ink2);">{{ s.nombre }}</span>
+                    <div style="position:relative;height:16px;">
+                      <div style="position:absolute;left:0;right:0;top:7px;height:2px;background:var(--line);"></div>
+                      <div style="position:absolute;top:3px;height:10px;left:{{ s.bl }};width:{{ s.bw }};background:var(--s2);border:1px solid var(--line2);"></div>
+                      <div style="position:absolute;top:0;height:16px;width:2px;left:{{ s.ml }};background:var(--ink2);"></div>
+                      <div style="position:absolute;top:3px;width:10px;height:10px;border-radius:50%;margin-left:-5px;left:{{ s.vl }};background:{{ s.fg }};box-shadow:0 0 0 2px var(--s1);"></div>
+                    </div>
+                    <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right;">{{ s.val }}</span>
+                    <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:11px;text-align:right;color:{{ s.fg }};">{{ s.pct }}</span>
+                  </div>
+                </sc-for>
+                <span style="padding-top:8px;font-size:11px;color:var(--ink3);">Percentil = % del sector con peor desempeño. Color por cuartil.</span>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);padding:16px;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;"><h2 style="margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;">Liquidez operativa vs. cobertura</h2><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">x: CCC (d) · y: ICR (x)</span></div>
+              <div style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:6px;">
+                <div style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);"><span style="position:absolute;top:0;">8x</span><span style="position:absolute;top:75%;">2x</span><span style="position:absolute;bottom:0;">0</span></div>
+                <div style="position:relative;height:300px;border-left:1px solid var(--line2);border-bottom:1px solid var(--line2);">
+                  <div style="position:absolute;left:0;top:0;width:52.7%;height:75%;background:var(--ok-bg);opacity:0.5;"></div>
+                  <div style="position:absolute;left:52.7%;right:0;top:75%;bottom:0;background:var(--bad-bg);opacity:0.6;"></div>
+                  <div style="position:absolute;left:52.7%;top:0;bottom:0;border-left:1px dashed var(--line2);"></div>
+                  <div style="position:absolute;left:0;right:0;top:75%;border-top:1px dashed var(--line2);"></div>
+                  <span style="position:absolute;left:6px;top:6px;font-size:10px;color:var(--ok);">Ciclo corto · cobertura holgada</span>
+                  <span style="position:absolute;right:6px;bottom:6px;font-size:10px;color:var(--bad);">Ciclo largo · cobertura débil</span>
+                  <sc-for list="{{ scatter }}" as="p" hint-placeholder-count="13">
+                    <div title="{{ p.tip }}" style="position:absolute;left:{{ p.x }};bottom:{{ p.y }};transform:translate(-50%,50%);display:flex;align-items:center;gap:4px;">
+                      <span style="display:block;width:{{ p.sz }};height:{{ p.sz }};border-radius:50%;background:{{ p.c }};box-shadow:{{ p.ring }};"></span>
+                    </div>
+                    <span style="position:absolute;left:{{ p.x }};bottom:{{ p.y }};transform:translate(8px,50%);font-family:'IBM Plex Mono',monospace;font-size:10px;white-space:nowrap;color:{{ p.lc }};pointer-events:none;">{{ p.label }}</span>
+                  </sc-for>
+                </div>
+                <span></span>
+                <div style="position:relative;height:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);"><span style="position:absolute;left:0;">0</span><span style="position:absolute;left:52.7%;transform:translateX(-50%);">79 med.</span><span style="position:absolute;right:0;">150 d</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;background:var(--s1);overflow:hidden;">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);">
+              <h2 style="margin:0 8px 0 0;font-size:13px;font-weight:600;">Comparables</h2>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <sc-for list="{{ filtros }}" as="f" hint-placeholder-count="6">
+                  <button onClick="{{ f.go }}" style="border:1px solid {{ f.bd }};border-radius:4px;padding:3px 9px;font-size:11px;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button>
+                </sc-for>
+              </div>
+              <span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);">{{ filasCount }}</span>
+              <button onClick="{{ exportar }}" style="display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:4px 10px;background:var(--bg);color:var(--ink2);font-size:11px;cursor:pointer;" style-hover="color:var(--ink);"><i class="icon-file-down" style="font-size:12px;"></i>CSV</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;min-width:760px;border-collapse:collapse;font-size:12px;">
+                <thead><tr>
+                  <sc-for list="{{ cols }}" as="c" hint-placeholder-count="8">
+                    <th onClick="{{ c.go }}" style="padding:8px 12px;text-align:{{ c.al }};font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:1px solid var(--line);color:{{ c.fg }};">{{ c.label }} {{ c.arrow }}</th>
+                  </sc-for>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ filas }}" as="r" hint-placeholder-count="10">
+                    <tr style="background:{{ r.bg }};" style-hover="background:var(--s2);">
+                      <td style="padding:7px 12px;border-bottom:1px solid var(--line);white-space:nowrap;"><span style="font-weight:{{ r.fw }};">{{ r.nombre }}</span> <span style="white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink3);">{{ r.t }}</span></td>
+                      <td style="padding:7px 12px;border-bottom:1px solid var(--line);color:var(--ink2);">{{ r.mercado }}</td>
+                      <sc-for list="{{ r.cells }}" as="x" hint-placeholder-count="6"><td style="padding:7px 12px;text-align:right;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--line);color:{{ x.c }};">{{ x.v }}</td></sc-for>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div style="padding:8px 16px;font-size:11px;color:var(--ink3);">Rojo/verde: cuartil inferior/superior del grupo filtrado. Cifras de comparables ilustrativas; en producción provienen de /api/companies.</div>
+          </div>
+        </section>
+      </sc-if>
+    </main>
+  </div>
+
+  <sc-if value="{{ carga.abierta }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;background:rgba(5,8,14,0.6);overflow-y:auto;">
+      <div data-screen-label="Cargar empresa" style="width:100%;max-width:720px;border:1px solid var(--line2);border-radius:10px;background:var(--s1);box-shadow:0 24px 64px rgba(0,0,0,0.45);display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);">
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
+            <h2 style="margin:0;font-size:15px;font-weight:600;">Cargar empresa</h2>
+            <span style="font-size:12px;color:var(--ink3);">El balance se procesa y guarda solo en este navegador.</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;">
+            <span style="white-space:nowrap;padding:2px 8px;border-radius:4px;background:{{ carga.s1bg }};color:{{ carga.s1fg }};">1 Datos</span>
+            <span style="color:var(--ink3);">→</span>
+            <span style="white-space:nowrap;padding:2px 8px;border-radius:4px;background:{{ carga.s2bg }};color:{{ carga.s2fg }};">2 Revisión</span>
+          </div>
+          <button onClick="{{ cerrarCarga }}" style="border:0;background:transparent;color:var(--ink3);cursor:pointer;padding:4px;" style-hover="color:var(--ink);"><i class="icon-x" style="font-size:16px;"></i></button>
+        </div>
+
+        <sc-if value="{{ carga.paso1 }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:16px;padding:18px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+              <label style="display:flex;flex-direction:column;gap:6px;grid-column:1 / -1;"><span style="font-size:12px;color:var(--ink2);">Nombre de la empresa</span><input value="{{ carga.nombre }}" onChange="{{ onNombre }}" placeholder="Ej. Textil del Sur S.R.L." style="border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:8px 10px;font-family:inherit;font-size:13px;"></label>
+              <sc-for list="{{ carga.selects }}" as="s" hint-placeholder-count="3">
+                <label style="display:flex;flex-direction:column;gap:6px;"><span style="font-size:12px;color:var(--ink2);">{{ s.label }}</span>
+                  <select value="{{ s.v }}" onChange="{{ s.on }}" style="border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:8px 10px;font-family:inherit;font-size:13px;">
+                    <sc-for list="{{ s.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for>
+                  </select>
+                </label>
+              </sc-for>
+            </div>
+
+            <label onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:28px 16px;border:1.5px dashed {{ carga.dropBd }};border-radius:8px;background:{{ carga.dropBg }};cursor:pointer;text-align:center;transition:border-color 120ms ease,background 120ms ease;">
+              <i class="icon-file-spreadsheet" style="font-size:24px;color:var(--ink2);"></i>
+              <span style="font-size:13px;font-weight:500;">{{ carga.dropTxt }}</span>
+              <span style="font-size:12px;color:var(--ink3);">CSV (coma, punto y coma o tab) o Excel .xlsx · una fila por ejercicio</span>
+              <input type="file" accept=".csv,.txt,.xlsx,.xls" onChange="{{ onFile }}" style="display:none;">
+            </label>
+
+            <sc-if value="{{ carga.errorArchivo }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:8px;padding:8px 12px;border-radius:6px;background:var(--bad-bg);color:var(--bad);font-size:12px;"><span>◆</span><span>{{ carga.errorArchivo }}</span></div>
+            </sc-if>
+
+            <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:8px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:12px;font-weight:600;white-space:nowrap;">Columnas esperadas</span>
+                <button onClick="{{ bajarPlantilla }}" style="display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:4px 10px;background:var(--bg);color:var(--ink2);font-size:11px;cursor:pointer;white-space:nowrap;" style-hover="color:var(--ink);"><i class="icon-download" style="font-size:12px;"></i>Descargar plantilla CSV</button>
+              </div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.6;color:var(--ink2);">Obligatorias: activos_corrientes, activos_totales, pasivos_corrientes, pasivos_totales, patrimonio_neto, ganancias_retenidas, deuda_total, ebit</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.6;color:var(--ink3);">Para CCC e ICR: ventas, costo_ventas, cuentas_por_cobrar, inventarios, cuentas_por_pagar, gastos_intereses, ebitda · opcionales: periodo, deuda_usd_pct, resultado_neto, efectivo, valor_mercado_patrimonio</span>
+              <span style="font-size:11px;color:var(--ink3);">Se aceptan sinónimos (p. ej. "proveedores", "bienes de cambio", "créditos por ventas") y formatos 1.234.567,89 o 1,234,567.89.</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ carga.paso2 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:14px;padding:18px;">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><i class="icon-file-check" style="font-size:16px;color:var(--ok);"></i><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">{{ carga.archivo }}</span><span style="color:var(--ink3);white-space:nowrap;">· {{ carga.resumen }}</span></div>
+            <sc-for list="{{ carga.mensajes }}" as="x" hint-placeholder-count="0">
+              <div style="display:flex;gap:8px;padding:7px 12px;border-radius:6px;font-size:12px;background:{{ x.bg }};color:{{ x.fg }};"><span>{{ x.sh }}</span><span>{{ x.t }}</span></div>
+            </sc-for>
+            <div style="border:1px solid var(--line);border-radius:8px;overflow-x:auto;">
+              <table style="width:100%;min-width:520px;border-collapse:collapse;font-size:12px;">
+                <thead><tr style="font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);text-align:right;">
+                  <th style="padding:8px 12px;text-align:left;font-weight:500;border-bottom:1px solid var(--line);">Período</th><th style="padding:8px;font-weight:500;border-bottom:1px solid var(--line);">Activo total</th><th style="padding:8px;font-weight:500;border-bottom:1px solid var(--line);">Pasivo total</th><th style="padding:8px;font-weight:500;border-bottom:1px solid var(--line);">Patrimonio</th><th style="padding:8px;font-weight:500;border-bottom:1px solid var(--line);">Ventas</th><th style="padding:8px 12px 8px 8px;font-weight:500;border-bottom:1px solid var(--line);">Cuadra</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ carga.filas }}" as="r" hint-placeholder-count="2">
+                    <tr style="font-family:'IBM Plex Mono',monospace;text-align:right;">
+                      <td style="padding:7px 12px;text-align:left;border-bottom:1px solid var(--line);">{{ r.periodo }}</td><td style="padding:7px 8px;border-bottom:1px solid var(--line);">{{ r.ta }}</td><td style="padding:7px 8px;border-bottom:1px solid var(--line);">{{ r.tl }}</td><td style="padding:7px 8px;border-bottom:1px solid var(--line);">{{ r.pn }}</td><td style="padding:7px 8px;border-bottom:1px solid var(--line);">{{ r.ventas }}</td><td style="padding:7px 12px 7px 8px;border-bottom:1px solid var(--line);color:{{ r.okc }};">{{ r.ok }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:12px;font-weight:600;">Vista previa del semáforo · último ejercicio</span>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;">
+                <sc-for list="{{ carga.preview }}" as="s" hint-placeholder-count="6">
+                  <div style="display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;">
+                    <span style="font-size:11px;color:var(--ink2);">{{ s.nombre }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:18px;">{{ s.valor }}</span>
+                    <span style="font-size:11px;font-weight:600;color:{{ s.fg }};">{{ s.sh }} {{ s.label }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 18px;border-top:1px solid var(--line);">
+          <span style="font-size:11px;color:var(--ink3);margin-right:auto;">{{ carga.pie }}</span>
+          <sc-if value="{{ carga.paso2 }}" hint-placeholder-val="{{ false }}"><button onClick="{{ volverCarga }}" style="border:1px solid var(--line);border-radius:6px;padding:7px 12px;background:transparent;color:var(--ink2);font-size:12px;cursor:pointer;">Volver</button></sc-if>
+          <button onClick="{{ carga.accion }}" disabled="{{ carga.disabled }}" style="border:0;border-radius:6px;padding:7px 14px;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;opacity:{{ carga.op }};">{{ carga.accionTxt }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;tema&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;oscuro&quot;,&quot;claro&quot;],&quot;default&quot;:&quot;oscuro&quot;,&quot;tsType&quot;:&quot;'oscuro'|'claro'&quot;},&quot;moduloInicial&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;panel&quot;,&quot;ccc&quot;,&quot;deuda&quot;,&quot;sim&quot;,&quot;bench&quot;],&quot;default&quot;:&quot;panel&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;mostrarCriterios&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const TC = 1485.5;
+const NF = {};
+const nf = (v, d = 1) => { if (!NF[d]) NF[d] = new Intl.NumberFormat('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d }); return NF[d].format(v); };
+const ST = {
+  ok: { fg: 'var(--ok)', bg: 'var(--ok-bg)', label: 'Saludable', sh: '●' },
+  warn: { fg: 'var(--warn)', bg: 'var(--warn-bg)', label: 'Precaución', sh: '▲' },
+  bad: { fg: 'var(--bad)', bg: 'var(--bad-bg)', label: 'Crítico', sh: '◆' },
+  na: { fg: 'var(--ink3)', bg: 'var(--s2)', label: 'Sin dato', sh: '○' }
+};
+const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const ESC = {
+  base: { dev: 0, tasa: 65, dso: 74, dpo: 35, ventas: 0 },
+  pesimista: { dev: 15, tasa: 75, dso: 85, dpo: 30, ventas: -10 },
+  shock: { dev: 50, tasa: 90, dso: 80, dpo: 35, ventas: -5 }
+};
+const ESC_DESC = {
+  base: 'Supuestos actuales de la empresa: sin salto cambiario, tasa ARS 65%, plazos de FY2025.',
+  pesimista: 'Ventas −10%, clientes demoran 11 días más, proveedores acortan 5 días, devaluación 15%.',
+  shock: 'Salto cambiario de 50% con suba de tasa a 90% y deterioro moderado de cobranzas.',
+  custom: 'Escenario personalizado a partir de los controles.'
+};
+const FLOOR = 13;
+function sim(p) {
+  const k = 1 + p.ventas / 100, ebitdaA = 48 * k, intA = 49 * p.tasa / 100 + 21 * (1 + p.dev / 100) * 0.09;
+  const otros = 26, net = (ebitdaA - intA - otros) / 12;
+  const wc = (74 - p.dso) * k + (p.dpo - 35) * (240 / 365) * k;
+  const fxP = { 2: 1, 5: 2, 8: 0, 11: 4 };
+  let bal = 51, min = Infinity, minI = 0, fxTot = 0;
+  const rows = [];
+  for (let i = 0; i < 12; i++) {
+    const fx = fxP[i] !== undefined ? fxP[i] * p.dev / 100 : 0; fxTot += fx;
+    bal += net + (i < 3 ? wc / 3 : 0) - fx; rows.push(bal);
+    if (bal < min) { min = bal; minI = i; }
+  }
+  return { rows, end: bal, min, minI, icr: ebitdaA / intA, ccc: p.dso + 45.6 - p.dpo, fxDeuda: 21 * p.dev / 100, wc, ebitdaA, intA, otros, fxTot };
+}
+const SPARK = {
+  ccc: [62, 66, 69, 72, 75, 79, 82, 84.6], icr: [2.4, 2.2, 2.1, 1.9, 1.8, 1.6, 1.5, 1.41],
+  fx: [18, 20, 22, 24, 25, 27, 28, 30], run: [96, 90, 84, 80, 74, 68, 63, 59]
+};
+function spark(a) {
+  const w = 112, h = 32, mn = Math.min(...a), mx = Math.max(...a), r = mx - mn || 1;
+  const pts = a.map((v, i) => [i * w / (a.length - 1), h - 3 - (v - mn) / r * (h - 6)]);
+  return { pts: pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '), lx: pts[pts.length - 1][0], ly: pts[pts.length - 1][1] };
+}
+const PEERS = [
+  { nombre: 'Metalúrgica Don Pedro', t: 'DEMO', mercado: 'Argentina', ccc: 84.6, dso: 74, dpo: 35, icr: 1.41, de: 0.58, mg: 2.2, self: true },
+  { nombre: 'Tenaris', t: 'TS', mercado: 'Argentina', ccc: 128, dso: 82, dpo: 44, icr: 7.5, de: 0.08, mg: 16.4 },
+  { nombre: 'PyME par A', t: 'anón.', mercado: 'Argentina', ccc: 70, dso: 60, dpo: 48, icr: 2.1, de: 0.72, mg: 4.1 },
+  { nombre: 'PyME par B', t: 'anón.', mercado: 'Argentina', ccc: 95, dso: 81, dpo: 40, icr: 1.3, de: 1.30, mg: 1.2 },
+  { nombre: 'Gerdau', t: 'GGB', mercado: 'Brasil', ccc: 92, dso: 45, dpo: 40, icr: 6.1, de: 0.30, mg: 7.9 },
+  { nombre: 'PyME par C', t: 'anón.', mercado: 'Brasil', ccc: 55, dso: 52, dpo: 50, icr: 2.8, de: 0.60, mg: 6.0 },
+  { nombre: 'PyME par D', t: 'anón.', mercado: 'México', ccc: 80, dso: 66, dpo: 46, icr: 1.8, de: 0.88, mg: 3.5 },
+  { nombre: 'Caterpillar', t: 'CAT', mercado: 'EE.UU.', ccc: 105, dso: 68, dpo: 58, icr: 5.2, de: 1.95, mg: 16.8 },
+  { nombre: 'Deere & Co.', t: 'DE', mercado: 'EE.UU.', ccc: 118, dso: 72, dpo: 45, icr: 3.1, de: 2.40, mg: 14.0 },
+  { nombre: 'GE Aerospace', t: 'GE', mercado: 'EE.UU.', ccc: 62, dso: 70, dpo: 85, icr: 4.4, de: 1.10, mg: 13.5 },
+  { nombre: 'ABB', t: 'ABBNY', mercado: 'Europa', ccc: 74, dso: 80, dpo: 70, icr: 6.8, de: 0.55, mg: 12.1 },
+  { nombre: 'Siemens', t: 'SIEGY', mercado: 'Europa', ccc: 88, dso: 75, dpo: 55, icr: 4.0, de: 0.95, mg: 10.4 },
+  { nombre: 'Komatsu', t: 'KMTUY', mercado: 'Asia', ccc: 135, dso: 95, dpo: 62, icr: 5.5, de: 0.48, mg: 9.6 }
+];
+const COLS = [
+  { k: 'nombre', label: 'Empresa', al: 'left' }, { k: 'mercado', label: 'Mercado', al: 'left' },
+  { k: 'ccc', label: 'CCC d', al: 'right', lower: true, f: v => nf(v, 1) }, { k: 'dso', label: 'DSO d', al: 'right', lower: true, f: v => nf(v, 0) },
+  { k: 'dpo', label: 'DPO d', al: 'right', f: v => nf(v, 0) }, { k: 'icr', label: 'ICR', al: 'right', f: v => nf(v, 2) + 'x' },
+  { k: 'de', label: 'Deuda/PN', al: 'right', lower: true, f: v => nf(v, 2) + 'x' }, { k: 'mg', label: 'Margen neto', al: 'right', f: v => nf(v, 1) + '%' }
+];
+
+// ---- Carga de empresas (portado de src/services/userCompanies.ts) ----
+const STORE = 'centinela-v2-empresas';
+const OBLIG = ['activos_corrientes', 'activos_totales', 'pasivos_corrientes', 'pasivos_totales', 'patrimonio_neto', 'ganancias_retenidas', 'deuda_total', 'ebit'];
+const SIN = { activo_corriente: 'activos_corrientes', activo_total: 'activos_totales', pasivo_corriente: 'pasivos_corrientes', pasivo_total: 'pasivos_totales', patrimonio: 'patrimonio_neto', resultados_acumulados: 'ganancias_retenidas', deuda_financiera: 'deuda_total', resultado_operativo: 'ebit', ingresos: 'ventas', revenue: 'ventas', costo_de_ventas: 'costo_ventas', costo: 'costo_ventas', cogs: 'costo_ventas', cuentas_a_cobrar: 'cuentas_por_cobrar', creditos_por_ventas: 'cuentas_por_cobrar', deudores_por_ventas: 'cuentas_por_cobrar', clientes: 'cuentas_por_cobrar', inventario: 'inventarios', bienes_de_cambio: 'inventarios', stock: 'inventarios', cuentas_a_pagar: 'cuentas_por_pagar', proveedores: 'cuentas_por_pagar', deudas_comerciales: 'cuentas_por_pagar', intereses: 'gastos_intereses', intereses_financieros: 'gastos_intereses', porcentaje_deuda_usd: 'deuda_usd_pct', ganancia_neta: 'resultado_neto', utilidad_neta: 'resultado_neto', caja: 'efectivo', valor_de_mercado: 'valor_mercado_patrimonio', ejercicio: 'periodo', fecha: 'periodo' };
+const PLANTILLA = 'periodo,activos_corrientes,activos_totales,pasivos_corrientes,pasivos_totales,patrimonio_neto,ganancias_retenidas,deuda_total,ebit,ventas,costo_ventas,cuentas_por_cobrar,inventarios,cuentas_por_pagar,gastos_intereses,deuda_usd_pct,resultado_neto,valor_mercado_patrimonio\n2024-12-31,13000000,38000000,8000000,20000000,18000000,3500000,11000000,3000000,30000000,20000000,5000000,3000000,2500000,2500000,0.25,1800000,\n2025-12-31,15000000,42000000,9000000,22000000,20000000,4000000,12000000,3500000,34000000,22000000,6000000,3500000,2800000,2800000,0.30,2200000,\n';
+const normH = (h) => { const l = String(h).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); return SIN[l] ?? l; };
+function parseNum(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v !== 'string') return null;
+  let s = v.trim().replace(/US\$|ARS|USD|[\s$]/gi, ''); if (s === '' || s === '-') return null;
+  let neg = false; if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+  const p = s.includes('.'), c = s.includes(',');
+  if (p && c) s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  else if (c) s = /^-?\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
+  else if (p) s = (s.match(/\./g) || []).length > 1 ? s.replace(/\./g, '') : s;
+  const n = Number(s); return Number.isFinite(n) ? (neg ? -n : n) : null;
+}
+function splitCsv(l, sep) { const out = []; let a = '', q = false; for (let i = 0; i < l.length; i++) { const ch = l[i]; if (ch === '"') { if (q && l[i + 1] === '"') { a += '"'; i++; } else q = !q; } else if (ch === sep && !q) { out.push(a); a = ''; } else a += ch; } out.push(a); return out.map(x => x.trim()); }
+function filasCsv(t) {
+  const ls = t.replace(/^\ufeff/, '').split(/\r?\n/).filter(l => l.trim() !== ''); if (ls.length < 2) return [];
+  const sep = [';', '\t', ','].sort((a, b) => (ls[0].split(b).length) - (ls[0].split(a).length))[0];
+  const hs = splitCsv(ls[0], sep).map(normH);
+  return ls.slice(1).map(l => { const c = splitCsv(l, sep), f = {}; hs.forEach((h, i) => { f[h] = c[i] ?? ''; }); return f; });
+}
+function periodoTxt(v, i) { if (v instanceof Date) return v.toISOString().slice(0, 10); if (typeof v === 'number' && v > 20000 && v < 80000) return new Date(Math.round((v - 25569) * 864e5)).toISOString().slice(0, 10); if (v != null && String(v).trim() !== '') return String(v).trim(); return 'Período ' + (i + 1); }
+function periodosDeFilas(filas) {
+  const errores = [], adv = [], per = [];
+  if (!filas.length) return { periodos: [], errores: ['El archivo no tiene ninguna fila de datos.'], adv };
+  filas.forEach((f, i) => {
+    const falt = OBLIG.filter(c => parseNum(f[c]) === null);
+    if (falt.length) { errores.push('Fila ' + (i + 2) + ': faltan o no son números válidos: ' + falt.join(', ') + '.'); return; }
+    const n = (c) => parseNum(f[c]);
+    const p = { periodo: periodoTxt(f.periodo, i), activosCorrientes: n('activos_corrientes'), activosTotales: n('activos_totales'), pasivosCorrientes: n('pasivos_corrientes'), pasivosTotales: n('pasivos_totales'), patrimonioNeto: n('patrimonio_neto'), gananciasRetenidas: n('ganancias_retenidas'), deudaTotal: n('deuda_total'), ebit: n('ebit'), revenue: n('ventas'), costoVentas: n('costo_ventas'), cuentasPorCobrar: n('cuentas_por_cobrar'), inventarios: n('inventarios'), cuentasPorPagar: n('cuentas_por_pagar'), gastosIntereses: n('gastos_intereses'), deudaUsdPct: n('deuda_usd_pct'), netIncome: n('resultado_neto'), ebitda: n('ebitda'), efectivo: n('efectivo'), valorMercado: n('valor_mercado_patrimonio') };
+    if (p.activosTotales <= 0) { errores.push('Fila ' + (i + 2) + ': el activo total debe ser mayor que cero.'); return; }
+    if (p.activosCorrientes > p.activosTotales) adv.push('Fila ' + (i + 2) + ': el activo corriente supera al activo total.');
+    if (Math.abs(p.activosTotales - (p.pasivosTotales + p.patrimonioNeto)) / p.activosTotales > 0.05) adv.push(p.periodo + ': el balance no cuadra (activo ≠ pasivo + patrimonio por más de 5%).');
+    per.push(p);
+  });
+  per.sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)));
+  return { periodos: per, errores, adv };
+}
+const dv = (a, b) => (a == null || b == null || b === 0) ? null : a / b;
+function metricas(p) {
+  const dso = p.revenue > 0 && p.cuentasPorCobrar != null ? p.cuentasPorCobrar / p.revenue * 365 : null;
+  const dio = p.costoVentas > 0 && p.inventarios != null ? p.inventarios / p.costoVentas * 365 : null;
+  const dpo = p.costoVentas > 0 && p.cuentasPorPagar != null ? p.cuentasPorPagar / p.costoVentas * 365 : null;
+  const ccc = dso == null || dpo == null ? null : dso + (dio ?? 0) - dpo;
+  const icr = p.ebitda != null && p.gastosIntereses > 0 ? p.ebitda / p.gastosIntereses : null;
+  const mc = p.valorMercado ?? p.patrimonioNeto;
+  const z = p.pasivosTotales ? 6.56 * (p.activosCorrientes - p.pasivosCorrientes) / p.activosTotales + 3.26 * p.gananciasRetenidas / p.activosTotales + 6.72 * p.ebit / p.activosTotales + 1.05 * mc / p.pasivosTotales : null;
+  return { liq: dv(p.activosCorrientes, p.pasivosCorrientes), end: dv(p.pasivosTotales, p.activosTotales), dpn: dv(p.deudaTotal, p.patrimonioNeto), dso, dio, dpo, ccc, icr, mg: dv(p.netIncome, p.revenue), roe: dv(p.netIncome, p.patrimonioNeto), z, usd: p.deudaUsdPct };
+}
+const est = (v, f) => v == null || !Number.isFinite(v) ? 'na' : f(v);
+function semaforoDe(m) {
+  const pc = (v) => nf(v * 100, 1) + '%', x = (v) => nf(v, 2) + 'x', d = (v) => nf(v, 1) + ' d';
+  const fmt = (v, f) => v == null || !Number.isFinite(v) ? 'N/D' : f(v);
+  return [
+    ['Ciclo de caja (CCC)', m.ccc, d, v => v > 90 ? 'bad' : v > 60 ? 'warn' : 'ok', 'ok ≤60 · prec 60–90 · crít >90', 'ccc'],
+    ['Días de cobro (DSO)', m.dso, d, v => v > 75 ? 'bad' : v > 50 ? 'warn' : 'ok', 'ok ≤50 · prec 50–75 · crít >75', 'ccc'],
+    ['Días de pago (DPO)', m.dpo, d, v => v < 30 ? 'warn' : 'ok', 'prec <30 · ok ≥30', 'ccc'],
+    ['Cobertura intereses (ICR)', m.icr, x, v => v < 1 ? 'bad' : v < 2 ? 'warn' : 'ok', 'ok >2 · prec 1–2 · crít <1', 'deuda'],
+    ['Liquidez corriente', m.liq, x, v => v < 1 ? 'bad' : v < 1.5 ? 'warn' : 'ok', 'ok >1,5 · prec 1–1,5 · crít <1', 'panel'],
+    ['Deuda / Patrimonio', m.dpn, x, v => v > 2 ? 'bad' : v > 1 ? 'warn' : 'ok', 'ok <1 · prec 1–2 · crít >2', 'deuda'],
+    ['Margen neto', m.mg, pc, v => v < 0 ? 'bad' : v < 0.1 ? 'warn' : 'ok', 'ok ≥10% · prec 0–10% · crít <0', 'panel'],
+    ['ROE', m.roe, pc, v => v < 0 ? 'bad' : v < 0.15 ? 'warn' : 'ok', 'ok ≥15% · prec 0–15% · crít <0', 'panel'],
+    ["Altman Z''", m.z, v => nf(v, 2), v => v < 1.1 ? 'bad' : v < 2.6 ? 'warn' : 'ok', 'ok >2,6 · gris 1,1–2,6 · crít <1,1', 'deuda']
+  ].map(([nombre, v, f, rule, criterio, mod]) => ({ nombre, raw: v, valor: fmt(v, f), s: est(v, rule), criterio, mod }));
+}
+const COTIZ = [
+  { id: 'YPF', nombre: 'YPF S.A.', mercado: 'Argentina', sector: 'Energía', moneda: 'USD', periodos: [{ periodo: '2025-12-31', activosCorrientes: 6477, activosTotales: 29439, pasivosCorrientes: 7443, pasivosTotales: 18395, patrimonioNeto: 10814, gananciasRetenidas: -756, deudaTotal: 11152, ebit: 1844, valorMercado: 21309 }] },
+  { id: 'PAM', nombre: 'Pampa Energía S.A.', mercado: 'Argentina', sector: 'Energía', moneda: 'USD', periodos: [{ periodo: '2025-12-31', activosCorrientes: 1988, activosTotales: 6594, pasivosCorrientes: 639, pasivosTotales: 2989, patrimonioNeto: 3596, gananciasRetenidas: 351, deudaTotal: 1928, ebit: 771, valorMercado: 4330 }] },
+  { id: 'LOMA', nombre: 'Loma Negra C.I.A.S.A.', mercado: 'Argentina', sector: 'Materiales', moneda: 'ARS', periodos: [{ periodo: '2025-12-31', activosCorrientes: 439773, activosTotales: 1897943, pasivosCorrientes: 306102, pasivosTotales: 831781, patrimonioNeto: 1067219, gananciasRetenidas: 23585, deudaTotal: 303400, ebit: 89421 }] },
+  { id: 'TEO', nombre: 'Telecom Argentina S.A.', mercado: 'Argentina', sector: 'Telecom.', moneda: 'ARS', periodos: [{ periodo: '2025-12-31', activosCorrientes: 1833812, activosTotales: 16622552, pasivosCorrientes: 3838300, pasivosTotales: 9639244, patrimonioNeto: 6863861, gananciasRetenidas: -170006, deudaTotal: 5825698, ebit: 287921 }] },
+  { id: 'CRESY', nombre: 'Cresud S.A.', mercado: 'Argentina', sector: 'Agro', moneda: 'ARS', periodos: [{ periodo: '2026-06-30', activosCorrientes: 1824035, activosTotales: 7244639, pasivosCorrientes: 1245115, pasivosTotales: 4090132, patrimonioNeto: 1454933, gananciasRetenidas: 158137, deudaTotal: 2183939, ebit: 645953 }] }
+];
+let XLSX_P = null;
+function cargarXlsx() { if (window.XLSX) return Promise.resolve(window.XLSX); if (!XLSX_P) XLSX_P = new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'; s.onload = () => ok(window.XLSX); s.onerror = () => { XLSX_P = null; ko(new Error('No se pudo cargar el lector de Excel.')); }; document.head.appendChild(s); }); return XLSX_P; }
+const CARGA0 = { abierta: false, paso: 1, nombre: '', mercado: 'Argentina', sector: 'Industria', moneda: 'ARS', archivo: '', periodos: [], errores: [], adv: [], drag: false, errorArchivo: '', leyendo: false };
+
+class Component extends DCLogic {
+  state = { mod: null, moneda: 'ARS', tema: null, periodo: 'FY25', esc: 'base', ...ESC.base, cccSel: 'dso', sortK: 'ccc', sortD: 1, filtro: 'Todos', ent: 'demo', entOpen: false, entQ: '', mis: [], carga: CARGA0 };
+  componentDidMount() {
+    this.applyTheme();
+    try { const r = JSON.parse(localStorage.getItem(STORE) || '[]'); if (Array.isArray(r)) this.setState({ mis: r }); } catch (e) {}
+    this._out = (e) => { if (this.state.entOpen && !e.target.closest('[data-ent-pop]')) this.setState({ entOpen: false }); };
+    document.addEventListener('mousedown', this._out);
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this._out); }
+  setCarga(p) { this.setState(s => ({ carga: { ...s.carga, ...p } })); }
+  async leerArchivo(file) {
+    if (!file) return;
+    this.setCarga({ leyendo: true, errorArchivo: '', archivo: file.name });
+    try {
+      let filas;
+      if (/\.(xlsx|xls)$/i.test(file.name)) {
+        const X = await cargarXlsx();
+        const wb = X.read(await file.arrayBuffer(), { type: 'array' });
+        const raw = X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: null, raw: true });
+        filas = raw.map(f => { const o = {}; for (const k in f) o[normH(k)] = f[k]; return o; });
+      } else filas = filasCsv(await file.text());
+      const r = periodosDeFilas(filas);
+      if (!r.periodos.length) return this.setCarga({ leyendo: false, errorArchivo: r.errores[0] || 'No se encontraron períodos válidos.' });
+      const nombre = this.state.carga.nombre || file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
+      this.setCarga({ leyendo: false, paso: 2, nombre, periodos: r.periodos, errores: r.errores, adv: r.adv });
+    } catch (e) { this.setCarga({ leyendo: false, errorArchivo: e.message || 'No se pudo leer el archivo.' }); }
+  }
+  guardarCarga() {
+    const c = this.state.carga;
+    const nueva = { id: 'MI-' + Math.random().toString(36).slice(2, 7).toUpperCase(), nombre: c.nombre.trim() || 'Mi empresa', mercado: c.mercado, sector: c.sector, moneda: c.moneda, periodos: c.periodos, creada: new Date().toISOString() };
+    const mis = [...this.state.mis, nueva];
+    try { localStorage.setItem(STORE, JSON.stringify(mis)); } catch (e) {}
+    this.setState({ mis, ent: nueva.id, carga: CARGA0, mod: 'panel' });
+  }
+  bajarPlantilla = () => { const u = URL.createObjectURL(new Blob([PLANTILLA], { type: 'text/csv' })); const a = document.createElement('a'); a.href = u; a.download = 'centinela-plantilla.csv'; a.click(); URL.revokeObjectURL(u); };
+  componentDidUpdate() { this.applyTheme(); }
+  tema() { return this.state.tema ?? this.props.tema ?? 'oscuro'; }
+  applyTheme() { document.body.classList.toggle('claro', this.tema() === 'claro'); }
+  money(m, sign) {
+    const s = sign && m > 0 ? '+' : m < 0 ? '−' : '';
+    const a = Math.abs(m);
+    if (this.state.moneda === 'ARS') return s + '$ ' + nf(a, 1) + ' M';
+    const u = a * 1e6 / TC;
+    return s + 'US$ ' + (u >= 1e6 ? nf(u / 1e6, 2) + ' M' : nf(u / 1e3, 1) + ' K');
+  }
+  seg(active) { return active ? { bg: 'var(--s2)', fg: 'var(--ink)' } : { bg: 'transparent', fg: 'var(--ink3)' }; }
+  exportar = () => {
+    const head = COLS.map(c => c.label).join(';');
+    const body = PEERS.map(r => COLS.map(c => typeof r[c.k] === 'number' ? String(r[c.k]).replace('.', ',') : r[c.k]).join(';')).join('\n');
+    const url = URL.createObjectURL(new Blob(['\ufeff' + head + '\n' + body], { type: 'text/csv' }));
+    const a = document.createElement('a'); a.href = url; a.download = 'centinela-benchmark.csv'; a.click(); URL.revokeObjectURL(url);
+  };
+  renderVals() {
+    const S = this.state, mod = S.mod ?? this.props.moduloInicial ?? 'panel';
+    const go = (m) => () => { this.setState({ mod: m }); window.scrollTo && window.scrollTo(0, 0); };
+    const money = (m, s) => this.money(m, s);
+    const NAV = [
+      { id: 'panel', label: 'Panel general', icon: 'icon-layout-dashboard', pill: '2', pt: 'bad' },
+      { id: 'ccc', label: 'Capital de trabajo', icon: 'icon-refresh-cw', pill: 'CCC', pt: 'warn' },
+      { id: 'deuda', label: 'Deuda y solvencia', icon: 'icon-landmark', pill: 'ICR', pt: 'warn' },
+      { id: 'sim', label: 'Simulador FX', icon: 'icon-sliders-horizontal', pill: 'Δ', pt: null },
+      { id: 'bench', label: 'Benchmark', icon: 'icon-chart-scatter', pill: 'P38', pt: null }
+    ];
+    const TITLES = { panel: 'Panel general y alerta temprana', ccc: 'Auditoría de capital de trabajo (CCC)', deuda: 'Cobertura de deuda (ICR) y solvencia', sim: 'Sensibilidad cambiaria y simulación de caja', bench: 'Benchmark de mercado' };
+    const nav = NAV.map(n => {
+      const a = n.id === mod, p = n.pt ? ST[n.pt] : null;
+      return { ...n, go: go(n.id), bg: a ? 'var(--s2)' : 'transparent', fg: a ? 'var(--ink)' : 'var(--ink2)', pillBg: p ? p.bg : 'var(--s2)', pillFg: p ? p.fg : 'var(--ink3)' };
+    });
+    const st = (k) => ST[k];
+
+    // KPIs panel
+    const mk = (o, s) => { const sp = spark(SPARK[o.sp]); const x = st(s); return { ...o, ...sp, svgD: 'block', stBg: x.bg, stFg: x.fg, stSh: x.sh, stLabel: x.label }; };
+    const kpis = [
+      mk({ label: 'Ciclo de conversión de efectivo', val: '84,6', unit: 'días', sp: 'ccc', d1: '+2,6 d', d1c: 'var(--bad)', d2: '+12,6 d', d2c: 'var(--bad)', ref: 'med. 79 d', go: go('ccc') }, 'warn'),
+      mk({ label: 'Cobertura de intereses (ICR)', val: '1,41', unit: 'x', sp: 'icr', d1: '−0,09x', d1c: 'var(--bad)', d2: '−0,49x', d2c: 'var(--bad)', ref: 'quiebre 1,0x', go: go('deuda') }, 'warn'),
+      mk({ label: 'Exposición cambiaria', val: '30', unit: '% deuda USD', sp: 'fx', d1: '+2 pp', d1c: 'var(--bad)', d2: '+12 pp', d2c: 'var(--bad)', ref: '+10% FX: ' + money(2.1, true), go: go('sim') }, 'warn'),
+      mk({ label: 'Runway de caja', val: '59', unit: 'días de egresos', sp: 'run', d1: '−4 d', d1c: 'var(--bad)', d2: '−21 d', d2c: 'var(--bad)', ref: 'caja ' + money(51), go: go('sim') }, 'warn')
+    ];
+    const alertas = [
+      { s: 'bad', titulo: 'Servicio de deuda T4 2026 supera el EBITDA trimestral', detalle: money(16.5) + ' vs ' + money(12) + ' · brecha ' + money(4.5), modulo: 'Deuda', go: go('deuda') },
+      { s: 'bad', titulo: 'Flujo de caja libre negativo y en deterioro', detalle: 'FY25 ' + money(-12) + ' · FY24 ' + money(-2) + ' · FY23 ' + money(5, true), modulo: 'Simulador', go: go('sim') },
+      { s: 'warn', titulo: 'DSO a 1 día del umbral crítico', detalle: '74 d · umbral 75 d · mediana sector 64 d', modulo: 'CCC', go: go('ccc') },
+      { s: 'warn', titulo: 'ICR en zona ajustada', detalle: '1,41x · quiebre con EBITDA −29% o tasa ARS +20 pp', modulo: 'Deuda', go: go('deuda') },
+      { s: 'warn', titulo: 'Exposición en USD en aumento', detalle: '30% de la deuda · +12 pp interanual', modulo: 'Simulador', go: go('sim') }
+    ].map(a => ({ ...a, fg: ST[a.s].fg, sh: ST[a.s].sh }));
+    const semaforo = [
+      ['Ciclo de caja (CCC)', '84,6 d', 'warn', 'ok ≤60 · prec 60–90 · crít >90'],
+      ['Días de cobro (DSO)', '74,0 d', 'warn', 'ok ≤50 · prec 50–75 · crít >75'],
+      ['Días de pago (DPO)', '35,0 d', 'ok', 'prec <30 · ok ≥30'],
+      ['Cobertura intereses (ICR)', '1,41x', 'warn', 'ok >2 · prec 1–2 · crít <1'],
+      ['Liquidez corriente', '2,07x', 'ok', 'ok >1,5 · prec 1–1,5 · crít <1'],
+      ['Deuda / Patrimonio', '0,58x', 'ok', 'ok <1 · prec 1–2 · crít >2'],
+      ['Margen neto', '2,2%', 'warn', 'ok ≥10% · prec 0–10% · crít <0'],
+      ['ROE', '6,7%', 'warn', 'ok ≥15% · prec 0–15% · crít <0'],
+      ["Altman Z''", '2,80', 'ok', 'ok >2,6 · gris 1,1–2,6 · crít <1,1']
+    ].map(([nombre, valor, s, criterio]) => ({ nombre, valor, criterio, fg: ST[s].fg, sh: ST[s].sh, label: ST[s].label }));
+
+    // Entidad activa
+    const ENTS = [...S.mis.map(e => ({ ...e, grupo: 'Mis empresas', tag: e.moneda + ' · ' + e.periodos.length + ' ej.' })), ...COTIZ.map(e => ({ ...e, grupo: 'Cotizantes', tag: e.id }))];
+    const cur = S.ent === 'demo' ? null : ENTS.find(e => e.id === S.ent) || null;
+    const ent = cur ? { nombre: cur.nombre, meta: (cur.grupo === 'Cotizantes' ? cur.id : 'Propia') + ' · ' + cur.sector + ' · ' + cur.moneda, estado: (cur.grupo === 'Cotizantes' ? 'Respaldo' : 'Balance propio') + ' · cierre ' + cur.periodos[cur.periodos.length - 1].periodo, dot: cur.grupo === 'Cotizantes' ? 'var(--warn)' : 'var(--acc)' } : { nombre: 'Metalúrgica Don Pedro S.A.', meta: 'DEMO-PEDRO · Industria · AR', estado: 'Demo · cierre 31/12/2025', dot: 'var(--warn)' };
+    let pg = { score: '66', unit: '/100 Score', badge: '▲ Precaución', bg: 'var(--warn-bg)', fg: 'var(--warn)', nBad: 2, nWarn: 3, nOk: 4, nAlertas: '5 activas · ordenadas por severidad', resumen: "Balance sano (Altman Z'' 2,80, liquidez 2,07x) con tensión de caja: el ciclo operativo inmoviliza 85 días y el servicio de deuda supera el EBITDA trimestral en 3 de los próximos 8 trimestres." };
+    let kpisF = kpis, alertasF = alertas, semaforoF = semaforo, bannerEnt = '';
+    if (cur) {
+      const last = cur.periodos[cur.periodos.length - 1], m = metricas(last), sem = semaforoDe(m);
+      const cnt = (k) => sem.filter(x => x.s === k).length;
+      const worst = cnt('bad') ? 'bad' : cnt('warn') ? 'warn' : 'ok';
+      const faltan = sem.filter(x => x.s === 'na').map(x => x.nombre.replace(/ \(.*\)/, ''));
+      const tens = sem.filter(x => x.s === 'bad' || x.s === 'warn').map(x => x.nombre.replace(/ \(.*\)/, '').toLowerCase());
+      pg = { score: m.z == null ? 'N/D' : nf(m.z, 2), unit: "Altman Z''", badge: ST[worst].sh + ' ' + ST[worst].label, bg: ST[worst].bg, fg: ST[worst].fg, nBad: cnt('bad'), nWarn: cnt('warn'), nOk: cnt('ok'), nAlertas: (cnt('bad') + cnt('warn')) + ' activas · ordenadas por severidad',
+        resumen: cnt('ok') + ' de ' + (sem.length - faltan.length) + ' indicadores calculables en zona saludable' + (tens.length ? '. Requieren seguimiento: ' + tens.join(', ') + '.' : '.') + (faltan.length ? ' Sin dato: ' + faltan.join(', ') + ' (faltan ventas, costo de ventas, créditos, proveedores o intereses en el balance).' : '') };
+      semaforoF = sem.map(x => ({ nombre: x.nombre, valor: x.valor, criterio: x.criterio, fg: ST[x.s].fg, sh: ST[x.s].sh, label: ST[x.s].label }));
+      const sev = { bad: 0, warn: 1 };
+      alertasF = sem.filter(x => x.s === 'bad' || x.s === 'warn').sort((a, b) => sev[a.s] - sev[b.s]).map(x => ({ titulo: x.nombre + ' en zona ' + (x.s === 'bad' ? 'crítica' : 'de precaución'), detalle: x.valor + ' · ' + x.criterio, modulo: { ccc: 'CCC', deuda: 'Deuda', panel: 'Panel' }[x.mod], go: go(x.mod), fg: ST[x.s].fg, sh: ST[x.s].sh }));
+      const k = (label, i, unit, ref, mod) => { const x = sem[i], s = ST[x.s]; return { label, val: x.valor === 'N/D' ? 'N/D' : x.valor.replace(/ d$|x$|%$/, ''), unit: x.valor === 'N/D' ? '' : unit, pts: '', lx: -999, ly: -999, svgD: 'none', stBg: s.bg, stFg: s.fg, stSh: s.sh, stLabel: s.label, d1: '—', d1c: 'var(--ink3)', d2: '—', d2c: 'var(--ink3)', ref, go: go(mod) }; };
+      const usdS = m.usd == null ? 'na' : m.usd > 0.5 ? 'bad' : m.usd > 0.2 ? 'warn' : 'ok';
+      kpisF = [k('Ciclo de conversión de efectivo', 0, 'días', 'crít >90 d', 'ccc'), k('Cobertura de intereses (ICR)', 3, 'x', 'quiebre 1,0x', 'deuda'),
+        { label: 'Exposición cambiaria', val: m.usd == null ? 'N/D' : nf(m.usd * 100, 0), unit: m.usd == null ? '' : '% deuda USD', pts: '', lx: -999, ly: -999, svgD: 'none', stBg: ST[usdS].bg, stFg: ST[usdS].fg, stSh: ST[usdS].sh, stLabel: ST[usdS].label, d1: '—', d1c: 'var(--ink3)', d2: '—', d2c: 'var(--ink3)', ref: 'deuda_usd_pct', go: go('sim') },
+        k('Liquidez corriente', 4, 'x', 'crít <1,0x', 'panel')];
+      bannerEnt = mod === 'panel' ? 'Panel calculado con el balance ' + last.periodo + ' de ' + cur.nombre + ' (' + cur.moneda + '). Tendencias QoQ/YoY disponibles al cargar 2 o más ejercicios trimestrales.' : 'Este módulo muestra el caso demo. En producción se alimenta del balance de ' + cur.nombre + ' con la misma lógica de src/lib/financial.';
+    }
+    const qq = S.entQ.trim().toLowerCase();
+    const it = (e) => ({ nombre: e.nombre, tag: e.tag, bg: S.ent === e.id ? 'var(--s2)' : 'transparent', go: () => this.setState({ ent: e.id, entOpen: false, entQ: '' }) });
+    const match = (e) => !qq || (e.nombre + ' ' + (e.id || '')).toLowerCase().includes(qq);
+    const entGrupos = [
+      { titulo: 'Caso demo', items: match({ nombre: 'Metalúrgica Don Pedro', id: 'demo' }) ? [{ nombre: 'Metalúrgica Don Pedro S.A.', tag: 'DEMO', bg: S.ent === 'demo' ? 'var(--s2)' : 'transparent', go: () => this.setState({ ent: 'demo', entOpen: false, entQ: '' }) }] : [] },
+      { titulo: 'Mis empresas', items: ENTS.filter(e => e.grupo === 'Mis empresas' && match(e)).map(it) },
+      { titulo: 'Cotizantes · respaldo', items: ENTS.filter(e => e.grupo === 'Cotizantes' && match(e)).map(it) }
+    ].filter(g => g.items.length);
+    // Modal de carga
+    const C = S.carga, ult = C.periodos[C.periodos.length - 1];
+    const ab = (v) => v == null ? '—' : nf(v / 1e6, 1) + ' M';
+    const carga = {
+      abierta: C.abierta, paso1: C.paso === 1, paso2: C.paso === 2, nombre: C.nombre, archivo: C.archivo,
+      s1bg: C.paso === 1 ? 'var(--ink)' : 'var(--s2)', s1fg: C.paso === 1 ? 'var(--bg)' : 'var(--ink3)', s2bg: C.paso === 2 ? 'var(--ink)' : 'var(--s2)', s2fg: C.paso === 2 ? 'var(--bg)' : 'var(--ink3)',
+      selects: [['Mercado', 'mercado', ['Argentina', 'Brasil', 'Chile', 'México', 'Estados Unidos', 'Europa', 'Asia']], ['Sector', 'sector', ['Industria', 'Agro', 'Construcción', 'Consumo', 'Energía', 'Materiales', 'Salud', 'Tecnología', 'Telecomunicaciones', 'Inmobiliario']], ['Moneda de reporte', 'moneda', ['ARS', 'USD', 'BRL', 'CLP', 'MXN', 'UYU', 'EUR']]].map(([label, key, opts]) => ({ label, opts, v: C[key], on: (e) => this.setCarga({ [key]: e.target.value }) })),
+      dropBd: C.drag ? 'var(--acc)' : 'var(--line2)', dropBg: C.drag ? 'var(--acc-bg)' : 'var(--bg)',
+      dropTxt: C.leyendo ? 'Leyendo ' + C.archivo + '…' : 'Arrastrá el archivo acá o hacé clic para elegirlo',
+      errorArchivo: C.errorArchivo,
+      resumen: C.periodos.length + (C.periodos.length === 1 ? ' ejercicio leído' : ' ejercicios leídos'),
+      mensajes: [...C.errores.map(t => ({ t, sh: '◆', bg: 'var(--bad-bg)', fg: 'var(--bad)' })), ...C.adv.map(t => ({ t, sh: '▲', bg: 'var(--warn-bg)', fg: 'var(--warn)' }))],
+      filas: C.periodos.map(p => { const ok = Math.abs(p.activosTotales - (p.pasivosTotales + p.patrimonioNeto)) / p.activosTotales <= 0.05; return { periodo: p.periodo, ta: ab(p.activosTotales), tl: ab(p.pasivosTotales), pn: ab(p.patrimonioNeto), ventas: ab(p.revenue), ok: ok ? '● Sí' : '▲ No', okc: ok ? 'var(--ok)' : 'var(--warn)' }; }),
+      preview: ult ? semaforoDe(metricas(ult)).filter((x, i) => [0, 1, 2, 3, 4, 5].includes(i)).map(x => ({ nombre: x.nombre, valor: x.valor, fg: ST[x.s].fg, sh: ST[x.s].sh, label: ST[x.s].label })) : [],
+      pie: C.paso === 1 ? 'Formato de columnas igual al de /mi-empresa.' : 'Si no informás valor de mercado, el Altman usa el patrimonio libro.',
+      accionTxt: C.paso === 1 ? (C.leyendo ? 'Leyendo…' : 'Elegí un archivo') : 'Guardar y analizar',
+      disabled: C.paso === 1, op: C.paso === 1 ? 0.4 : 1,
+      accion: () => this.guardarCarga()
+    };
+    // CCC
+    const sel = S.cccSel, ring = (id) => sel === id ? '2px solid var(--ink)' : 'none';
+    const componentes = [
+      { id: 'dio', nombre: 'Días de inventario (DIO)', val: '45,6', mediana: 60, w: (45.6 / 130 * 100) + '%', med: (60 / 130 * 100) + '%', s: 'ok', tag: 'Ventaja', delta: '−14,4 d vs sector', lectura: 'Rotación de inventario mejor que la mediana. No es el cuello de botella.' },
+      { id: 'dso', nombre: 'Días de cobro (DSO)', val: '74,0', mediana: 64, w: (74 / 130 * 100) + '%', med: (64 / 130 * 100) + '%', s: 'bad', tag: 'Cuello de botella', delta: '+10,0 d · ' + money(10) + ' atrapados', lectura: 'Principal fuente de tensión. Cada día de cobro equivale a ' + money(1) + ' de caja inmovilizada.' },
+      { id: 'dpo', nombre: 'Días de pago (DPO)', val: '35,0', mediana: 45, w: (35 / 130 * 100) + '%', med: (45 / 130 * 100) + '%', s: 'warn', tag: 'Margen de mejora', delta: '−10,0 d · ' + money(6.6) + ' sin aprovechar', lectura: 'Paga a proveedores antes que el sector. Extender a 45 d retendría caja sin costo financiero.' }
+    ].map(c => ({ ...c, fg: ST[c.s].fg, sh: ST[c.s].sh, border: sel === c.id ? 'var(--ink2)' : 'var(--line)', go: () => this.setState({ cccSel: c.id }) }));
+    const trimestres = ['T1 24', 'T2 24', 'T3 24', 'T4 24', 'T1 25', 'T2 25', 'T3 25', 'T4 25'];
+    const evol = [
+      { nombre: 'DIO', vals: [44.1, 44.8, 45.0, 45.3, 45.9, 45.2, 45.8, 45.6] },
+      { nombre: 'DSO', vals: [58, 61, 63, 66, 68, 70, 72, 74] },
+      { nombre: 'DPO', vals: [40.1, 39.8, 39.0, 39.3, 38.9, 36.2, 35.8, 35.0] },
+      { nombre: 'CCC', vals: [62, 66, 69, 72, 75, 79, 82, 84.6], fw: 600 }
+    ].map(r => ({ ...r, fw: r.fw || 400, vals: r.vals.map(v => nf(v, 1)) }));
+
+    // Deuda
+    const venc = [[3, 1], [5, 2], [2, 0], [8, 4], [3, 1], [3, 1], [9, 3], [3, 0]].map(([p, u], i) => {
+      const q = ['T1 26', 'T2 26', 'T3 26', 'T4 26', 'T1 27', 'T2 27', 'T3 27', 'T4 27'][i];
+      const tot = p + 8.5, gap = tot - 12, sc = (v) => (v / 20 * 100 * 0.9) + '%';
+      return { q, hInt: sc(8.5), hArs: sc(p - u), hUsd: sc(u), lbl: gap > 0 ? '◆ +' + nf(gap, 1) : nf(tot, 1), lc: gap > 0 ? 'var(--bad)' : 'var(--ink3)' };
+    });
+    const pasivos = [['Deuda bancaria ARS', 49, 'var(--d2)'], ['Deuda en USD', 21, 'var(--acc)'], ['Proveedores', 23, 'var(--d1)'], ['Otros pasivos', 47, 'var(--s2)']]
+      .map(([nombre, v, c]) => ({ nombre, val: money(v), pct: nf(v / 140 * 100, 0) + '%', w: (v / 140 * 100) + '%', c }));
+    const icrCol = (x, v) => ({ x, v: nf(v, 2) + 'x', h: Math.min(v / 2, 1) * 100 + '%', fg: v < 1 ? 'var(--bad)' : v < 2 ? 'var(--warn)' : 'var(--ok)' });
+    const sensICR = [
+      { titulo: 'Caída de EBITDA', quiebre: 'quiebre en −29%', cols: [0, -10, -20, -30, -40].map(d => icrCol((d === 0 ? '' : '') + d + '%', 1.41 * (1 + d / 100))) },
+      { titulo: 'Suba de tasa ARS', quiebre: 'quiebre en +20 pp', cols: [0, 5, 10, 20, 30].map(d => icrCol('+' + d + ' pp', 48 / (34 + 49 * d / 100))) }
+    ];
+    const deudaKpis = [
+      { label: 'ICR (EBITDA / intereses)', val: '1,41x', sub: '▲ Precaución · a 0,41x del quiebre', c: 'var(--warn)' },
+      { label: 'Deuda financiera', val: money(70), sub: '30% USD · 70% ARS', c: 'var(--ink3)' },
+      { label: 'Deuda / EBITDA', val: '1,46x', sub: 'mediana sector 1,9x', c: 'var(--ink3)' },
+      { label: 'Servicio próximos 12 meses', val: money(52), sub: 'capital ' + money(18) + ' + intereses ' + money(34), c: 'var(--ink3)' }
+    ];
+
+    // Simulador
+    const p = { dev: S.dev, tasa: S.tasa, dso: S.dso, dpo: S.dpo, ventas: S.ventas };
+    const b = sim(ESC.base), a = sim(p);
+    const maxV = Math.max(56, ...b.rows, ...a.rows);
+    const pct = (v) => (Math.max(0, v) / maxV * 100) + '%';
+    const breach = a.rows.findIndex(v => v < FLOOR);
+    const cols = a.rows.map((v, i) => ({ m: MESES[i], hb: pct(b.rows[i]), ha: pct(v), ca: v < FLOOR ? 'var(--bad)' : 'var(--acc)', tip: MESES[i] + ' · antes ' + money(b.rows[i]) + ' · después ' + money(v) }));
+    const set = (k) => (e) => this.setState({ [k]: Number(e.target.value), esc: 'custom' });
+    const sl = (k, label, min, max, step, fmt, base, warnIf) => ({ label, min, max, step, v: S[k], on: set(k), txt: fmt(S[k]), minT: fmt(min), maxT: fmt(max), base: fmt(base), vc: S[k] === base ? 'var(--ink)' : (warnIf(S[k]) ? 'var(--bad)' : 'var(--ok)') });
+    const sliders = [
+      sl('dev', 'Devaluación ARS/USD', 0, 100, 5, v => '+' + v + '%', 0, v => v > 0),
+      sl('tasa', 'Tasa de interés ARS', 30, 120, 1, v => v + '%', 65, v => v > 65),
+      sl('ventas', 'Variación de ventas', -30, 30, 1, v => (v > 0 ? '+' : '') + v + '%', 0, v => v < 0),
+      sl('dso', 'Días de cobro (DSO)', 30, 120, 1, v => v + ' d', 74, v => v > 74),
+      sl('dpo', 'Días de pago (DPO)', 15, 90, 1, v => v + ' d', 35, v => v < 35)
+    ];
+    const better = (d, inv) => (inv ? d < 0 : d > 0) ? 'var(--ok)' : d === 0 ? 'var(--ink3)' : 'var(--bad)';
+    const simKpis = [
+      { label: 'Caja a 12 meses', antes: money(b.end), despues: money(a.end), delta: money(a.end - b.end, true), c: better(Math.round((a.end - b.end) * 10)) },
+      { label: 'Caja mínima', antes: money(b.min), despues: money(a.min), delta: 'en ' + MESES[a.minI], c: a.min < FLOOR ? 'var(--bad)' : better(Math.round((a.min - b.min) * 10)) },
+      { label: 'ICR proyectado', antes: nf(b.icr, 2) + 'x', despues: nf(a.icr, 2) + 'x', delta: (a.icr - b.icr >= 0 ? '+' : '−') + nf(Math.abs(a.icr - b.icr), 2) + 'x', c: a.icr < 1 ? 'var(--bad)' : better(Math.round((a.icr - b.icr) * 100)) },
+      { label: 'CCC proyectado', antes: nf(b.ccc, 1) + ' d', despues: nf(a.ccc, 1) + ' d', delta: (a.ccc - b.ccc >= 0 ? '+' : '−') + nf(Math.abs(a.ccc - b.ccc), 1) + ' d', c: better(Math.round((a.ccc - b.ccc) * 10), true) }
+    ];
+    const puente = [
+      { nombre: 'EBITDA', val: money(a.ebitdaA), c: 'var(--ink)' },
+      { nombre: 'Intereses (ARS + USD ajustado por FX)', val: money(-a.intA), c: 'var(--ink)' },
+      { nombre: 'Capex, impuestos y otros', val: money(-a.otros), c: 'var(--ink)' },
+      { nombre: 'Capital de trabajo liberado (+) / absorbido (−)', val: money(a.wc, true), c: a.wc >= 0 ? 'var(--ok)' : 'var(--bad)' },
+      { nombre: 'Mayor costo de amortizaciones en USD', val: money(-a.fxTot), c: a.fxTot > 0 ? 'var(--bad)' : 'var(--ink)' },
+      { nombre: 'Flujo neto anual', val: money(a.end - 51, true), c: a.end - 51 >= 0 ? 'var(--ok)' : 'var(--bad)', fw: 600 },
+      { nombre: 'Δ pasivo en ARS por devaluación', val: money(a.fxDeuda, true), c: a.fxDeuda > 0 ? 'var(--bad)' : 'var(--ink3)' }
+    ].map(r => ({ ...r, fw: r.fw || 400 }));
+    const escenarios = [['base', 'Base'], ['pesimista', 'Pesimista'], ['shock', 'Shock FX']].map(([id, label]) => ({ label, ...this.seg(S.esc === id), go: () => this.setState({ esc: id, ...ESC[id] }) }));
+
+    // Benchmark
+    const stripDefs = [
+      ['CCC', 84.6, 58, 79, 98, 20, 140, true, v => nf(v, 1) + ' d', 38], ['DSO', 74, 48, 64, 78, 30, 100, true, v => nf(v, 0) + ' d', 30],
+      ['DIO', 45.6, 42, 60, 75, 20, 100, true, v => nf(v, 1) + ' d', 68], ['DPO', 35, 34, 45, 58, 20, 90, false, v => nf(v, 0) + ' d', 27],
+      ['ICR', 1.41, 1.6, 2.5, 4.8, 0, 8, false, v => nf(v, 2) + 'x', 18], ['Deuda/PN', 0.58, 0.35, 0.62, 1.05, 0, 2.5, true, v => nf(v, 2) + 'x', 54],
+      ['Liquidez', 2.07, 1.2, 1.6, 2.1, 0.5, 3, false, v => nf(v, 2) + 'x', 73], ['Margen neto', 2.2, 1.5, 5.8, 9.4, -2, 18, false, v => nf(v, 1) + '%', 30],
+      ['ROE', 6.7, 4, 11, 17, -5, 25, false, v => nf(v, 1) + '%', 31]
+    ];
+    const strips = stripDefs.map(([nombre, v, p25, p50, p75, lo, hi, , f, pc]) => {
+      const x = (n) => ((n - lo) / (hi - lo) * 100) + '%';
+      const s = pc < 25 ? 'bad' : pc < 50 ? 'warn' : 'ok';
+      return { nombre, val: f(v), bl: x(p25), bw: ((p75 - p25) / (hi - lo) * 100) + '%', ml: x(p50), vl: x(v), pct: 'P' + pc, fg: ST[s].fg };
+    });
+    const scatter = PEERS.map(r => ({
+      x: (Math.min(r.ccc, 150) / 150 * 100) + '%', y: (Math.min(r.icr, 8) / 8 * 100) + '%', label: r.self ? 'Don Pedro' : r.t === 'anón.' ? '' : r.t,
+      sz: r.self ? '12px' : '7px', c: r.self ? 'var(--acc)' : 'var(--d2)', ring: r.self ? '0 0 0 3px var(--acc-bg)' : 'none', lc: r.self ? 'var(--ink)' : 'var(--ink3)',
+      tip: r.nombre + ' · CCC ' + nf(r.ccc, 1) + ' d · ICR ' + nf(r.icr, 2) + 'x'
+    }));
+    const FILTROS = ['Todos', 'Argentina', 'Brasil', 'México', 'EE.UU.', 'Europa', 'Asia'];
+    const filtros = FILTROS.map(f => { const on = S.filtro === f; return { label: f, go: () => this.setState({ filtro: f }), bg: on ? 'var(--ink)' : 'transparent', fg: on ? 'var(--bg)' : 'var(--ink2)', bd: on ? 'var(--ink)' : 'var(--line)' }; });
+    let rows = PEERS.filter(r => S.filtro === 'Todos' || r.mercado === S.filtro || r.self);
+    const sk = S.sortK;
+    rows = [...rows].sort((x, y) => (typeof x[sk] === 'string' ? x[sk].localeCompare(y[sk]) : x[sk] - y[sk]) * S.sortD);
+    const qs = {};
+    COLS.slice(2).forEach(c => { const vs = rows.map(r => r[c.k]).sort((m, n) => m - n); qs[c.k] = [vs[Math.floor((vs.length - 1) * 0.25)], vs[Math.ceil((vs.length - 1) * 0.75)]]; });
+    const filas = rows.map(r => ({
+      nombre: r.nombre, t: r.t, mercado: r.mercado, fw: r.self ? 600 : 400, bg: r.self ? 'var(--acc-bg)' : 'transparent',
+      cells: COLS.slice(2).map(c => {
+        const [q1, q3] = qs[c.k], v = r[c.k];
+        const good = c.lower ? v <= q1 : v >= q3, bad = c.lower ? v >= q3 : v <= q1;
+        return { v: c.f(v), c: rows.length > 3 && good ? 'var(--ok)' : rows.length > 3 && bad ? 'var(--bad)' : 'var(--ink)' };
+      })
+    }));
+    const cols2 = COLS.map(c => ({ label: c.label, al: c.al, arrow: sk === c.k ? (S.sortD > 0 ? '↑' : '↓') : '', fg: sk === c.k ? 'var(--ink)' : 'var(--ink3)', go: () => this.setState(s => ({ sortK: c.k, sortD: s.sortK === c.k ? -s.sortD : 1 })) }));
+
+    return {
+      nav: nav.map(n => n.id === 'panel' ? { ...n, pill: String(pg.nBad || pg.nWarn), pillBg: pg.nBad ? ST.bad.bg : ST.warn.bg, pillFg: pg.nBad ? ST.bad.fg : ST.warn.fg } : n), modTitle: TITLES[mod], isPanel: mod === 'panel', isCcc: mod === 'ccc', isDeuda: mod === 'deuda', isSim: mod === 'sim', isBench: mod === 'bench',
+      periodos: ['FY23', 'FY24', 'FY25'].map(x => ({ label: x, ...this.seg(S.periodo === x), go: () => this.setState({ periodo: x }) })),
+      monedas: ['ARS', 'USD'].map(x => ({ label: x, ...this.seg(S.moneda === x), go: () => this.setState({ moneda: x }) })),
+      moneda: S.moneda, temaO: this.seg(this.tema() === 'oscuro'), temaC: this.seg(this.tema() === 'claro'),
+      setOscuro: () => this.setState({ tema: 'oscuro' }), setClaro: () => this.setState({ tema: 'claro' }), exportar: this.exportar,
+      criterios: this.props.mostrarCriterios ?? true,
+      kpis: kpisF, alertas: alertasF, semaforo: semaforoF, pg, ent, bannerEnt, entGrupos, carga,
+      entOpen: S.entOpen, entQ: S.entQ, entBorder: S.entOpen ? 'var(--acc)' : 'var(--line)',
+      toggleEnt: () => this.setState(s => ({ entOpen: !s.entOpen })), onEntQ: (e) => this.setState({ entQ: e.target.value }),
+      abrirCarga: () => this.setState({ entOpen: false, carga: { ...CARGA0, abierta: true } }), cerrarCarga: () => this.setState({ carga: CARGA0 }),
+      volverCarga: () => this.setCarga({ paso: 1, periodos: [], errores: [], adv: [] }), volverDemo: () => this.setState({ ent: 'demo' }),
+      onNombre: (e) => this.setCarga({ nombre: e.target.value }), bajarPlantilla: this.bajarPlantilla,
+      onFile: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.leerArchivo(f); },
+      onDragOver: (e) => { e.preventDefault(); if (!S.carga.drag) this.setCarga({ drag: true }); },
+      onDragLeave: () => this.setCarga({ drag: false }),
+      onDrop: (e) => { e.preventDefault(); this.setCarga({ drag: false }); this.leerArchivo(e.dataTransfer.files && e.dataTransfer.files[0]); },
+      m: { wcInvertido: money(81), oportunidad: money(16.6, true), brechaCaja: money(84.6 * 0.6575), pasivos: money(140), ebitdaLine: (12 / 20 * 90) + '%', ebitdaQ: money(12) },
+      cccSt: { dio: ring('dio'), dso: ring('dso'), dpo: ring('dpo') }, selDio: () => this.setState({ cccSel: 'dio' }), selDso: () => this.setState({ cccSel: 'dso' }), selDpo: () => this.setState({ cccSel: 'dpo' }),
+      componentes, trimestres, evol, venc, pasivos, sensICR, deudaKpis,
+      escenarios, escDesc: ESC_DESC[S.esc], sliders, simKpis, reset: () => this.setState({ esc: 'base', ...ESC.base }),
+      sim: { cols, floor: (FLOOR / maxV * 100) + '%', floorTxt: 'mín. ' + money(FLOOR), puente, alerta: breach >= 0 ? 'La caja perfora el mínimo operativo en ' + MESES[breach] + ' (' + money(a.rows[breach]) + '). Requiere financiamiento o una palanca de capital de trabajo.' : '' },
+      strips, scatter, filtros, filas, cols: cols2, filasCount: rows.length + ' empresas'
+    };
+  }
+}
+</script>
+</body>
+</html>

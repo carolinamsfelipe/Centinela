@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0B0F17;color:#E8ECF3;font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+*{box-sizing:border-box}
+a{color:#2DD4BF;text-decoration:none}a:hover{color:#E8ECF3}
+</style>
+</helmet>
+<div style="max-width:1120px;margin:0 auto;padding:48px 32px 80px;display:flex;flex-direction:column;gap:56px;">
+
+  <header style="display:flex;flex-direction:column;gap:12px;border-bottom:1px solid #222A3A;padding-bottom:32px;">
+    <div style="display:flex;align-items:center;gap:10px;"><img src="public/shield.svg" alt="" style="width:22px;height:22px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.08em;color:#A3ACBF;">CENTINELA · v2</span></div>
+    <h1 style="margin:0;font-size:36px;font-weight:600;letter-spacing:-0.02em;line-height:1.15;">Auditoría, wireframes y sistema de diseño</h1>
+    <p style="margin:0;max-width:720px;font-size:15px;line-height:1.6;color:#A3ACBF;text-wrap:pretty;">Documento de especificación para el rediseño de Centinela. Acompaña al prototipo interactivo <a href="Centinela v2.dc.html">Centinela v2</a>, a la recreación de la pantalla actual <a href="Simulador (actual).dc.html">Simulador (actual)</a> y al código de los dos componentes críticos en <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;">codigo/</span>.</p>
+    <nav style="display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:13px;">
+      <a href="#auditoria">01 Auditoría</a><a href="#ia">02 Arquitectura</a><a href="#wireframes">03 Wireframes</a><a href="#tipografia">04 Tipografía</a><a href="#color">05 Color</a><a href="#interaccion">06 Micro-interacciones</a><a href="#stack">07 Componentes y stack</a><a href="#codigo">08 Código</a>
+    </nav>
+  </header>
+
+  <section id="auditoria" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:baseline;gap:14px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8089A0;">01</span><h2 style="margin:0;font-size:22px;font-weight:600;">Auditoría del estado actual</h2></div>
+    <p style="margin:0;max-width:760px;font-size:14px;line-height:1.6;color:#A3ACBF;">Revisión de <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">src/pages/Simulador.tsx</span>, <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">Header.tsx</span>, <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">Badge.tsx</span>, <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">index.css</span> y la lógica en <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">src/lib/financial/</span>.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px;">
+      <div style="border:1px solid #222A3A;border-radius:8px;background:#111622;padding:18px;display:flex;flex-direction:column;gap:12px;">
+        <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#34C776;">● Conservar</span>
+        <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5;color:#A3ACBF;">
+          <li>Semáforo con el criterio a la vista (<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">CRITERIOS</span> en semaforo.ts). Es el diferencial de confianza del producto.</li>
+          <li>Lógica financiera separada de la presentación: el rediseño no toca fórmulas.</li>
+          <li>Tokens como variables CSS con modo claro/oscuro y cifras en IBM Plex Mono.</li>
+          <li>Transparencia de estimaciones ("Est. sectorial", "Proxy deuda") y aviso de datos de respaldo.</li>
+        </ul>
+      </div>
+      <div style="border:1px solid #222A3A;border-radius:8px;background:#111622;padding:18px;display:flex;flex-direction:column;gap:12px;">
+        <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#E85E5E;">◆ Corregir</span>
+        <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5;color:#A3ACBF;">
+          <li>Nav horizontal de 8 ítems mezcla análisis, carga de datos y documentación. No hay contexto persistente: empresa, período y moneda se eligen en cada página.</li>
+          <li>Semáforo con emoji (🔴🟡🟢): depende del color y del sistema operativo. Falla para daltonismo y no escala tipográficamente.</li>
+          <li>El acento teal y el verde de "saludable" son casi iguales: un botón activo se lee como estado positivo.</li>
+          <li>El Simulador apila 4 bloques verticales: el resultado queda a dos scrolls del control que lo modifica.</li>
+          <li>Importes de una PyME en ARS convertidos a US$ ("US$ 47,1 K") pierden legibilidad. Falta un selector de moneda global.</li>
+          <li>Las recomendaciones del plan de acción son texto fijo y no reaccionan a los sliders.</li>
+          <li>No existen vistas de desglose del CCC, calendario de vencimientos ni posición percentil.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="ia" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:baseline;gap:14px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8089A0;">02</span><h2 style="margin:0;font-size:22px;font-weight:600;">Arquitectura de información</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;">
+      <div style="border:1px solid #222A3A;border-radius:8px;background:#111622;padding:18px;display:flex;flex-direction:column;gap:10px;">
+        <h3 style="margin:0;font-size:14px;font-weight:600;">Sidebar persistente · 228 px</h3>
+        <ol style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:#A3ACBF;line-height:1.5;">
+          <li>Panel general y alerta temprana</li><li>Capital de trabajo (CCC)</li><li>Deuda y solvencia (ICR)</li><li>Simulador FX y caja</li><li>Benchmark de mercado</li>
+        </ol>
+        <p style="margin:0;font-size:12px;color:#8089A0;line-height:1.5;">Cada ítem lleva una píldora de estado (cantidad de críticas, CCC, ICR) para que la alerta sea visible desde cualquier módulo. Metodología y Fuentes bajan al pie.</p>
+      </div>
+      <div style="border:1px solid #222A3A;border-radius:8px;background:#111622;padding:18px;display:flex;flex-direction:column;gap:10px;">
+        <h3 style="margin:0;font-size:14px;font-weight:600;">Barra de filtros global</h3>
+        <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:#A3ACBF;line-height:1.5;">
+          <li>Entidad / filial (selector en sidebar)</li><li>Período: FY23 · FY24 · FY25 (o trimestre)</li><li>Moneda: ARS · USD</li><li>Comparar con: mediana sector × mercado</li><li>Estado del dato: en vivo / respaldo / demo + fecha de cierre</li><li>Exportar (PDF, Excel, CSV)</li>
+        </ul>
+        <p style="margin:0;font-size:12px;color:#8089A0;line-height:1.5;">Persistir en la URL (<span style="font-family:'IBM Plex Mono',monospace;">?empresa=&amp;periodo=&amp;moneda=</span>) para compartir vistas.</p>
+      </div>
+      <div style="border:1px solid #222A3A;border-radius:8px;background:#111622;padding:18px;display:flex;flex-direction:column;gap:10px;">
+        <h3 style="margin:0;font-size:14px;font-weight:600;">Patrón de módulo</h3>
+        <ol style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:#A3ACBF;line-height:1.5;">
+          <li>Franja de KPIs del módulo con estado y referencia</li><li>Visualización principal (la pregunta del módulo)</li><li>Desglose interactivo</li><li>Tabla densa con detalle</li>
+        </ol>
+        <p style="margin:0;font-size:12px;color:#8089A0;line-height:1.5;">Toda alerta del Panel enlaza al módulo que la explica: diagnóstico → causa → simulación.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="wireframes" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:baseline;gap:14px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8089A0;">03</span><h2 style="margin:0;font-size:22px;font-weight:600;">Wireframes por módulo</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,500px),1fr));gap:20px;">
+
+      <figure style="margin:0;display:flex;flex-direction:column;gap:10px;">
+        <div style="aspect-ratio:16/10;display:grid;grid-template-columns:16% 1fr;border:1px solid #2E384B;border-radius:6px;overflow:hidden;background:#0B0F17;">
+          <div style="background:#111622;border-right:1px solid #2E384B;padding:8px;display:flex;flex-direction:column;gap:5px;"><span style="height:6px;width:70%;background:#2E384B;"></span><span style="height:18px;background:#171D2B;margin:4px 0;"></span><span style="height:6px;background:#8E9AB3;"></span><span style="height:6px;background:#2E384B;"></span><span style="height:6px;background:#2E384B;"></span><span style="height:6px;background:#2E384B;"></span><span style="height:6px;background:#2E384B;"></span></div>
+          <div style="display:flex;flex-direction:column;gap:6px;padding:8px;">
+            <div style="height:12%;border:1px dashed #2E384B;display:flex;align-items:center;padding:0 6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;">título · período · moneda · comparar · exportar</div>
+            <div style="height:12%;border:1px solid #2E384B;background:#111622;display:flex;align-items:center;padding:0 6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;">estado general · conteo · resumen</div>
+            <div style="height:22%;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"><div style="border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">CCC ∿</div><div style="border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">ICR ∿</div><div style="border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">FX ∿</div><div style="border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">Runway ∿</div></div>
+            <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;"><div style="border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">feed de alertas → módulo</div><div style="border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">semáforo · valor · umbrales</div></div>
+          </div>
+        </div>
+        <figcaption style="font-size:13px;line-height:1.5;color:#A3ACBF;"><strong style="color:#E8ECF3;font-weight:600;">01 Panel general.</strong> Lectura en 5 segundos: estado global, cuatro KPIs críticos con tendencia de 8 trimestres y deltas QoQ/YoY, y alertas ordenadas por severidad que llevan al módulo causal.</figcaption>
+      </figure>
+
+      <figure style="margin:0;display:flex;flex-direction:column;gap:10px;">
+        <div style="aspect-ratio:16/10;display:grid;grid-template-columns:16% 1fr;border:1px solid #2E384B;border-radius:6px;overflow:hidden;background:#0B0F17;">
+          <div style="background:#111622;border-right:1px solid #2E384B;"></div>
+          <div style="display:flex;flex-direction:column;gap:6px;padding:8px;">
+            <div style="height:16%;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#2E384B;border:1px solid #2E384B;"><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">CCC</div><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">mediana</div><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">caja inmov.</div><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">liberable</div></div>
+            <div style="height:26%;border:1px solid #2E384B;background:#111622;padding:6px;display:flex;flex-direction:column;gap:4px;"><div style="display:flex;height:8px;"><span style="width:35%;background:#5B6780;"></span><span style="width:57%;background:#8E9AB3;"></span></div><div style="display:flex;height:8px;"><span style="width:27%;border:1px solid #8E9AB3;"></span></div><div style="display:flex;height:8px;"><span style="width:27%;"></span><span style="width:65%;border:1px dashed #EA9E33;"></span></div></div>
+            <div style="height:24%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;"><div style="border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">DIO vs med.</div><div style="border:1px solid #8E9AB3;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">DSO vs med.</div><div style="border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">DPO vs med.</div></div>
+            <div style="flex:1;border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">tabla trimestral DIO · DSO · DPO · CCC</div>
+          </div>
+        </div>
+        <figcaption style="font-size:13px;line-height:1.5;color:#A3ACBF;"><strong style="color:#E8ECF3;font-weight:600;">02 Capital de trabajo.</strong> Línea de tiempo en escala de días: inventario + cobro arriba, pago a proveedores abajo y la brecha resultante (CCC) en ámbar con su equivalente en caja. Cada componente contra la mediana sectorial identifica el cuello de botella.</figcaption>
+      </figure>
+
+      <figure style="margin:0;display:flex;flex-direction:column;gap:10px;">
+        <div style="aspect-ratio:16/10;display:grid;grid-template-columns:16% 1fr;border:1px solid #2E384B;border-radius:6px;overflow:hidden;background:#0B0F17;">
+          <div style="background:#111622;border-right:1px solid #2E384B;"></div>
+          <div style="display:flex;flex-direction:column;gap:6px;padding:8px;">
+            <div style="height:16%;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#2E384B;border:1px solid #2E384B;"><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">ICR</div><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">deuda</div><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">D/EBITDA</div><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">servicio 12m</div></div>
+            <div style="height:12%;border:1px solid #2E384B;background:#111622;padding:6px;display:flex;gap:2px;"><span style="width:35%;background:#8E9AB3;"></span><span style="width:15%;background:#2DD4BF;"></span><span style="width:16%;background:#5B6780;"></span><span style="flex:1;background:#171D2B;"></span></div>
+            <div style="flex:1;display:grid;grid-template-columns:1.3fr 1fr;gap:6px;">
+              <div style="position:relative;border:1px solid #2E384B;background:#111622;display:flex;align-items:flex-end;gap:4px;padding:6px;"><span style="position:absolute;left:4px;right:4px;bottom:55%;border-top:1px dashed #E8ECF3;"></span><span style="flex:1;height:55%;background:#5B6780;"></span><span style="flex:1;height:68%;background:#8E9AB3;outline:1px solid #E85E5E;"></span><span style="flex:1;height:50%;background:#5B6780;"></span><span style="flex:1;height:80%;background:#8E9AB3;outline:1px solid #E85E5E;"></span><span style="flex:1;height:55%;background:#5B6780;"></span><span style="flex:1;height:55%;background:#5B6780;"></span></div>
+              <div style="border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">ICR vs EBITDA −x% · ICR vs tasa +pp · línea 1,0x</div>
+            </div>
+          </div>
+        </div>
+        <figcaption style="font-size:13px;line-height:1.5;color:#A3ACBF;"><strong style="color:#E8ECF3;font-weight:600;">03 Deuda y solvencia.</strong> Estructura de pasivos, calendario de vencimientos apilado (intereses, capital ARS, capital USD) contra la línea de EBITDA trimestral. Los trimestres donde el servicio supera al EBITDA se marcan como puntos de quiebre.</figcaption>
+      </figure>
+
+      <figure style="margin:0;display:flex;flex-direction:column;gap:10px;">
+        <div style="aspect-ratio:16/10;display:grid;grid-template-columns:16% 1fr;border:1px solid #2E384B;border-radius:6px;overflow:hidden;background:#0B0F17;">
+          <div style="background:#111622;border-right:1px solid #2E384B;"></div>
+          <div style="display:grid;grid-template-columns:30% 1fr;gap:6px;padding:8px;">
+            <div style="border:1px solid #2E384B;background:#111622;padding:6px;display:flex;flex-direction:column;gap:6px;"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;"><span style="height:10px;background:#2E384B;"></span><span style="height:10px;background:#171D2B;"></span><span style="height:10px;background:#171D2B;"></span></div><span style="height:3px;background:#2DD4BF;width:60%;margin-top:6px;"></span><span style="height:3px;background:#2DD4BF;width:40%;margin-top:8px;"></span><span style="height:3px;background:#2DD4BF;width:50%;margin-top:8px;"></span><span style="height:3px;background:#2DD4BF;width:70%;margin-top:8px;"></span><span style="height:3px;background:#2DD4BF;width:30%;margin-top:8px;"></span></div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="height:18%;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#2E384B;border:1px solid #2E384B;"><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">caja 12m</div><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">mínimo</div><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">ICR</div><div style="background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">CCC</div></div>
+              <div style="flex:1;position:relative;border:1px solid #2E384B;background:#111622;display:flex;align-items:flex-end;gap:3px;padding:6px;"><span style="position:absolute;left:4px;right:4px;bottom:25%;border-top:1px dashed #E85E5E;"></span><span style="flex:1;height:85%;border:1px dashed #8E9AB3;"></span><span style="flex:1;height:75%;background:#2DD4BF;"></span><span style="flex:1;height:80%;border:1px dashed #8E9AB3;"></span><span style="flex:1;height:60%;background:#2DD4BF;"></span><span style="flex:1;height:76%;border:1px dashed #8E9AB3;"></span><span style="flex:1;height:40%;background:#2DD4BF;"></span><span style="flex:1;height:72%;border:1px dashed #8E9AB3;"></span><span style="flex:1;height:22%;background:#E85E5E;"></span></div>
+              <div style="height:20%;border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">puente de flujo neto anual</div>
+            </div>
+          </div>
+        </div>
+        <figcaption style="font-size:13px;line-height:1.5;color:#A3ACBF;"><strong style="color:#E8ECF3;font-weight:600;">04 Simulador FX y caja.</strong> Controles a la izquierda, resultado a la derecha en el mismo viewport. Presets Base / Pesimista / Shock FX; mover cualquier slider pasa a "personalizado". Barras fantasma = antes; sólidas = después; rojo bajo la caja mínima.</figcaption>
+      </figure>
+
+      <figure style="margin:0;display:flex;flex-direction:column;gap:10px;">
+        <div style="aspect-ratio:16/10;display:grid;grid-template-columns:16% 1fr;border:1px solid #2E384B;border-radius:6px;overflow:hidden;background:#0B0F17;">
+          <div style="background:#111622;border-right:1px solid #2E384B;"></div>
+          <div style="display:flex;flex-direction:column;gap:6px;padding:8px;">
+            <div style="height:48%;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <div style="border:1px solid #2E384B;background:#111622;padding:6px;display:flex;flex-direction:column;justify-content:space-around;"><span style="height:4px;background:#2E384B;margin:0 20% 0 30%;"></span><span style="height:4px;background:#2E384B;margin:0 30% 0 20%;"></span><span style="height:4px;background:#2E384B;margin:0 10% 0 40%;"></span><span style="height:4px;background:#2E384B;margin:0 25% 0 25%;"></span><span style="height:4px;background:#2E384B;margin:0 35% 0 15%;"></span></div>
+              <div style="position:relative;border:1px solid #2E384B;background:#111622;"><span style="position:absolute;left:52%;top:0;bottom:0;border-left:1px dashed #2E384B;"></span><span style="position:absolute;left:0;right:0;top:70%;border-top:1px dashed #2E384B;"></span><span style="position:absolute;left:56%;top:78%;width:7px;height:7px;border-radius:50%;background:#2DD4BF;"></span><span style="position:absolute;left:30%;top:30%;width:4px;height:4px;border-radius:50%;background:#8E9AB3;"></span><span style="position:absolute;left:70%;top:20%;width:4px;height:4px;border-radius:50%;background:#8E9AB3;"></span><span style="position:absolute;left:80%;top:45%;width:4px;height:4px;border-radius:50%;background:#8E9AB3;"></span></div>
+            </div>
+            <div style="height:9%;border:1px dashed #2E384B;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:2px 6px;">chips de mercado · n empresas · CSV</div>
+            <div style="flex:1;border:1px solid #2E384B;background:#111622;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8089A0;padding:4px;">tabla ordenable · cuartiles coloreados · fila propia resaltada</div>
+          </div>
+        </div>
+        <figcaption style="font-size:13px;line-height:1.5;color:#A3ACBF;"><strong style="color:#E8ECF3;font-weight:600;">05 Benchmark.</strong> Franjas de percentil (P25–P75 + mediana) por ratio, dispersión CCC × ICR con cuadrantes de riesgo, y tabla densa con orden por columna, filtros rápidos por mercado y exportación.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="tipografia" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:baseline;gap:14px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8089A0;">04</span><h2 style="margin:0;font-size:22px;font-weight:600;">Jerarquía tipográfica</h2></div>
+    <p style="margin:0;max-width:760px;font-size:14px;line-height:1.6;color:#A3ACBF;">IBM Plex Sans para texto e interfaz; IBM Plex Mono para toda cifra, unidad y código. Ambas de la misma familia, con <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">font-feature-settings: "tnum"</span> activo globalmente para que las columnas numéricas alineen. Se reemplaza Inter por Plex Sans para unificar la voz con las cifras.</p>
+    <div style="border:1px solid #222A3A;border-radius:8px;background:#111622;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 190px;gap:16px;align-items:baseline;padding:14px 18px;border-bottom:1px solid #222A3A;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">display/kpi</span><span style="font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:500;letter-spacing:-0.02em;">84,6 días</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">Mono 30/1 · 500 · −2%</span></div>
+      <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 190px;gap:16px;align-items:baseline;padding:14px 18px;border-bottom:1px solid #222A3A;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">metric/lg</span><span style="font-family:'IBM Plex Mono',monospace;font-size:22px;">$ 14,5 M</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">Mono 22–26 · 400</span></div>
+      <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 190px;gap:16px;align-items:baseline;padding:14px 18px;border-bottom:1px solid #222A3A;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">page/title</span><span style="font-size:16px;font-weight:600;">Cobertura de deuda (ICR) y solvencia</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">Sans 16 · 600 · −1%</span></div>
+      <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 190px;gap:16px;align-items:baseline;padding:14px 18px;border-bottom:1px solid #222A3A;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">card/title</span><span style="font-size:13px;font-weight:600;">Calendario de vencimientos vs. EBITDA trimestral</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">Sans 13 · 600</span></div>
+      <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 190px;gap:16px;align-items:baseline;padding:14px 18px;border-bottom:1px solid #222A3A;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">body</span><span style="font-size:13px;color:#A3ACBF;line-height:1.5;">Balance sano con tensión de caja: el ciclo operativo inmoviliza 85 días.</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">Sans 13/1.5 · 400</span></div>
+      <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 190px;gap:16px;align-items:baseline;padding:14px 18px;border-bottom:1px solid #222A3A;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">table/num</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">74,0 · 35,0 · 1,41x · 0,58x</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">Mono 12 · tnum · der.</span></div>
+      <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 190px;gap:16px;align-items:baseline;padding:14px 18px;border-bottom:1px solid #222A3A;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">meta/delta</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#E85E5E;">+2,6 d <span style="color:#8089A0;">QoQ</span></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">Mono 11 · 400</span></div>
+      <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 190px;gap:16px;align-items:baseline;padding:14px 18px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">overline</span><span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#8089A0;">Estado general</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8089A0;">Sans 10 · caps · +8%</span></div>
+    </div>
+    <p style="margin:0;font-size:13px;color:#8089A0;line-height:1.5;">Formato numérico es-AR del repo (<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">fmtNum</span>): coma decimal, punto de miles, signo menos tipográfico (−) en deltas, unidad en tamaño menor y color terciario.</p>
+  </section>
+
+  <section id="color" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:baseline;gap:14px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8089A0;">05</span><h2 style="margin:0;font-size:22px;font-weight:600;">Paleta y tokens semánticos</h2></div>
+    <p style="margin:0;max-width:760px;font-size:14px;line-height:1.6;color:#A3ACBF;">Regla: la interfaz es neutra. Verde, ámbar y rojo solo comunican riesgo o mejora/empeoramiento; el teal queda reservado a interacción, foco y la serie "después". Los datos neutros usan una rampa de grises fríos (chart-1…3). Cada estado combina color y forma (● ▲ ◆) para no depender del color.</p>
+    <div style="border:1px solid #222A3A;border-radius:8px;background:#111622;overflow-x:auto;">
+      <table style="width:100%;min-width:720px;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="text-align:left;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:#8089A0;"><th style="padding:10px 18px;font-weight:500;border-bottom:1px solid #222A3A;">Token</th><th style="padding:10px;font-weight:500;border-bottom:1px solid #222A3A;">Oscuro</th><th style="padding:10px;font-weight:500;border-bottom:1px solid #222A3A;">Claro</th><th style="padding:10px 18px 10px 10px;font-weight:500;border-bottom:1px solid #222A3A;">Uso</th></tr></thead>
+        <tbody style="font-family:'IBM Plex Mono',monospace;">
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--bg</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border:1px solid #2E384B;background:#0B0F17;"></span>#0B0F17</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#F5F6F9;"></span>#F5F6F9</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">Fondo de la aplicación</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--surface</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border:1px solid #2E384B;background:#111622;"></span>#111622</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#FFFFFF;"></span>#FFFFFF</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">Cards, sidebar, barra superior</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--surface-2</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#171D2B;"></span>#171D2B</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#EEF1F5;"></span>#EEF1F5</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">Hover, ítem seleccionado, segmentado activo</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--border / -strong</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#222A3A;"></span>#222A3A / #2E384B</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#E1E5EC;"></span>#E1E5EC / #CBD2DD</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">Divisores, bordes de card, ejes</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--ink</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#E8ECF3;"></span>#E8ECF3</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#0F1420;border:1px solid #2E384B;"></span>#0F1420</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">Cifras y títulos</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--ink-muted / -subtle</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#A3ACBF;"></span>#A3ACBF / #8089A0</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#4C556B;"></span>#4C556B / #626C82</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">Etiquetas · unidades y metadatos (≥ 4,5:1)</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--accent</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#2DD4BF;"></span>#2DD4BF</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#0F8F82;"></span>#0F8F82</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">Foco, sliders, serie "después", entidad propia</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--ok</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#34C776;"></span>#34C776</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#158A4D;"></span>#158A4D</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">● Saludable · mejora · caja liberada</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--warn</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#EA9E33;"></span>#EA9E33</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#A15C07;"></span>#A15C07</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">▲ Precaución · brecha CCC</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">--bad</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#E85E5E;"></span>#E85E5E</span></td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;background:#B13333;"></span>#B13333</span></td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">◆ Crítico · empeora · quiebre</td></tr>
+          <tr><td style="padding:9px 18px;">--*-soft</td><td style="padding:9px 10px;">13% alfa</td><td style="padding:9px 10px;">10% alfa</td><td style="padding:9px 18px 9px 10px;font-family:'IBM Plex Sans',sans-serif;color:#A3ACBF;">Fondo de badges y banners de alerta (texto en tono pleno)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:13px;color:#A3ACBF;line-height:1.5;">
+      <div style="border:1px solid #222A3A;border-radius:8px;padding:14px;"><strong style="color:#E8ECF3;font-weight:600;">Espaciado</strong><br>Base 4 px. Gaps de grilla 12/16, padding de card 14–16, filas de tabla 7–8 px vertical.</div>
+      <div style="border:1px solid #222A3A;border-radius:8px;padding:14px;"><strong style="color:#E8ECF3;font-weight:600;">Radios</strong><br>Cards 8 px · controles 6 px · badges 4 px. Se reduce el 14 px actual para mayor densidad.</div>
+      <div style="border:1px solid #222A3A;border-radius:8px;padding:14px;"><strong style="color:#E8ECF3;font-weight:600;">Elevación</strong><br>Sin sombras en cards; jerarquía por borde y superficie. Sombra solo en popovers y tooltips.</div>
+      <div style="border:1px solid #222A3A;border-radius:8px;padding:14px;"><strong style="color:#E8ECF3;font-weight:600;">Densidad</strong><br>Texto mínimo 10 px solo en ejes y overlines; cifras de tabla 12 px; KPI 30 px.</div>
+    </div>
+  </section>
+
+  <section id="interaccion" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:baseline;gap:14px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8089A0;">06</span><h2 style="margin:0;font-size:22px;font-weight:600;">Reglas de micro-interacción</h2></div>
+    <div style="border:1px solid #222A3A;border-radius:8px;background:#111622;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:12px 18px;border-bottom:1px solid #222A3A;font-size:13px;"><span style="font-weight:600;">Hover en card / fila</span><span style="color:#A3ACBF;">Cambio de superficie a surface-2 y borde a border-strong en 120 ms. Nunca escala ni sombra.</span></div>
+      <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:12px 18px;border-bottom:1px solid #222A3A;font-size:13px;"><span style="font-weight:600;">KPI y alerta clicables</span><span style="color:#A3ACBF;">Toda card con estado navega al módulo causal. Cursor pointer + flecha ↗ en alertas; foco visible con anillo accent 2 px.</span></div>
+      <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:12px 18px;border-bottom:1px solid #222A3A;font-size:13px;"><span style="font-weight:600;">Sliders</span><span style="color:#A3ACBF;">Recalculo en vivo sin debounce (modelo puro, &lt;1 ms). El valor cambia a verde/rojo según mejore o empeore frente al actual; queda blanco cuando coincide. Etiqueta "actual" siempre visible bajo el riel.</span></div>
+      <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:12px 18px;border-bottom:1px solid #222A3A;font-size:13px;"><span style="font-weight:600;">Gráficos</span><span style="color:#A3ACBF;">Transición de altura 200 ms ease. Sin animación de entrada en carga inicial. Tooltip con valor antes/después en mono.</span></div>
+      <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:12px 18px;border-bottom:1px solid #222A3A;font-size:13px;"><span style="font-weight:600;">Umbral cruzado</span><span style="color:#A3ACBF;">Cuando una simulación perfora un umbral (caja mínima, ICR 1,0x) aparece un banner rojo con el mes y el monto, una sola vez por cruce. Sin parpadeos ni sonidos.</span></div>
+      <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:12px 18px;border-bottom:1px solid #222A3A;font-size:13px;"><span style="font-weight:600;">Tablas</span><span style="color:#A3ACBF;">Click en encabezado ordena; segundo click invierte. Flecha ↑↓ junto a la columna activa. Fila propia fija con fondo accent-soft.</span></div>
+      <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:12px 18px;border-bottom:1px solid #222A3A;font-size:13px;"><span style="font-weight:600;">Cambio de moneda/período</span><span style="color:#A3ACBF;">Reemplazo de cifras in situ, sin skeleton. Los estados de carga reales usan skeleton con la forma exacta del dato.</span></div>
+      <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:12px 18px;font-size:13px;"><span style="font-weight:600;">Movimiento reducido</span><span style="color:#A3ACBF;">Con prefers-reduced-motion se eliminan todas las transiciones de gráficos.</span></div>
+    </div>
+  </section>
+
+  <section id="stack" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:baseline;gap:14px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8089A0;">07</span><h2 style="margin:0;font-size:22px;font-weight:600;">Componentes y stack de referencia</h2></div>
+    <p style="margin:0;max-width:760px;font-size:14px;line-height:1.6;color:#A3ACBF;">Se mantiene React 18 + Vite + Tailwind + Recharts del repo. Se suman shadcn/ui (primitivas Radix accesibles, copiadas al repo) y lucide-react para reemplazar los emoji de la interfaz. Tremor es opcional; Recharts ya está instalado y cubre todo lo propuesto.</p>
+    <div style="border:1px solid #222A3A;border-radius:8px;background:#111622;overflow-x:auto;">
+      <table style="width:100%;min-width:680px;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="text-align:left;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:#8089A0;"><th style="padding:10px 18px;font-weight:500;border-bottom:1px solid #222A3A;">Componente</th><th style="padding:10px;font-weight:500;border-bottom:1px solid #222A3A;">Base</th><th style="padding:10px 18px 10px 10px;font-weight:500;border-bottom:1px solid #222A3A;">Reemplaza en el repo</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">AppShell (sidebar + filtros)</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">shadcn Sidebar, ToggleGroup, Select</td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">Header.tsx, App.tsx</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">EstadoBadge</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">lucide Circle / Triangle / Diamond</td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">Badge.tsx, ESTADO_EMOJI</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">KpiCard + Sparkline</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">shadcn Card, Tooltip · Recharts LineChart</td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">tarjetas Paso 1 de Simulador.tsx</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">CccTimeline</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">divs flex en escala de días</td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">nuevo</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">MaturityChart</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">Recharts BarChart apilado + ReferenceLine</td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">nuevo</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">Simulador</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">shadcn Slider, ToggleGroup · Recharts ComposedChart</td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">Simulador.tsx (Pasos 2–3)</td></tr>
+          <tr><td style="padding:9px 18px;border-bottom:1px solid #222A3A;">PercentileStrip</td><td style="padding:9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">divs posicionados (P25/P50/P75)</td><td style="padding:9px 18px 9px 10px;border-bottom:1px solid #222A3A;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">benchmarks.ts → presentación nueva</td></tr>
+          <tr><td style="padding:9px 18px;">DataTable</td><td style="padding:9px 10px;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">shadcn Table + TanStack Table</td><td style="padding:9px 18px 9px 10px;font-family:'IBM Plex Mono',monospace;color:#A3ACBF;">Rankings.tsx, Comparador.tsx</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="codigo" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:baseline;gap:14px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8089A0;">08</span><h2 style="margin:0;font-size:22px;font-weight:600;">Código de componentes</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;">
+      <a href="codigo/PanelAlertaTemprana.tsx" style="display:flex;flex-direction:column;gap:6px;border:1px solid #222A3A;border-radius:8px;background:#111622;padding:16px;color:#E8ECF3;"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;">codigo/PanelAlertaTemprana.tsx</span><span style="font-size:12px;color:#A3ACBF;line-height:1.5;">Franja de estado, KpiCard con sparkline y deltas, feed de alertas por severidad. Usa el tipo Estado del repo.</span></a>
+      <a href="codigo/SimuladorCambiario.tsx" style="display:flex;flex-direction:column;gap:6px;border:1px solid #222A3A;border-radius:8px;background:#111622;padding:16px;color:#E8ECF3;"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;">codigo/SimuladorCambiario.tsx</span><span style="font-size:12px;color:#A3ACBF;line-height:1.5;">Modelo puro proyectarCaja() sobre ratios.ts, presets de escenario, sliders, gráfico antes/después y puente de flujo.</span></a>
+      <a href="codigo/tokens.css" style="display:flex;flex-direction:column;gap:6px;border:1px solid #222A3A;border-radius:8px;background:#111622;padding:16px;color:#E8ECF3;"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;">codigo/tokens.css</span><span style="font-size:12px;color:#A3ACBF;line-height:1.5;">Tokens claro/oscuro en formato R G B, compatibles con el tailwind.config.ts actual.</span></a>
+    </div>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>

@@ -166,13 +166,13 @@ export function inferirMetricasCaja(
   let esIcrEstimado = false;
   if (icr !== null && !Number.isNaN(icr)) {
     esIcrEstimado = false;
-  } else if (m?.gastosIntereses && m.gastosIntereses > 0 && m.ebitda !== null && m.ebitda !== undefined) {
-    icr = m.ebitda / m.gastosIntereses;
+  } else if (m?.gastosIntereses && m.gastosIntereses > 0 && (m.ebit ?? m.ebitda) != null) {
+    icr = ((m.ebit ?? m.ebitda) as number) / m.gastosIntereses;
     esIcrEstimado = false;
-  } else if (m?.deudaTotal && m.deudaTotal > 0 && m.ebitda !== null && m.ebitda !== undefined) {
+  } else if (m?.deudaTotal && m.deudaTotal > 0 && (m.ebit ?? m.ebitda) != null) {
     const tasa = mercado === "Argentina" ? 0.35 : mercado === "Brasil" ? 0.12 : 0.055;
     const interesesEstimados = m.deudaTotal * tasa;
-    icr = Math.max(0.1, m.ebitda / interesesEstimados);
+    icr = Math.max(0.1, ((m.ebit ?? m.ebitda) as number) / interesesEstimados);
     esIcrEstimado = true;
   } else if (m?.deudaTotal === 0 || (m?.debtToEquity !== null && m?.debtToEquity !== undefined && m.debtToEquity < 0.05)) {
     icr = 15.0;

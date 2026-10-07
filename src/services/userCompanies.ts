@@ -51,16 +51,78 @@ export function esEmpresaPropia(ticker: string): boolean {
   return ticker.startsWith(PREFIJO_PROPIA);
 }
 
+/** Tamaño máximo de archivo aceptado en la ingesta (evita congelar el hilo principal del navegador). */
+export const MAX_ARCHIVO_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Lanza un Error si el archivo supera el límite. Llamar ANTES de file.text() / file.arrayBuffer().
+ */
+export function validarTamanoArchivo(archivo: { size: number }): void {
+  if (archivo.size > MAX_ARCHIVO_BYTES) {
+    throw new Error(`El archivo supera el límite de seguridad de ${MAX_ARCHIVO_BYTES / (1024 * 1024)} MB.`);
+  }
+}
+
+/**
+ * Neutraliza CSV/Excel Formula Injection: un texto que empieza con = + - @ TAB o CR
+ * se antepone con apóstrofe para que la planilla lo trate como texto. Los textos que
+ * son números simples ("-1.234,5", "+3%") no se tocan para no degradar datos legítimos.
+ */
+export function sanitizarTextoPlanilla(valor: string): string {
+  if (/^[=+\-@\t\r]/.test(valor) && !/^[-+]?[\d.,]+%?$/.test(valor.trim())) {
+    return `'${valor}`;
+  }
+  return valor;
+}
+
+const CAMPOS_NUMERICOS_REQUERIDOS = [
+  "activosCorrientes",
+  "activosTotales",
+  "pasivosCorrientes",
+  "pasivosTotales",
+  "patrimonioNeto",
+  "gananciasRetenidas",
+  "deudaTotal",
+  "ebit",
+] as const;
+
+const esNumeroFinito = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+
+/**
+ * Depura un período leído de localStorage: si falta o está corrupto algún campo
+ * requerido (NaN, Infinity, string) se descarta el período completo; en los campos
+ * opcionales, un valor no numérico finito se convierte en null (sin contaminar cálculos).
+ */
+function depurarPeriodo(p: unknown): PeriodoBalance | null {
+  if (!p || typeof p !== "object") return null;
+  const o = p as Record<string, unknown>;
+  if (typeof o.periodo !== "string" || o.periodo === "") return null;
+  for (const campo of CAMPOS_NUMERICOS_REQUERIDOS) {
+    if (!esNumeroFinito(o[campo])) return null;
+  }
+  const salida: Record<string, unknown> = { ...o };
+  for (const [k, v] of Object.entries(o)) {
+    if (k === "periodo" || (CAMPOS_NUMERICOS_REQUERIDOS as readonly string[]).includes(k)) continue;
+    if (typeof v === "number" && !Number.isFinite(v)) salida[k] = null;
+    else if (v !== null && v !== undefined && typeof v !== "number") salida[k] = null;
+  }
+  return salida as unknown as PeriodoBalance;
+}
+
 function leerTodas(): EmpresaPropiaGuardada[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (e): e is EmpresaPropiaGuardada =>
-        e && typeof e.id === "string" && typeof e.nombre === "string" && Array.isArray(e.periodos) && e.periodos.length > 0
-    );
+    const resultado: EmpresaPropiaGuardada[] = [];
+    for (const e of parsed) {
+      if (!e || typeof e.id !== "string" || typeof e.nombre !== "string" || !Array.isArray(e.periodos)) continue;
+      const periodos = e.periodos.map(depurarPeriodo).filter((p: PeriodoBalance | null): p is PeriodoBalance => p !== null);
+      if (periodos.length === 0) continue;
+      resultado.push({ ...e, periodos });
+    }
+    return resultado;
   } catch {
     return [];
   }

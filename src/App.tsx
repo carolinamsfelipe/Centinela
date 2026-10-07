@@ -1,26 +1,67 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Home } from "@/pages/Home";
-import { Empresas } from "@/pages/Empresas";
-import { CompanyDetail } from "@/pages/CompanyDetail";
-import { Comparador } from "@/pages/Comparador";
-import { Rankings } from "@/pages/Rankings";
-import { Macro } from "@/pages/Macro";
-import { Mercado } from "@/pages/Mercado";
-import { Simulador } from "@/pages/Simulador";
-import { MiEmpresa } from "@/pages/MiEmpresa";
-import { Presentacion } from "@/pages/Presentacion";
-import { Metodologia } from "@/pages/Metodologia";
-import { Fuentes } from "@/pages/Fuentes";
-import { Asesores } from "@/pages/Asesores";
+const Empresas = lazy(() => import("@/pages/Empresas").then((m) => ({ default: m.Empresas })));
+const CompanyDetail = lazy(() => import("@/pages/CompanyDetail").then((m) => ({ default: m.CompanyDetail })));
+const Comparador = lazy(() => import("@/pages/Comparador").then((m) => ({ default: m.Comparador })));
+const Rankings = lazy(() => import("@/pages/Rankings").then((m) => ({ default: m.Rankings })));
+const Macro = lazy(() => import("@/pages/Macro").then((m) => ({ default: m.Macro })));
+const Mercado = lazy(() => import("@/pages/Mercado").then((m) => ({ default: m.Mercado })));
+const Simulador = lazy(() => import("@/pages/Simulador").then((m) => ({ default: m.Simulador })));
+const MiEmpresa = lazy(() => import("@/pages/MiEmpresa").then((m) => ({ default: m.MiEmpresa })));
+const Presentacion = lazy(() => import("@/pages/Presentacion").then((m) => ({ default: m.Presentacion })));
+const Metodologia = lazy(() => import("@/pages/Metodologia").then((m) => ({ default: m.Metodologia })));
+const Fuentes = lazy(() => import("@/pages/Fuentes").then((m) => ({ default: m.Fuentes })));
+const Asesores = lazy(() => import("@/pages/Asesores").then((m) => ({ default: m.Asesores })));
 import { ComingSoon } from "@/pages/ComingSoon";
 
+// Módulos V2
+import { V2Layout } from "@/v2/V2Layout";
+import { PanelPage } from "@/v2/pages/PanelPage";
+import { CapitalTrabajoPage } from "@/v2/pages/CapitalTrabajoPage";
+import { DeudaPage } from "@/v2/pages/DeudaPage";
+import { SimuladorPage } from "@/v2/pages/SimuladorPage";
+import { BenchmarkPage } from "@/v2/pages/BenchmarkPage";
+
+function CargandoPagina() {
+  return (
+    <div role="status" aria-live="polite" aria-label="Cargando contenido" className="mx-auto max-w-5xl animate-pulse px-4 py-10">
+      <div className="h-8 w-1/3 rounded bg-surface" />
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-24 rounded-lg border border-border bg-surface" />
+        ))}
+      </div>
+      <div className="mt-6 h-64 rounded-lg border border-border bg-surface" />
+    </div>
+  );
+}
+
 export default function App() {
+  const location = useLocation();
+  const isV2 = location.pathname.startsWith("/v2");
+
+  if (isV2) {
+    return (
+      <Routes>
+        <Route path="/v2" element={<V2Layout />}>
+          <Route index element={<PanelPage />} />
+          <Route path="capital-trabajo" element={<CapitalTrabajoPage />} />
+          <Route path="deuda" element={<DeudaPage />} />
+          <Route path="simulador" element={<SimuladorPage />} />
+          <Route path="benchmark" element={<BenchmarkPage />} />
+        </Route>
+      </Routes>
+    );
+  }
+
   return (
     <div className="flex min-h-full flex-col">
       <Header />
       <main className="flex-1">
+        <Suspense fallback={<CargandoPagina />}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/empresas" element={<Empresas />} />
@@ -47,6 +88,7 @@ export default function App() {
             }
           />
         </Routes>
+        </Suspense>
       </main>
       <Footer />
     </div>

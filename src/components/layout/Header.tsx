@@ -41,6 +41,12 @@ export function Header() {
               {item.label}
             </NavLink>
           ))}
+          <NavLink
+            to="/v2"
+            className="ml-2 inline-flex items-center gap-1 rounded-md bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent border border-accent/30 hover:bg-accent/25 transition-colors focus-ring"
+          >
+            <span>✨</span> Probar Centinela v2
+          </NavLink>
         </nav>
 
         <div className="hidden w-64 lg:block">

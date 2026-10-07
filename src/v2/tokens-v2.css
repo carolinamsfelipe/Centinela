@@ -1,0 +1,42 @@
+/* Centinela v2 · tokens ADITIVOS.
+   Todo vive bajo la clase .v2 (la pone el layout nuevo), así las páginas
+   actuales siguen usando :root / .dark de src/index.css sin cambios.
+   Formato "R G B" para usar con rgb(var(--x) / <alpha-value>). */
+.v2 {
+  --v2-bg: 245 246 249;          /* #F5F6F9 */
+  --v2-s1: 255 255 255;          /* #FFFFFF  cards, sidebar, topbar */
+  --v2-s2: 238 241 245;          /* #EEF1F5  hover / seleccionado */
+  --v2-line: 225 229 236;        /* #E1E5EC */
+  --v2-line2: 203 210 221;       /* #CBD2DD */
+  --v2-ink: 15 20 32;            /* #0F1420 */
+  --v2-ink2: 76 85 107;          /* #4C556B */
+  --v2-ink3: 98 108 130;         /* #626C82 */
+  --v2-acc: 15 143 130;          /* #0F8F82  solo interacción / foco / serie "después" */
+  --v2-ok: 21 138 77;            /* #158A4D */
+  --v2-warn: 161 92 7;           /* #A15C07 */
+  --v2-bad: 177 51 51;           /* #B13333 */
+  --v2-d1: 183 192 207;          /* #B7C0CF  rampa neutra de datos */
+  --v2-d2: 125 136 157;          /* #7D889D */
+  --v2-d3: 61 70 89;             /* #3D4659 */
+  --v2-soft: 0.10;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+.dark .v2 {
+  --v2-bg: 11 15 23;             /* #0B0F17 */
+  --v2-s1: 17 22 34;             /* #111622 */
+  --v2-s2: 23 29 43;             /* #171D2B */
+  --v2-line: 34 42 58;           /* #222A3A */
+  --v2-line2: 46 56 75;          /* #2E384B */
+  --v2-ink: 232 236 243;         /* #E8ECF3 */
+  --v2-ink2: 163 172 191;        /* #A3ACBF */
+  --v2-ink3: 128 137 160;        /* #8089A0 */
+  --v2-acc: 45 212 191;          /* #2DD4BF */
+  --v2-ok: 52 199 118;           /* #34C776 */
+  --v2-warn: 234 158 51;         /* #EA9E33 */
+  --v2-bad: 232 94 94;           /* #E85E5E */
+  --v2-d1: 91 103 128;           /* #5B6780 */
+  --v2-d2: 142 154 179;          /* #8E9AB3 */
+  --v2-d3: 196 204 219;          /* #C4CCDB */
+  --v2-soft: 0.13;
+}

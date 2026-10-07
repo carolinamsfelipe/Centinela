@@ -90,13 +90,18 @@ export function calcularCentinelaScore(m: FinancialMetrics, marketCap: number | 
 
   const liquidez = normalizar(calcularLiquidez(m), NORMALIZATION.liquidezMax);
 
+  // Quiebra técnica (patrimonio <= 0): penalización máxima, nunca puntaje por cociente de signos negativos.
+  const quiebraTecnica = m.patrimonioNeto !== null && m.patrimonioNeto <= 0;
+
   const rentabilidad = promedio([
-    normalizar(calcularRoe(m), NORMALIZATION.roeMax),
+    quiebraTecnica ? 0 : normalizar(calcularRoe(m), NORMALIZATION.roeMax),
     normalizar(calcularRoa(m), NORMALIZATION.roaMax),
     normalizar(calcularMargenNeto(m), NORMALIZATION.margenNetoMax),
   ]);
 
-  const endeudamiento = normalizarInverso(calcularDeudaSobrePatrimonio(m), NORMALIZATION.deudaPatrimonioMax);
+  const endeudamiento = quiebraTecnica
+    ? 0
+    : normalizarInverso(calcularDeudaSobrePatrimonio(m), NORMALIZATION.deudaPatrimonioMax);
 
   const eficiencia = normalizar(m.ebitMargin, NORMALIZATION.ebitMarginMax);
 

@@ -110,7 +110,7 @@ export function metricsDesdePeriodo(p: PeriodoDatos): FinancialMetrics {
   base.ccc = calcularCcc(base.dso ?? null, base.dio ?? null, base.dpo ?? null);
 
   // Cobertura de intereses financieros
-  base.icr = calcularIcr(base.ebitda, base.gastosIntereses ?? null);
+  base.icr = calcularIcr(base.ebitda, base.gastosIntereses ?? null, base.ebit ?? null, base.deudaTotal ?? null);
 
   const inventario = n(p.inventario ?? p.inventarios);
   if (base.quickRatio === null && inventario !== null && base.activosCorrientes !== null) {

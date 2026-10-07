@@ -101,6 +101,45 @@ function Aviso({ tipo, children }: { tipo: "info" | "warn"; children: ReactNode 
   );
 }
 
+type NivelSemaforo = "ok" | "warn" | "bad";
+
+const SEMAFORO_UI: Record<NivelSemaforo, { forma: string; texto: string; clase: string }> = {
+  ok: { forma: "●", texto: "Normal", clase: "border-ok/30 bg-ok/10 text-ok" },
+  warn: { forma: "◆", texto: "Atención", clase: "border-warn/30 bg-warn/10 text-warn" },
+  bad: { forma: "▲", texto: "Crítico", clase: "border-bad/30 bg-bad/10 text-bad" },
+};
+
+/** Semáforo accesible: forma geométrica distinta + texto + aria-label (no depende solo del color). */
+function SemaforoBadge({ nivel, detalle }: { nivel: NivelSemaforo; detalle: string }) {
+  const ui = SEMAFORO_UI[nivel];
+  return (
+    <span
+      role="status"
+      aria-label={`${detalle}: ${ui.texto}`}
+      title={`${detalle}: ${ui.texto}`}
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${ui.clase}`}
+    >
+      <span aria-hidden="true">{ui.forma}</span>
+      {ui.texto}
+    </span>
+  );
+}
+
+function CompanyDetailSkeleton() {
+  return (
+    <div role="status" aria-live="polite" aria-label="Cargando ficha de la empresa" className="mx-auto max-w-5xl animate-pulse px-4 py-10">
+      <div className="h-9 w-1/2 rounded bg-surface" />
+      <div className="mt-2 h-4 w-1/3 rounded bg-surface" />
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-28 rounded-lg border border-border bg-surface" />
+        ))}
+      </div>
+      <div className="mt-6 h-72 rounded-lg border border-border bg-surface" />
+    </div>
+  );
+}
+
 export function CompanyDetail() {
   const { ticker } = useParams<{ ticker: string }>();
   const navigate = useNavigate();
@@ -146,7 +185,7 @@ export function CompanyDetail() {
   );
 
   if (data === undefined) {
-    return <div className="mx-auto max-w-5xl px-4 py-16 text-center text-ink-muted">Cargando...</div>;
+    return <CompanyDetailSkeleton />;
   }
 
   if (data === null) {
@@ -439,7 +478,7 @@ export function CompanyDetail() {
             <div className="rounded-lg border border-border bg-bg/50 p-3">
               <div className="flex items-center justify-between text-xs text-ink-muted">
                 <span>Ciclo de Caja (CCC)</span>
-                <span>{cajaInferida.ccc > 90 ? "🔴" : cajaInferida.ccc > 60 ? "🟡" : "🟢"}</span>
+                <SemaforoBadge detalle="Ciclo de caja" nivel={cajaInferida.ccc > 90 ? "bad" : cajaInferida.ccc > 60 ? "warn" : "ok"} />
               </div>
               <div className="mt-1 font-mono text-xl font-bold text-ink flex items-baseline gap-1.5">
                 <span>{cajaInferida.esCccEstimado ? `~${cajaInferida.ccc} d` : `${cajaInferida.ccc} d`}</span>
@@ -508,7 +547,7 @@ export function CompanyDetail() {
             <div className="rounded-lg border border-border bg-bg/50 p-3 col-span-2 sm:col-span-1">
               <div className="flex items-center justify-between text-xs text-ink-muted">
                 <span>Cobertura ICR</span>
-                <span>{cajaInferida.icr < 1.5 ? "🔴" : cajaInferida.icr < 2.5 ? "🟡" : "🟢"}</span>
+                <SemaforoBadge detalle="Cobertura de intereses" nivel={cajaInferida.icr < 1.5 ? "bad" : cajaInferida.icr < 2.5 ? "warn" : "ok"} />
               </div>
               <div className="mt-1 font-mono text-xl font-bold text-ink flex items-baseline gap-1.5">
                 <span>{cajaInferida.esIcrEstimado ? `~${fmtNum(cajaInferida.icr)}x` : `${fmtNum(cajaInferida.icr)}x`}</span>
@@ -677,7 +716,7 @@ export function CompanyDetail() {
           <ul className="mt-3 space-y-2">
             {senales.map((s) => (
               <li key={s.id} className="flex items-start gap-2 rounded-lg border border-border p-3">
-                <span aria-hidden="true">{s.tipo === "positiva" ? "🟢" : s.tipo === "advertencia" ? "🟡" : "🔴"}</span>
+                <SemaforoBadge detalle="Señal" nivel={s.tipo === "positiva" ? "ok" : s.tipo === "advertencia" ? "warn" : "bad"} />
                 <div>
                   <div className="text-sm font-semibold text-ink">{s.titulo}</div>
                   <div className="text-sm text-ink-muted">{s.descripcion}</div>

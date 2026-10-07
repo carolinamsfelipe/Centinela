@@ -5,6 +5,7 @@ import { SCORE_ESTADO_THRESHOLDS, SCORE_WEIGHTS } from "@/lib/financial/scoreCon
 import { esEntidadFinanciera } from "@/lib/financial/analysis";
 import { inferirMetricasCaja } from "@/lib/financial/benchmarks";
 import { aUsd, fmtFecha, fmtMonto, fmtNum, fmtPct, fmtScore, fmtX } from "@/lib/format";
+import { sanitizarTextoPlanilla } from "@/services/userCompanies";
 import type { AltmanResult, CentinelaScore, Company, Estado } from "@/types";
 import {
   COLOR_ESTADO,
@@ -366,7 +367,8 @@ async function descargarExcel(nombre: string, hojas: Array<{ nombre: string; fil
   const XLSX = await import("xlsx");
   const libro = XLSX.utils.book_new();
   for (const h of hojas) {
-    XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet(h.filas), h.nombre.slice(0, 31));
+    const filasSeguras = h.filas.map((fila) => fila.map((c) => (typeof c === "string" ? sanitizarTextoPlanilla(c) : c)));
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet(filasSeguras), h.nombre.slice(0, 31));
   }
   XLSX.writeFile(libro, nombre);
 }

@@ -19,11 +19,31 @@ export function calcularCapitalTrabajoSobreActivos(m: FinancialMetrics): number 
   return safeDiv(capitalTrabajo, m.activosTotales);
 }
 
+/** Techo sintético del D/E cuando el patrimonio es <= 0 y hay deuda (apalancamiento no acotado). */
+export const DE_MAXIMO_QUIEBRA_TECNICA = 99.9;
+/** Techo sintético del ICR para empresas sin deuda ni intereses y con resultado operativo positivo. */
+export const ICR_MAXIMO_SIN_DEUDA = 50;
+
+/**
+ * D/E. Con patrimonio <= 0 el cociente pierde sentido (daría negativo y se leería
+ * como "poca deuda"): si hay deuda se devuelve el techo de penalización máxima.
+ */
 export function calcularDeudaSobrePatrimonio(m: FinancialMetrics): number | null {
+  if (m.patrimonioNeto !== null && m.patrimonioNeto <= 0) {
+    return m.deudaTotal !== null && m.deudaTotal > 0 ? DE_MAXIMO_QUIEBRA_TECNICA : null;
+  }
   return safeDiv(m.deudaTotal, m.patrimonioNeto);
 }
 
+/**
+ * ROE. Con patrimonio <= 0, una pérdida sobre patrimonio negativo daría ROE positivo
+ * (falso positivo): se fuerza -100%. Con patrimonio <= 0 y sin pérdida, el ROE no es
+ * interpretable y se devuelve null (el score lo ignora).
+ */
 export function calcularRoe(m: FinancialMetrics): number | null {
+  if (m.patrimonioNeto !== null && m.patrimonioNeto <= 0) {
+    return m.netIncome !== null && m.netIncome < 0 ? -1 : null;
+  }
   return safeDiv(m.netIncome, m.patrimonioNeto);
 }
 
@@ -79,15 +99,24 @@ export function calcularCcc(
 
 /**
  * Interest Coverage Ratio (ICR): capacidad de la generación operativa para pagar intereses.
- * ICR = EBITDA / Gastos por Intereses Financieros
+ * ICR = EBIT / Gastos por Intereses Financieros (EBITDA solo si no hay EBIT: en industrias
+ * intensivas en capital la depreciación no es caja libre para pagar intereses).
+ * Sin deuda ni intereses: cobertura máxima sintética si el resultado operativo es > 0.
  */
 export function calcularIcr(
   ebitda: number | null,
-  gastosIntereses: number | null
+  gastosIntereses: number | null,
+  ebit: number | null = null,
+  deudaTotal: number | null = null
 ): number | null {
-  if (ebitda === null || gastosIntereses === null) return null;
-  if (gastosIntereses <= 0) return null; // Sin intereses financieros reportados
-  return ebitda / gastosIntereses;
+  const resultadoOperativo = ebit ?? ebitda;
+  if (resultadoOperativo === null) return null;
+  const sinIntereses = gastosIntereses === null || gastosIntereses === 0;
+  if (sinIntereses && deudaTotal === 0) {
+    return resultadoOperativo > 0 ? ICR_MAXIMO_SIN_DEUDA : 0;
+  }
+  if (gastosIntereses === null || gastosIntereses <= 0) return null; // Sin dato de intereses: lo resuelve la imputación
+  return Math.min(resultadoOperativo / gastosIntereses, ICR_MAXIMO_SIN_DEUDA);
 }
 
 /**
