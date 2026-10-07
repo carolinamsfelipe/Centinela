@@ -1,5 +1,8 @@
 import type { Company, FinancialMetrics, Mercado, Sector } from "@/types";
 import { analizarEmpresa } from "./analysis";
+import { tasaReferencia } from "./tasasReferencia";
+
+export const MUESTRA_MINIMA_BENCHMARK = 3;
 
 export interface BenchmarkGrupo {
   roe: number | null;
@@ -14,14 +17,23 @@ export interface BenchmarkGrupo {
   ccc: number | null;
   icr: number | null;
   cantidadEmpresas: number;
+  muestraSuficiente: boolean;
+}
+
+/** Percentil p en [0, 100] sobre valores válidos. */
+export function percentil(valores: Array<number | null>, p: number): number | null {
+  const validos = valores.filter((v): v is number => v !== null && Number.isFinite(v)).sort((a, b) => a - b);
+  if (validos.length === 0) return null;
+  const rank = (p / 100) * (validos.length - 1);
+  const low = Math.floor(rank);
+  const high = Math.ceil(rank);
+  if (low === high) return validos[low];
+  return validos[low] + (rank - low) * (validos[high] - validos[low]);
 }
 
 /** Mediana: robusta frente a una empresa muy grande o muy chica en un grupo corto. */
 function mediana(valores: Array<number | null>): number | null {
-  const validos = valores.filter((v): v is number => v !== null && Number.isFinite(v)).sort((a, b) => a - b);
-  if (validos.length === 0) return null;
-  const mid = Math.floor(validos.length / 2);
-  return validos.length % 2 === 0 ? (validos[mid - 1] + validos[mid]) / 2 : validos[mid];
+  return percentil(valores, 50);
 }
 
 export function calcularBenchmark(empresas: Company[]): BenchmarkGrupo {
@@ -40,6 +52,7 @@ export function calcularBenchmark(empresas: Company[]): BenchmarkGrupo {
     ccc: mediana(deMercado.map((e) => e.metrics.ccc ?? null)),
     icr: mediana(deMercado.map((e) => e.metrics.icr ?? null)),
     cantidadEmpresas: deMercado.length,
+    muestraSuficiente: deMercado.length >= MUESTRA_MINIMA_BENCHMARK,
   };
 }
 
@@ -118,7 +131,7 @@ export function inferirMetricasCaja(
   // 1. DSO (Días de Cobro)
   let dso = m?.dso ?? null;
   let esDsoEstimado = false;
-  if (dso === null && m?.cuentasPorCobrar && m.revenue && m.revenue > 0) {
+  if (dso === null && m?.cuentasPorCobrar != null && m.revenue && m.revenue > 0) {
     dso = (m.cuentasPorCobrar / m.revenue) * 365;
   }
   if (dso === null || Number.isNaN(dso) || dso <= 0) {
@@ -129,7 +142,7 @@ export function inferirMetricasCaja(
   // 2. DIO (Días de Inventario)
   let dio = m?.dio ?? null;
   let esDioEstimado = false;
-  if (dio === null && m?.inventarios && m.costoVentas && m.costoVentas > 0) {
+  if (dio === null && m?.inventarios != null && m.costoVentas && m.costoVentas > 0) {
     dio = (m.inventarios / m.costoVentas) * 365;
   }
   if (dio === null || Number.isNaN(dio) || dio < 0) {
@@ -140,7 +153,7 @@ export function inferirMetricasCaja(
   // 3. DPO (Días de Proveedores)
   let dpo = m?.dpo ?? null;
   let esDpoEstimado = false;
-  if (dpo === null && m?.cuentasPorPagar && m.costoVentas && m.costoVentas > 0) {
+  if (dpo === null && m?.cuentasPorPagar != null && m.costoVentas && m.costoVentas > 0) {
     dpo = (m.cuentasPorPagar / m.costoVentas) * 365;
   }
   if (dpo === null || Number.isNaN(dpo) || dpo <= 0) {
@@ -170,7 +183,7 @@ export function inferirMetricasCaja(
     icr = ((m.ebit ?? m.ebitda) as number) / m.gastosIntereses;
     esIcrEstimado = false;
   } else if (m?.deudaTotal && m.deudaTotal > 0 && (m.ebit ?? m.ebitda) != null) {
-    const tasa = mercado === "Argentina" ? 0.35 : mercado === "Brasil" ? 0.12 : 0.055;
+    const tasa = tasaReferencia(mercado);
     const interesesEstimados = m.deudaTotal * tasa;
     icr = Math.max(0.1, ((m.ebit ?? m.ebitda) as number) / interesesEstimados);
     esIcrEstimado = true;

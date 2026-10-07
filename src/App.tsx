@@ -10,6 +10,7 @@ const Rankings = lazy(() => import("@/pages/Rankings").then((m) => ({ default: m
 const Macro = lazy(() => import("@/pages/Macro").then((m) => ({ default: m.Macro })));
 const Mercado = lazy(() => import("@/pages/Mercado").then((m) => ({ default: m.Mercado })));
 const Simulador = lazy(() => import("@/pages/Simulador").then((m) => ({ default: m.Simulador })));
+const AlertasCaja = lazy(() => import("@/pages/AlertasCaja").then((m) => ({ default: m.AlertasCaja })));
 const MiEmpresa = lazy(() => import("@/pages/MiEmpresa").then((m) => ({ default: m.MiEmpresa })));
 const Presentacion = lazy(() => import("@/pages/Presentacion").then((m) => ({ default: m.Presentacion })));
 const Metodologia = lazy(() => import("@/pages/Metodologia").then((m) => ({ default: m.Metodologia })));
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/empresas" element={<Empresas />} />
           <Route path="/empresas/:ticker" element={<CompanyDetail />} />
           <Route path="/comparador" element={<Comparador />} />
+          <Route path="/alertas" element={<AlertasCaja />} />
           <Route path="/rankings" element={<Rankings />} />
           <Route path="/mercado" element={<Mercado />} />
           <Route path="/macro" element={<Macro />} />

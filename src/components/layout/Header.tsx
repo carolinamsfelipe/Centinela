@@ -6,7 +6,8 @@ import { SearchBox } from "./SearchBox";
 const NAV_ITEMS = [
   { to: "/empresas", label: "Empresas" },
   { to: "/comparador", label: "Comparador" },
-  { to: "/rankings", label: "Alertas de Caja" },
+  { to: "/alertas", label: "Alertas de Caja" },
+  { to: "/rankings", label: "Rankings" },
   { to: "/simulador", label: "Simulador" },
   { to: "/mi-empresa", label: "Mi empresa" },
   { to: "/mercado", label: "Mercado" },

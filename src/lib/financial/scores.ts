@@ -6,6 +6,7 @@ import {
   calcularMargenNeto,
   calcularRoa,
   calcularRoe,
+  patrimonioNegativo,
 } from "./ratios";
 import { NORMALIZATION, SCORE_ESTADO_THRESHOLDS, SCORE_WEIGHTS } from "./scoreConfig";
 
@@ -60,7 +61,7 @@ export function getScoreGrade(score: number | null): ScoreGradeInfo {
       descripcion: "Salud patrimonial y operativa robusta; baja probabilidad de tensión de liquidez o quiebra.",
     };
   }
-  if (score >= 65) {
+  if (score >= SCORE_ESTADO_THRESHOLDS.normal) {
     return {
       grado: "B",
       label: "Resiliencia Aceptable",
@@ -68,7 +69,7 @@ export function getScoreGrade(score: number | null): ScoreGradeInfo {
       descripcion: "Estructura financiera sostenible con necesidad de monitoreo en capital de trabajo o endeudamiento.",
     };
   }
-  if (score >= 45) {
+  if (score >= SCORE_ESTADO_THRESHOLDS.atencion) {
     return {
       grado: "C",
       label: "Vulnerabilidad Moderada",
@@ -91,7 +92,7 @@ export function calcularCentinelaScore(m: FinancialMetrics, marketCap: number | 
   const liquidez = normalizar(calcularLiquidez(m), NORMALIZATION.liquidezMax);
 
   // Quiebra técnica (patrimonio <= 0): penalización máxima, nunca puntaje por cociente de signos negativos.
-  const quiebraTecnica = m.patrimonioNeto !== null && m.patrimonioNeto <= 0;
+  const quiebraTecnica = patrimonioNegativo(m);
 
   const rentabilidad = promedio([
     quiebraTecnica ? 0 : normalizar(calcularRoe(m), NORMALIZATION.roeMax),

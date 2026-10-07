@@ -24,12 +24,17 @@ export const DE_MAXIMO_QUIEBRA_TECNICA = 99.9;
 /** Techo sintético del ICR para empresas sin deuda ni intereses y con resultado operativo positivo. */
 export const ICR_MAXIMO_SIN_DEUDA = 50;
 
+/** Con patrimonio neto ≤ 0 el cociente no tiene lectura (un D/E negativo no es "poca deuda"). */
+export function patrimonioNegativo(m: Pick<FinancialMetrics, "patrimonioNeto">): boolean {
+  return m.patrimonioNeto !== null && m.patrimonioNeto !== undefined && m.patrimonioNeto <= 0;
+}
+
 /**
  * D/E. Con patrimonio <= 0 el cociente pierde sentido (daría negativo y se leería
- * como "poca deuda"): si hay deuda se devuelve el techo de penalización máxima.
+ * como "poca deuda"): si hay deuda se devuelve el techo de penalización máxima o null.
  */
 export function calcularDeudaSobrePatrimonio(m: FinancialMetrics): number | null {
-  if (m.patrimonioNeto !== null && m.patrimonioNeto <= 0) {
+  if (patrimonioNegativo(m)) {
     return m.deudaTotal !== null && m.deudaTotal > 0 ? DE_MAXIMO_QUIEBRA_TECNICA : null;
   }
   return safeDiv(m.deudaTotal, m.patrimonioNeto);
@@ -41,7 +46,7 @@ export function calcularDeudaSobrePatrimonio(m: FinancialMetrics): number | null
  * interpretable y se devuelve null (el score lo ignora).
  */
 export function calcularRoe(m: FinancialMetrics): number | null {
-  if (m.patrimonioNeto !== null && m.patrimonioNeto <= 0) {
+  if (patrimonioNegativo(m)) {
     return m.netIncome !== null && m.netIncome < 0 ? -1 : null;
   }
   return safeDiv(m.netIncome, m.patrimonioNeto);
@@ -57,11 +62,11 @@ export function calcularMargenNeto(m: FinancialMetrics): number | null {
 
 /**
  * Days Sales Outstanding (DSO): días promedio que tarda la empresa en cobrar a sus clientes.
- * DSO = (Cuentas por Cobrar / Ventas) * 365
+ * DSO = (Cuentas por Cobrar / Ventas) * diasPeriodo
  */
-export function calcularDso(cuentasPorCobrar: number | null, revenue: number | null): number | null {
+export function calcularDso(cuentasPorCobrar: number | null, revenue: number | null, diasPeriodo = 365): number | null {
   if (cuentasPorCobrar === null || revenue === null || revenue <= 0) return null;
-  return (cuentasPorCobrar / revenue) * 365;
+  return (cuentasPorCobrar / revenue) * diasPeriodo;
 }
 
 /**

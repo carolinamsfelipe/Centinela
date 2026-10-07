@@ -108,19 +108,22 @@ export function Rankings() {
     getMarketCompanies().then(setEmpresas);
   }, []);
 
+  const todasLasFilas: Fila[] = useMemo(() => {
+    return (empresas ?? []).map((company) => {
+      const { score } = analizarEmpresa(company);
+      return {
+        company,
+        scoreTotal: score.total,
+        scoreEstado: score.estado,
+        crecimientoRevenue: calcularCrecimientoRevenue(company),
+      };
+    });
+  }, [empresas]);
+
   const filas: Fila[] = useMemo(() => {
-    return (empresas ?? [])
-      .filter((company) => mercado === "Todos" || company.mercado === mercado)
-      .map((company) => {
-        const { score } = analizarEmpresa(company);
-        return {
-          company,
-          scoreTotal: score.total,
-          scoreEstado: score.estado,
-          crecimientoRevenue: calcularCrecimientoRevenue(company),
-        };
-      });
-  }, [empresas, mercado]);
+    if (mercado === "Todos") return todasLasFilas;
+    return todasLasFilas.filter((f) => f.company.mercado === mercado);
+  }, [todasLasFilas, mercado]);
 
   const ranking = RANKINGS.find((r) => r.id === rankingId) ?? RANKINGS[0];
 

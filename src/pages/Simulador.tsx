@@ -24,15 +24,11 @@ import { fmtMonto, fmtNum, fmtPct, fmtScore, fmtX } from "@/lib/format";
 import { getCompanies } from "@/services/companyService";
 import type { Company, FinancialMetrics } from "@/types";
 
+import { tasaEfectiva, tasaReferencia } from "@/lib/financial/tasasReferencia";
+import { MEDIANAS_SECTORIALES_DEFAULT } from "@/lib/financial/benchmarks";
+
 function getTasaInteresMercado(mercado?: string): number {
-  if (!mercado) return 5.0;
-  const m = mercado.toLowerCase().trim();
-  if (m.includes("argentina")) return 35.0;
-  if (m.includes("estados unidos") || m.includes("eeuu") || m.includes("usa")) return 4.5;
-  if (m.includes("europa")) return 3.5;
-  if (m.includes("brasil")) return 11.5;
-  if (m.includes("méxico") || m.includes("mexico")) return 10.0;
-  return 5.0;
+  return Math.round(tasaReferencia(mercado) * 1000) / 10;
 }
 
 function getMargenHistorico(metrics?: FinancialMetrics): number {
@@ -249,6 +245,7 @@ export function Simulador() {
   const [dsoObjetivo, setDsoObjetivo] = useState<number>(60);
   const [dpoObjetivo, setDpoObjetivo] = useState<number>(45);
   const [devaluacionUsd, setDevaluacionUsd] = useState<number>(0); // 0, 10, 20, 30, 50%
+  const [modoMoneda, setModoMoneda] = useState<"usd" | "nativa">("usd");
 
   useEffect(() => {
     getCompanies().then((todas) => {
@@ -280,8 +277,9 @@ export function Simulador() {
     if (!company) return;
     setCrecimiento(5);
     setVariacionDeuda(0);
-    setMargen(getMargenHistorico(company.metrics));
-    setTasaInteres(getTasaInteresMercado(company.mercado));
+    // Tasa: usar tasa efectiva real si la empresa reporta gastos de intereses y deuda
+    const te = tasaEfectiva(company.metrics.gastosIntereses, company.metrics.deudaTotal);
+    setTasaInteres(te !== null ? Math.round(te * 1000) / 10 : getTasaInteresMercado(company.mercado));
 
     // Si la empresa tiene DSO y DPO reales, calibrar los sliders a sus valores reales
     const dsoReal = company.metrics.dso ?? (company.metrics.cuentasPorCobrar && company.metrics.revenue ? (company.metrics.cuentasPorCobrar / company.metrics.revenue) * 365 : null);
@@ -308,7 +306,8 @@ export function Simulador() {
     setCrecimiento(5);
     setVariacionDeuda(0);
     setMargen(getMargenHistorico(company.metrics));
-    setTasaInteres(getTasaInteresMercado(company.mercado));
+    const te = tasaEfectiva(company.metrics.gastosIntereses, company.metrics.deudaTotal);
+    setTasaInteres(te !== null ? Math.round(te * 1000) / 10 : getTasaInteresMercado(company.mercado));
     const dsoReal = company.metrics.dso ?? 60;
     const dpoReal = company.metrics.dpo ?? 35;
     setDsoObjetivo(Math.round(dsoReal));
@@ -698,17 +697,29 @@ export function Simulador() {
       </Card>
 
       {/* BLOQUE 3: IMPACTO EN CAJA & PLAN DE ACCIÓN RECOMENDADO */}
+      {/* BLOQUE 3: IMPACTO EN CAJA & PLAN DE ACCIÓN RECOMENDADO */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Panel del Efectivo Liberado */}
         <div className="rounded-xl border border-ok/40 bg-ok-soft/30 p-5 flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg">💰</span>
-              <h3 className="font-bold text-ink">Efectivo Neto Liberado en Caja</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">💰</span>
+                <h3 className="font-bold text-ink">Efectivo Neto Liberado en Caja</h3>
+              </div>
+              {company && company.monedaReporte !== "USD" && (
+                <button
+                  type="button"
+                  onClick={() => setModoMoneda(modoMoneda === "usd" ? "nativa" : "usd")}
+                  className="rounded border border-border bg-surface px-2 py-0.5 font-mono text-[10px] font-semibold text-ink-muted hover:text-ink focus-ring"
+                >
+                  {modoMoneda === "usd" ? "Ver en " + company.monedaReporte : "Ver en US$"}
+                </button>
+              )}
             </div>
-            <div className="mt-3 font-mono text-3xl font-extrabold text-ok">
+            <div className={`mt-3 font-mono text-3xl font-extrabold ${cajaTotalLiberada >= 0 ? "text-ok" : "text-bad"}`}>
               {cajaTotalLiberada >= 0 ? "+" : ""}
-              {fmtMonto(cajaTotalLiberada, company || EMPRESA_DEMO_PEDRO)}
+              {fmtMonto(cajaTotalLiberada, company || EMPRESA_DEMO_PEDRO, modoMoneda)}
             </div>
             <p className="mt-2 text-xs text-ink-muted leading-relaxed">
               {cajaTotalLiberada > 0
@@ -718,44 +729,69 @@ export function Simulador() {
           </div>
 
           <div className="mt-4 pt-3 border-t border-ok/30 text-xs flex justify-between font-medium">
-            <span className="text-ink-muted">Por DSO: +{fmtMonto(cajaLiberadaDso, company || EMPRESA_DEMO_PEDRO)}</span>
-            <span className="text-ink-muted">Por DPO: +{fmtMonto(cajaLiberadaDpo, company || EMPRESA_DEMO_PEDRO)}</span>
+            <span className="text-ink-muted">Por DSO: {cajaLiberadaDso >= 0 ? "+" : ""}{fmtMonto(cajaLiberadaDso, company || EMPRESA_DEMO_PEDRO, modoMoneda)}</span>
+            <span className="text-ink-muted">Por DPO: {cajaLiberadaDpo >= 0 ? "+" : ""}{fmtMonto(cajaLiberadaDpo, company || EMPRESA_DEMO_PEDRO, modoMoneda)}</span>
           </div>
         </div>
 
-        {/* Panel Centinela Recomienda */}
-        <div className="rounded-xl border border-accent/40 bg-accent-soft/20 p-5 col-span-2">
+        {/* Panel Centinela Recomienda (Dinámico derivado de la brecha contra la mediana sectorial) */}
+        <div className="rounded-xl border border-accent/40 bg-accent-soft/20 p-5 lg:col-span-2">
           <div className="flex items-center gap-2">
             <span className="text-lg">🛡️</span>
             <h3 className="font-bold text-ink">Centinela Recomienda · Plan de Acción Priorizado</h3>
           </div>
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Prioridad 1: DSO */}
             <div className="rounded-lg bg-surface p-3 border border-border">
               <span className="text-[11px] font-bold uppercase text-accent block">Prioridad 1 · Cobranzas</span>
-              <h4 className="mt-1 text-sm font-semibold text-ink">Reducir DSO a 60 días</h4>
+              <h4 className="mt-1 text-sm font-semibold text-ink">
+                {dsoObjetivo < dsoActual
+                  ? `Reducir DSO a ${dsoObjetivo} días`
+                  : dsoActual > (company?.sector ? MEDIANAS_SECTORIALES_DEFAULT[company.sector]?.dso ?? 55 : 55)
+                  ? `Alinear cobro a ${company?.sector ? MEDIANAS_SECTORIALES_DEFAULT[company.sector]?.dso ?? 55 : 55} días`
+                  : `Mantener DSO en ${dsoObjetivo} días`}
+              </h4>
               <p className="mt-1 text-xs text-ink-muted">
-                Ofrecer 3% de descuento por pronto pago a clientes clase A para capturar liquidez inmediata.
+                {dsoObjetivo < dsoActual
+                  ? `Liberaría ${fmtMonto(cajaLiberadaDso, company || EMPRESA_DEMO_PEDRO, modoMoneda)} agilizando cobranzas o con descuento por pronto pago.`
+                  : "El plazo de cobro simulado está alineado con la política comercial actual."}
               </p>
             </div>
+
+            {/* Prioridad 2: DPO */}
             <div className="rounded-lg bg-surface p-3 border border-border">
               <span className="text-[11px] font-bold uppercase text-accent block">Prioridad 2 · Proveedores</span>
-              <h4 className="mt-1 text-sm font-semibold text-ink">Extender DPO a 50 días</h4>
+              <h4 className="mt-1 text-sm font-semibold text-ink">
+                {dpoObjetivo > dpoActual
+                  ? `Extender DPO a ${dpoObjetivo} días`
+                  : `Monitorear DPO (${dpoObjetivo} días)`}
+              </h4>
               <p className="mt-1 text-xs text-ink-muted">
-                Renegociar contratos de insumos clave con cheques a plazo o acuerdos de volumen diferido.
+                {dpoObjetivo > dpoActual
+                  ? `Retendría ${fmtMonto(cajaLiberadaDpo, company || EMPRESA_DEMO_PEDRO, modoMoneda)} renegociando términos con proveedores clave.`
+                  : "Plazo de pago sin financiamiento adicional con proveedores en este escenario."}
               </p>
             </div>
+
+            {/* Prioridad 3: FX */}
             <div className="rounded-lg bg-surface p-3 border border-border">
               <span className="text-[11px] font-bold uppercase text-warn block">Prioridad 3 · Riesgo FX</span>
-              <h4 className="mt-1 text-sm font-semibold text-ink">Mitigar Deuda USD</h4>
+              <h4 className="mt-1 text-sm font-semibold text-ink">
+                {deudaUsdPct > 0
+                  ? `Mitigar Deuda USD (${Math.round(deudaUsdPct * 100)}%)`
+                  : "Deuda en Moneda Local"}
+              </h4>
               <p className="mt-1 text-xs text-ink-muted">
-                Con un salto del {devaluacionUsd || 20}%, la cobertura ICR se tensiona. Priorizar cancelación en divisas.
+                {deudaUsdPct > 0
+                  ? `Ante un salto cambiario del ${devaluacionUsd}%, el pasivo sube ${fmtMonto(saltoDeudaUsd, company || EMPRESA_DEMO_PEDRO, modoMoneda)}.`
+                  : "La empresa no reporta exposición directa a deuda nominada en moneda extranjera."}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Banner Plan de Acción 100% Automatizado */}
-        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-accent/40 bg-gradient-to-r from-accent/10 via-surface to-accent/5 p-4">
+        {/* Banner Plan de Acción 100% Automatizado: ocupa todo el ancho de la grilla (3 cols) */}
+        <div className="lg:col-span-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-accent/40 bg-gradient-to-r from-accent/10 via-surface to-accent/5 p-4">
           <div>
             <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] font-bold text-accent">
               <span>●</span> PLAN DE ACCIÓN 100% AUTOMATIZADO

@@ -3,24 +3,11 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { MERCADOS, SECTORES } from "@/data/companies";
 import { analizarEmpresa } from "@/lib/financial/analysis";
-import { SCORE_ESTADO_THRESHOLDS } from "@/lib/financial/scoreConfig";
+import { getRiskLevel } from "@/lib/financial/scores";
+import { ESTADO_UI } from "@/lib/financial/estadoUi";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { getMarketCompanies } from "@/services/companyService";
 import type { Company, Estado } from "@/types";
-
-const ESTADO_TILE_CLASSES: Record<Estado, string> = {
-  alerta: "bg-bad-soft text-bad border-bad/30",
-  atencion: "bg-warn-soft text-warn border-warn/30",
-  normal: "bg-ok-soft text-ok border-ok/30",
-  sin_datos: "bg-neutral-soft text-neutral border-neutral/30",
-};
-
-function estadoDesdePromedio(avg: number | null): Estado {
-  if (avg === null) return "sin_datos";
-  if (avg >= SCORE_ESTADO_THRESHOLDS.normal) return "normal";
-  if (avg >= SCORE_ESTADO_THRESHOLDS.atencion) return "atencion";
-  return "alerta";
-}
 
 interface FilaVariacion {
   company: Company;
@@ -39,6 +26,14 @@ export function Mercado() {
   }, []);
 
   const lista = useMemo(() => empresas ?? [], [empresas]);
+
+  // Pre-computar score de cada empresa una sola vez para no recalcular en bucles
+  const empresasConAnalisis = useMemo(() => {
+    return lista.map((c) => ({
+      company: c,
+      score: analizarEmpresa(c).score.total,
+    }));
+  }, [lista]);
 
   const conVariacion: FilaVariacion[] = useMemo(() => {
     return lista
@@ -65,36 +60,36 @@ export function Mercado() {
 
   const heatmap = useMemo(() => {
     return SECTORES.map((s) => {
-      const delSector = lista.filter((c) => c.sector === s.id);
+      const delSector = empresasConAnalisis.filter((item) => item.company.sector === s.id);
       const scores = delSector
-        .map((c) => analizarEmpresa(c).score.total)
+        .map((item) => item.score)
         .filter((v): v is number => v !== null);
       const promedio = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
       return {
         sector: s,
         promedio,
-        estado: estadoDesdePromedio(promedio),
+        estado: getRiskLevel(promedio),
         cantidadEmpresas: delSector.length,
       };
     }).filter((h) => h.cantidadEmpresas > 0);
-  }, [lista]);
+  }, [empresasConAnalisis]);
 
   const porMercado = useMemo(() => {
     return MERCADOS.map((mk) => {
-      const delMercado = lista.filter((c) => c.mercado === mk.id);
+      const delMercado = empresasConAnalisis.filter((item) => item.company.mercado === mk.id);
       const scores = delMercado
-        .map((c) => analizarEmpresa(c).score.total)
+        .map((item) => item.score)
         .filter((v): v is number => v !== null);
       const promedio = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
       return {
         mercado: mk,
         promedio,
-        estado: estadoDesdePromedio(promedio),
+        estado: getRiskLevel(promedio),
         cantidadEmpresas: delMercado.length,
         conScore: scores.length,
       };
     }).filter((h) => h.cantidadEmpresas > 0);
-  }, [lista]);
+  }, [empresasConAnalisis]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
@@ -186,20 +181,23 @@ export function Mercado() {
           empresas por sector, el promedio puede no ser representativo del sector real.
         </p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {heatmap.map((h) => (
-            <div
-              key={h.sector.id}
-              className={`rounded-lg border p-3 ${ESTADO_TILE_CLASSES[h.estado]}`}
-            >
-              <div className="text-xs font-medium opacity-90">{h.sector.nombre}</div>
-              <div className="mt-1 font-mono text-xl font-bold">
-                {h.promedio !== null ? Math.round(h.promedio) : "N/D"}
+          {heatmap.map((h) => {
+            const ui = ESTADO_UI[h.estado] ?? ESTADO_UI.sin_datos;
+            return (
+              <div
+                key={h.sector.id}
+                className={`rounded-lg border p-3 ${ui.soft} ${ui.text} ${ui.border}`}
+              >
+                <div className="text-xs font-medium opacity-90">{h.sector.nombre}</div>
+                <div className="mt-1 font-mono text-xl font-bold">
+                  {h.promedio !== null ? Math.round(h.promedio) : "N/D"}
+                </div>
+                <div className="mt-1 text-xs opacity-80">
+                  {h.cantidadEmpresas} {h.cantidadEmpresas === 1 ? "empresa" : "empresas"}
+                </div>
               </div>
-              <div className="mt-1 text-xs opacity-80">
-                {h.cantidadEmpresas} {h.cantidadEmpresas === 1 ? "empresa" : "empresas"}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 
@@ -210,21 +208,24 @@ export function Mercado() {
           comparar la salud financiera típica entre mercados; no es un índice de mercado.
         </p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {porMercado.map((h) => (
-            <Link
-              key={h.mercado.id}
-              to={`/empresas?mercado=${encodeURIComponent(h.mercado.id)}`}
-              className={`rounded-lg border p-3 focus-ring ${ESTADO_TILE_CLASSES[h.estado]}`}
-            >
-              <div className="text-xs font-medium opacity-90">{h.mercado.nombre}</div>
-              <div className="mt-1 font-mono text-xl font-bold">
-                {h.promedio !== null ? Math.round(h.promedio) : "N/D"}
-              </div>
-              <div className="mt-1 text-xs opacity-80">
-                {h.conScore} de {h.cantidadEmpresas} {h.cantidadEmpresas === 1 ? "empresa" : "empresas"} con Score
-              </div>
-            </Link>
-          ))}
+          {porMercado.map((h) => {
+            const ui = ESTADO_UI[h.estado] ?? ESTADO_UI.sin_datos;
+            return (
+              <Link
+                key={h.mercado.id}
+                to={`/empresas?mercado=${encodeURIComponent(h.mercado.id)}`}
+                className={`rounded-lg border p-3 focus-ring ${ui.soft} ${ui.text} ${ui.border}`}
+              >
+                <div className="text-xs font-medium opacity-90">{h.mercado.nombre}</div>
+                <div className="mt-1 font-mono text-xl font-bold">
+                  {h.promedio !== null ? Math.round(h.promedio) : "N/D"}
+                </div>
+                <div className="mt-1 text-xs opacity-80">
+                  {h.conScore} de {h.cantidadEmpresas} {h.cantidadEmpresas === 1 ? "empresa" : "empresas"} con Score
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </Card>
     </div>

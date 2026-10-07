@@ -186,13 +186,19 @@ export function proyectarMetricas(
       ? supuestos.dsoObjetivo
       : dsoActual;
 
-  const costoVentasActual =
-    actual.costoVentas ??
-    (actual.revenue !== null && actual.revenue > 0
-      ? actual.revenue * (1 - (actual.margenNeto ?? 0.2))
-      : null);
+  // Costo de ventas ≠ ventas − resultado neto: el neto descuenta además gastos
+  // operativos, intereses e impuestos. Se proyecta con el margen bruto observado;
+  // sin costo informado se usa ventas − EBITDA como cota superior, y si tampoco
+  // hay EBITDA queda null (no se inventa).
+  const ratioCosto =
+    actual.costoVentas != null && actual.revenue
+      ? actual.costoVentas / actual.revenue
+      : actual.ebitda != null && actual.revenue
+      ? 1 - actual.ebitda / actual.revenue
+      : null;
+  const costoVentasActual = ratioCosto !== null && actual.revenue ? actual.revenue * ratioCosto : null;
   const costoVentasProyectado =
-    revenue !== null ? revenue * (1 - supuestos.margenNeto) : costoVentasActual;
+    ratioCosto !== null && revenue !== null ? revenue * ratioCosto : costoVentasActual;
 
   const dpoActual =
     actual.dpo ??
@@ -233,7 +239,7 @@ export function proyectarMetricas(
   const ebitdaProyectado =
     actual.ebitda !== null && actual.revenue !== null && actual.revenue > 0 && revenue !== null
       ? (actual.ebitda / actual.revenue) * revenue
-      : (netIncome !== null ? netIncome * 1.5 : null);
+      : null; // sin EBITDA no hay ICR proyectado: se muestra N/D
 
   const icr =
     ebitdaProyectado !== null && gastoFinanciero !== null && gastoFinanciero > 0

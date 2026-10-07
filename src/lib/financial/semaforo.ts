@@ -16,6 +16,7 @@ import {
   calcularMargenNeto,
   calcularRoa,
   calcularRoe,
+  patrimonioNegativo,
 } from "./ratios";
 import { fmtNum, fmtPct, fmtX } from "@/lib/format";
 
@@ -79,7 +80,7 @@ export function construirSemaforo(m: FinancialMetrics): ItemSemaforo[] {
     item("liquidez", "Liquidez", liquidez, fmtNum(liquidez), diagnosticarLiquidez(liquidez), true),
     item("endeudamiento", "Endeudamiento", endeudamiento, fmtPct(endeudamiento), diagnosticarEndeudamiento(endeudamiento), true),
     item("capitalTrabajo", "Capital de trabajo / Activos", capitalTrabajo, fmtPct(capitalTrabajo), diagnosticarCapitalTrabajo(capitalTrabajo), true),
-    item("deudaPatrimonio", "Deuda / Patrimonio", deudaPatrimonio, fmtX(deudaPatrimonio), diagnosticarDeudaPatrimonio(deudaPatrimonio), true),
+    item("deudaPatrimonio", "Deuda / Patrimonio", deudaPatrimonio, fmtX(deudaPatrimonio), diagnosticarDeudaPatrimonio(deudaPatrimonio, patrimonioNegativo(m)), true),
     item("roe", "ROE", roe, fmtPct(roe), diagnosticarRoe(roe), false),
     item("roa", "ROA", roa, fmtPct(roa), diagnosticarRoa(roa), false),
     item("margenNeto", "Margen neto", margen, fmtPct(margen), diagnosticarMargenNeto(margen), true),

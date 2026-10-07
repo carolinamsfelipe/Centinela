@@ -1,21 +1,15 @@
 import type { Estado } from "@/types";
-import { ESTADO_EMOJI, ESTADO_LABEL } from "@/lib/financial/diagnostics";
-
-const CLASSES: Record<Estado, string> = {
-  alerta: "bg-bad-soft text-bad",
-  atencion: "bg-warn-soft text-warn",
-  normal: "bg-ok-soft text-ok",
-  sin_datos: "bg-neutral-soft text-neutral",
-};
+import { ESTADO_UI } from "@/lib/financial/estadoUi";
 
 export function Badge({ estado, texto }: { estado: Estado; texto?: string }) {
+  const ui = ESTADO_UI[estado] ?? ESTADO_UI.sin_datos;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${CLASSES[estado]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border ${ui.soft} ${ui.text} ${ui.border}`}
       role="status"
     >
-      <span aria-hidden="true">{ESTADO_EMOJI[estado]}</span>
-      {texto ?? ESTADO_LABEL[estado]}
+      <span aria-hidden="true" className="text-[10px] leading-none">{ui.forma}</span>
+      {texto ?? ui.label}
     </span>
   );
 }

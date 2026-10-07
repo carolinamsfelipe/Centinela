@@ -45,23 +45,24 @@ export function generarSenales(company: Company): Signal[] {
     }
   }
 
-  const margenActual = company.metrics.margenNeto;
-  const periodosConMargen = historico.filter((h) => h.netIncome !== null);
-  if (margenActual !== null && periodosConMargen.length >= 2) {
-    const penultimo = periodosConMargen[periodosConMargen.length - 2];
-    if (penultimo.netIncome !== null && actual.netIncome !== null) {
-      const deltaResultado = actual.netIncome - penultimo.netIncome;
-      if (deltaResultado < 0 && penultimo.netIncome !== 0) {
-        const caidaRelativa = deltaResultado / Math.abs(penultimo.netIncome);
-        if (caidaRelativa <= -SIGNAL_RULES.MARGIN_CHANGE_THRESHOLD) {
-          senales.push({
-            id: `${company.ticker}-margin-down`,
-            tipo: "advertencia",
-            titulo: "Caída de margen",
-            descripcion: "El resultado neto del último período cayó respecto del anterior.",
-          });
-        }
-      }
+  const margenActual =
+    company.metrics.margenNeto ??
+    (actual.revenue && actual.revenue > 0 && actual.netIncome !== null ? actual.netIncome / actual.revenue : null);
+  const penultimo = historico[historico.length - 2];
+  const margenAnterior =
+    penultimo.revenue && penultimo.revenue > 0 && penultimo.netIncome !== null
+      ? penultimo.netIncome / penultimo.revenue
+      : null;
+
+  if (margenActual !== null && margenAnterior !== null) {
+    const deltaMargen = margenActual - margenAnterior;
+    if (deltaMargen <= -SIGNAL_RULES.MARGIN_CHANGE_THRESHOLD) {
+      senales.push({
+        id: `${company.ticker}-margin-down`,
+        tipo: "advertencia",
+        titulo: "Caída de margen",
+        descripcion: `El margen neto cayó ${(Math.abs(deltaMargen) * 100).toFixed(1)} puntos porcentuales respecto del período anterior.`,
+      });
     }
   }
 

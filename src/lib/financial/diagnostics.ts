@@ -25,7 +25,8 @@ export function diagnosticarCapitalTrabajo(v: number | null): RiesgoEtiqueta {
   return { estado: "normal", mensaje: "El capital de trabajo representa una proporción positiva de los activos." };
 }
 
-export function diagnosticarDeudaPatrimonio(v: number | null): RiesgoEtiqueta {
+export function diagnosticarDeudaPatrimonio(v: number | null, patrimonioNeg = false): RiesgoEtiqueta {
+  if (patrimonioNeg) return { estado: "alerta", mensaje: "Patrimonio neto negativo: los pasivos superan a los activos." };
   if (v === null) return sinDatos("No hay datos suficientes para calcular la deuda sobre patrimonio.");
   if (v > 2) return { estado: "alerta", mensaje: "La deuda financiera supera ampliamente al patrimonio neto." };
   if (v > 1) return { estado: "atencion", mensaje: "La deuda financiera supera al patrimonio neto y requiere seguimiento." };
@@ -63,6 +64,7 @@ export function diagnosticarCcc(v: number | null): RiesgoEtiqueta {
 export function diagnosticarIcr(v: number | null, sinIntereses = false): RiesgoEtiqueta {
   if (sinIntereses) return { estado: "normal", mensaje: "La empresa no registra carga de intereses financieros relevantes." };
   if (v === null) return sinDatos("No hay datos suficientes para calcular la cobertura de intereses (ICR).");
+  if (v < 0) return { estado: "alerta", mensaje: "EBITDA negativo: la operación no genera fondos para pagar intereses." };
   if (v < 1.0) return { estado: "alerta", mensaje: "Alerta crítica: la generación operativa (EBITDA) no alcanza para pagar los intereses de la deuda." };
   if (v < 2.0) return { estado: "atencion", mensaje: "Cobertura de intereses ajustada (1x-2x): vulnerable ante subas de tasa o caídas en ventas." };
   return { estado: "normal", mensaje: "Cobertura de intereses sólida (>2x): la generación operativa cubre holgadamente el servicio financiero." };
