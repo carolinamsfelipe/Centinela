@@ -4,6 +4,7 @@ import { Card, CardHeader, PaginaSkeleton } from "../ui";
 import { fmtNum, fmtPct, fmtX } from "@/lib/format";
 import { descargarCsv } from "../exportar";
 import { nombreSector } from "@/data/companies";
+import { inferirMetricasCaja } from "@/lib/financial/benchmarks";
 
 export function BenchmarkPage() {
   const { modelo, companies } = useV2();
@@ -88,12 +89,24 @@ export function BenchmarkPage() {
     },
   ];
 
+  // Métricas de caja completas para cada empresa (reales o proxy sectorial inferido)
+  const paresConMetricas = useMemo(() => {
+    return paresFiltrados.map((p) => {
+      const isPropia = p.ticker === company.ticker;
+      const c = isPropia ? caja : inferirMetricasCaja(p.metrics, p.sector, p.mercado);
+      return {
+        company: p,
+        caja: c,
+        isPropia,
+      };
+    });
+  }, [paresFiltrados, company.ticker, caja]);
+
   // Gráfico de dispersión Scatter: CCC (0 a 150) vs ICR (0 a 8)
   const puntosScatter = useMemo(() => {
-    return paresDelSector.map((p) => {
-      const isPropia = p.ticker === company.ticker;
-      const xCcc = isPropia ? caja.ccc : (p.metrics.ccc ?? 65);
-      const yIcr = isPropia ? caja.icr : (p.metrics.icr ?? 2.5);
+    return paresConMetricas.map(({ company: p, caja: c, isPropia }) => {
+      const xCcc = c.ccc;
+      const yIcr = c.icr;
 
       const xPos = `${Math.min(95, Math.max(5, (xCcc / 150) * 100))}%`;
       const yPos = `${Math.min(95, Math.max(5, (yIcr / 8) * 100))}%`;
@@ -108,34 +121,34 @@ export function BenchmarkPage() {
         yIcr,
       };
     });
-  }, [paresDelSector, company.ticker, caja]);
+  }, [paresConMetricas]);
 
   // Ordenamiento de tabla
   const tablaOrdenada = useMemo(() => {
-    return [...paresFiltrados].sort((a, b) => {
+    return [...paresConMetricas].sort((a, b) => {
       let vA = 0;
       let vB = 0;
-      if (sortCol === "nombre") return sortAsc ? a.nombre.localeCompare(b.nombre) : b.nombre.localeCompare(a.nombre);
-      if (sortCol === "mercado") return sortAsc ? a.mercado.localeCompare(b.mercado) : b.mercado.localeCompare(a.mercado);
+      if (sortCol === "nombre") return sortAsc ? a.company.nombre.localeCompare(b.company.nombre) : b.company.nombre.localeCompare(a.company.nombre);
+      if (sortCol === "mercado") return sortAsc ? a.company.mercado.localeCompare(b.company.mercado) : b.company.mercado.localeCompare(a.company.mercado);
       if (sortCol === "roe") {
-        vA = a.metrics.roe ?? -999;
-        vB = b.metrics.roe ?? -999;
+        vA = a.company.metrics.roe ?? -999;
+        vB = b.company.metrics.roe ?? -999;
       } else if (sortCol === "ccc") {
-        vA = a.metrics.ccc ?? 999;
-        vB = b.metrics.ccc ?? 999;
+        vA = a.caja.ccc ?? 999;
+        vB = b.caja.ccc ?? 999;
       } else if (sortCol === "icr") {
-        vA = a.metrics.icr ?? -999;
-        vB = b.metrics.icr ?? -999;
+        vA = a.caja.icr ?? -999;
+        vB = b.caja.icr ?? -999;
       } else if (sortCol === "liquidez") {
-        vA = a.metrics.currentRatio ?? -999;
-        vB = b.metrics.currentRatio ?? -999;
+        vA = a.company.metrics.currentRatio ?? -999;
+        vB = b.company.metrics.currentRatio ?? -999;
       } else if (sortCol === "deuda") {
-        vA = a.metrics.debtToEquity ?? 999;
-        vB = b.metrics.debtToEquity ?? 999;
+        vA = a.company.metrics.debtToEquity ?? 999;
+        vB = b.company.metrics.debtToEquity ?? 999;
       }
       return sortAsc ? vA - vB : vB - vA;
     });
-  }, [paresFiltrados, sortCol, sortAsc]);
+  }, [paresConMetricas, sortCol, sortAsc]);
 
   const ordenarPor = (col: string) => {
     if (sortCol === col) {
@@ -149,14 +162,14 @@ export function BenchmarkPage() {
   const exportarCSV = () => {
     descargarCsv(`benchmark_${sector}.csv`, [
       ["Empresa", "Ticker", "Mercado", "ROE", "Margen Neto", "CCC (días)", "ICR", "Liquidez", "Deuda/Patrimonio"],
-      ...tablaOrdenada.map((e) => [
+      ...tablaOrdenada.map(({ company: e, caja: c }) => [
         e.nombre,
         e.ticker,
         e.mercado,
         fmtPct(e.metrics.roe),
         fmtPct(e.metrics.margenNeto),
-        fmtNum(e.metrics.ccc, 0),
-        fmtNum(e.metrics.icr, 1),
+        fmtNum(c.ccc, 0),
+        fmtNum(c.icr, 1),
         fmtNum(e.metrics.currentRatio, 2),
         fmtNum(e.metrics.debtToEquity, 2),
       ]),
@@ -329,8 +342,7 @@ export function BenchmarkPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-v2-line font-mono">
-              {tablaOrdenada.map((e) => {
-                const isPropia = e.ticker === company.ticker;
+              {tablaOrdenada.map(({ company: e, caja: c, isPropia }) => {
                 return (
                   <tr
                     key={e.ticker}
@@ -341,8 +353,22 @@ export function BenchmarkPage() {
                     </td>
                     <td className="px-3 py-2 font-sans text-v2-ink2">{e.mercado}</td>
                     <td className="px-3 py-2 text-right text-v2-ink">{fmtPct(e.metrics.roe)}</td>
-                    <td className="px-3 py-2 text-right text-v2-ink">{fmtNum(e.metrics.ccc, 0)} d</td>
-                    <td className="px-3 py-2 text-right text-v2-ink">{fmtNum(e.metrics.icr, 1)}x</td>
+                    <td className="px-3 py-2 text-right text-v2-ink">
+                      <span>{fmtNum(c.ccc, 0)} d</span>
+                      {c.esCccEstimado && (
+                        <span className="ml-1 text-[9px] font-mono text-v2-ink3 bg-v2-s2 px-1 py-0.5 rounded border border-v2-line">
+                          est.
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right text-v2-ink">
+                      <span>{fmtNum(c.icr, 1)}x</span>
+                      {c.esIcrEstimado && (
+                        <span className="ml-1 text-[9px] font-mono text-v2-ink3 bg-v2-s2 px-1 py-0.5 rounded border border-v2-line">
+                          est.
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-right text-v2-ink">{fmtNum(e.metrics.currentRatio, 2)}x</td>
                     <td className="px-3 py-2 text-right text-v2-ink">{fmtNum(e.metrics.debtToEquity, 2)}x</td>
                   </tr>
