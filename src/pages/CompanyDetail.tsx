@@ -576,6 +576,8 @@ export function CompanyDetail() {
               pasivosCorrientes={m.pasivosCorrientes}
               gastosIntereses={m.gastosIntereses}
               monedaReporte={company.monedaReporte}
+              tipoCambioUsd={company.tipoCambioUsd}
+              company={company}
               nombreEmpresa={company.nombre}
             />
           </div>

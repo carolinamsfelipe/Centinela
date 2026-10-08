@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { fmtMonto } from "@/lib/format";
+import type { Company } from "@/types";
 
 interface CashBreakdownWaterfallProps {
   ebitda: number | null;
@@ -10,6 +11,8 @@ interface CashBreakdownWaterfallProps {
   pasivosCorrientes: number | null;
   gastosIntereses?: number | null;
   monedaReporte?: string;
+  tipoCambioUsd?: number | null;
+  company?: Company;
   nombreEmpresa?: string;
 }
 
@@ -20,9 +23,12 @@ export function CashBreakdownWaterfall({
   activosCorrientes,
   pasivosCorrientes,
   gastosIntereses,
-  monedaReporte = "USD",
+  monedaReporte = "ARS",
+  tipoCambioUsd = null,
+  company,
   nombreEmpresa = "la empresa",
 }: CashBreakdownWaterfallProps) {
+  const [modoMoneda, setModoMoneda] = useState<"usd" | "nativa">("usd");
   const analisisCaja = useMemo(() => {
     const eb = ebitda ?? 0;
     const fcf = freeCashFlow ?? 0;
@@ -97,8 +103,17 @@ export function CashBreakdownWaterfall({
     return Math.min(100, Math.max(8, (Math.abs(val) / maxEscala) * 100));
   };
 
-  const fmtValor = (val: number) => {
-    return fmtMonto(val, { monedaReporte } as any);
+  const objetoMoneda = useMemo(() => {
+    return {
+      monedaReporte: company?.monedaReporte ?? monedaReporte,
+      tipoCambioUsd: company?.tipoCambioUsd ?? tipoCambioUsd ?? (monedaReporte === "ARS" ? 1485.5 : null),
+    };
+  }, [company, monedaReporte, tipoCambioUsd]);
+
+  const fmtValor = (val: number | null | undefined) => {
+    if (val === null || val === undefined) return "N/D";
+    // Si no hay tipo de cambio y no es USD, fmtMonto usa modo nativa automáticamente
+    return fmtMonto(val, objetoMoneda, modoMoneda);
   };
 
   return (
@@ -118,22 +133,35 @@ export function CashBreakdownWaterfall({
           </p>
         </div>
 
-        {/* Badge del Cuello de Botella Detectado */}
-        <div
-          className={`rounded-xl border px-3 py-2 text-right ${
-            analisisCaja.gravedad === "alerta"
-              ? "border-bad/40 bg-bad-soft/30 text-bad"
-              : analisisCaja.gravedad === "atencion"
-              ? "border-warn/40 bg-warn-soft/30 text-warn"
-              : "border-ok/40 bg-ok-soft/30 text-ok"
-          }`}
-        >
-          <span className="block font-mono text-[10px] uppercase font-bold tracking-wider">
-            Cuello de botella principal
-          </span>
-          <span className="font-mono text-xs font-bold sm:text-sm">
-            {analisisCaja.cuelloBotella}
-          </span>
+        {/* Badge del Cuello de Botella Detectado y selector de moneda */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {objetoMoneda.monedaReporte !== "USD" && (
+            <button
+              type="button"
+              onClick={() => setModoMoneda(modoMoneda === "usd" ? "nativa" : "usd")}
+              className="rounded border border-border bg-bg px-2.5 py-1 font-mono text-xs font-semibold text-ink-muted hover:text-ink focus-ring"
+              title="Cambiar entre dólares y moneda local"
+            >
+              {modoMoneda === "usd" ? `Ver en ${objetoMoneda.monedaReporte}` : "Ver en US$"}
+            </button>
+          )}
+
+          <div
+            className={`rounded-xl border px-3 py-2 text-right ${
+              analisisCaja.gravedad === "alerta"
+                ? "border-bad/40 bg-bad-soft/30 text-bad"
+                : analisisCaja.gravedad === "atencion"
+                ? "border-warn/40 bg-warn-soft/30 text-warn"
+                : "border-ok/40 bg-ok-soft/30 text-ok"
+            }`}
+          >
+            <span className="block font-mono text-[10px] uppercase font-bold tracking-wider">
+              Cuello de botella principal
+            </span>
+            <span className="font-mono text-xs font-bold sm:text-sm">
+              {analisisCaja.cuelloBotella}
+            </span>
+          </div>
         </div>
       </div>
 
